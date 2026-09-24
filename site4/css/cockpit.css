@@ -424,3 +424,79 @@ a { color: inherit; }
 }
 #hud .dossier text { font-size: 14px; }
 #hud .dossier .dim { font-size: 11px; opacity: .75; }
+
+/* ---------- sub-pages: a cockpit display in a bevelled screen ---------- */
+body.page { background: var(--night); overflow-x: hidden; }
+body.page #frame { opacity: .55; }
+
+.strip {
+  position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+  padding: 12px 20px; background: rgba(6, 10, 18, .88);
+  border-bottom: 1px solid rgba(140, 255, 193, .3);
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .1em;
+}
+.strip ul { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; }
+.strip a { color: var(--hud); text-decoration: none; padding: 6px 8px; min-height: 32px; display: inline-flex; align-items: center; }
+.strip a:hover { background: var(--hud); color: var(--night); }
+.strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
+.strip .ret { color: var(--amber); }
+
+.screen {
+  position: relative; z-index: 6;
+  max-width: 1080px; margin: 0 auto; padding: 96px 20px 80px;
+  color: var(--ice); font: 400 15px/1.6 'B612', system-ui, sans-serif;
+}
+.panel {
+  position: relative; background: var(--panel); padding: 22px 24px 26px;
+  border: 1px solid rgba(140, 255, 193, .28); margin: 0 0 26px;
+}
+.panel::before, .panel::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border: 0 solid var(--hud); opacity: .7;
+}
+.panel::before { left: -1px; top: -1px; border-width: 1px 0 0 1px; }
+.panel::after { right: -1px; bottom: -1px; border-width: 0 1px 1px 0; }
+.bar {
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud);
+  padding: 0 0 14px; margin: 0 0 18px; border-bottom: 1px solid rgba(140, 255, 193, .3);
+}
+.screen h1 { font: 700 clamp(28px, 5vw, 52px)/1.05 'B612 Mono', monospace; letter-spacing: .04em; margin: 0 0 18px; }
+.screen h2 { font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em; color: var(--hud); margin: 0 0 8px; }
+.screen p { margin: 0 0 14px; max-width: 68ch; }
+.screen a { color: var(--amber); }
+.meta { font: 400 12px/1.5 'B612 Mono', monospace; letter-spacing: .08em; color: var(--hud); opacity: .85; }
+.rows { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0; font-size: 14px; }
+.rows dt { font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
+.rows dd { margin: 0; }
+.tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
+
+/* mission entries slide in as they scroll into view */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* hangar: three-view on a blueprint panel, callouts light their part */
+.views { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; }
+.views svg { width: min(30%, 260px); height: auto; flex: 0 1 auto; }
+.views [id].is-hot { color: var(--amber); }
+.views [id].is-hot * { stroke: var(--amber) !important; }
+.callouts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.callouts button {
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .1em;
+  background: transparent; color: var(--hud); border: 1px solid rgba(140, 255, 193, .5);
+  padding: 9px 12px; min-height: 36px; cursor: pointer;
+}
+.callouts button:hover, .callouts button:focus-visible { background: var(--amber); color: var(--night); border-color: var(--amber); }
+
+/* entrance: a scanline wipe down the screen */
+@keyframes screen-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+body.page .screen { animation: screen-wipe .4s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  body.page .screen { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+@media (max-width: 700px) {
+  .screen { padding: 110px 14px 60px; }
+  .views svg { width: min(46%, 200px); }
+  .rows { grid-template-columns: 1fr; gap: 2px 0; }
+  .rows dd { margin: 0 0 10px; }
+}

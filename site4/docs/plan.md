@@ -1,6 +1,6 @@
 # Site4 "ARGUS" Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to carry out this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking. **Resuming?** Find the first unticked box, check the files on disk (an earlier session may have partly done that task), and continue. Tick boxes and commit and push after every task.
+> **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to carry out this plan task by task. Steps use checkbox (`- [x]`) syntax for tracking. **Resuming?** Find the first unticked box, check the files on disk (an earlier session may have partly done that task), and continue. Tick boxes and commit and push after every task.
 
 **Goal:** Build site4, an original mobile-suit cockpit HUD site for Sylas Lyu:
 - a boot sequence that opens a 360° all-around cockpit hub with lock-on targets;
@@ -420,8 +420,8 @@ With reduced motion, or the session key already set, it jumps straight to the en
 - [x] **Step 3:** Every hub.test.js check PASSes. Commit and push.
 
 ### Task 7: Hub integration review (coordinator)
-- [ ] Load `frontend-design` and `ui-ux-pro-max` (on Python 3.11 you need the patched copy of its script, see memory or CLAUDE.md). Review the boot frames and hub screenshots at every test width. Check that it's legible, that the HUD doesn't cover the targets, and that the scene reads as a night city in rain.
-- [ ] **Performance:** measure frame time with the CDP `Performance` domain while turning (aim for less than 16ms per frame at 1440×900) and check the hub's total transfer size is under 1.5MB. Fix anything over. Commit and push.
+- [x] Load `frontend-design` and `ui-ux-pro-max` (on Python 3.11 you need the patched copy of its script, see memory or CLAUDE.md). Review the boot frames and hub screenshots at every test width. Check that it's legible, that the HUD doesn't cover the targets, and that the scene reads as a night city in rain.
+- [x] **Performance:** measure frame time with the CDP `Performance` domain while turning (aim for less than 16ms per frame at 1440×900) and check the hub's total transfer size is under 1.5MB. Fix anything over. Commit and push.
 
 ### Task 8: Sub-pages (wave 3, `frontend-developer`)
 **Files:** create `site4/pilot.html`, `missions.html` and `hangar.html`. Modify `site4/css/cockpit.css` by appending one `/* pages */` section.
@@ -443,19 +443,19 @@ With reduced motion, or the session key already set, it jumps straight to the en
 - callout `<button>`s that toggle `.is-hot` on the matching `#part` on hover or focus;
 - the spec table, labelled "Design specs (fictional)".
 
-- [ ] **Step 1:** `node site4/tests/pages.test.js`. Expected: FAIL.
-- [ ] **Step 2:** Dispatch. The agent screenshots every page at each test width and fixes problems before reporting.
-- [ ] **Step 3:** pages.test.js PASSes, and the screenshots have been reviewed by the coordinator. Commit and push.
+- [x] **Step 1:** `node site4/tests/pages.test.js`. Expected: FAIL.
+- [x] **Step 2:** Dispatch. The agent screenshots every page at each test width and fixes problems before reporting.
+- [x] **Step 3:** pages.test.js PASSes, and the screenshots have been reviewed by the coordinator. Commit and push.
 
 ### Task 9: QA (wave 4)
-- [ ] Dispatch `accessibility-tester` (read-only) on `site4/`, covering contrast (HUD green and ice on panel), focus order, the keyboard path through the hub, `aria-live` lock status, reduced motion and touch target sizes. The coordinator fixes anything critical or major.
-- [ ] Run the full `node site4/tests/run.js`: every check PASSes. Look at the final screenshot set.
-- [ ] Budget script: the sizes of `site4/img/**` and the hub's total must be within the Global constraints.
-- [ ] Commit and push.
+- [x] Dispatch `accessibility-tester` (read-only) on `site4/`, covering contrast (HUD green and ice on panel), focus order, the keyboard path through the hub, `aria-live` lock status, reduced motion and touch target sizes. The coordinator fixes anything critical or major.
+- [x] Run the full `node site4/tests/run.js`: every check PASSes. Look at the final screenshot set.
+- [x] Budget script: the sizes of `site4/img/**` and the hub's total must be within the Global constraints.
+- [x] Commit and push.
 
 ### Task 10: Ship (coordinator)
-- [ ] Update the repo `CLAUDE.md` (site4 is done, plus how to run the tests), `site4/DESIGN.md`, and the local memory note `site4-in-progress` (rename it to "site4 built"). Tick every box in plan.md.
-- [ ] Final commit and push. Tell the user how to deploy: upload the contents of `site4/` to Neocities, except `docs/` and `tests/`.
+- [x] Update the repo `CLAUDE.md` (site4 is done, plus how to run the tests), `site4/DESIGN.md`, and the local memory note `site4-in-progress` (rename it to "site4 built"). Tick every box in plan.md.
+- [x] Final commit and push. Tell the user how to deploy: upload the contents of `site4/` to Neocities, except `docs/` and `tests/`.
 
 ## Verification (end to end)
 - `node site4/tests/run.js` checks:

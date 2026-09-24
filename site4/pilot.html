@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pilot, Sylas Lyu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/cockpit.css">
+</head>
+<body class="page">
+<img id="frame" src="img/frame.svg" alt="" width="1920" height="1080">
+<canvas id="fx" aria-hidden="true"></canvas>
+<svg id="hud" aria-hidden="true"></svg>
+
+<nav class="strip" aria-label="Cockpit">
+  <a class="ret" href="index.html">&#9666; RETURN TO COCKPIT</a>
+  <ul>
+    <li><a href="pilot.html" aria-current="page">PILOT</a></li>
+    <li><a href="missions.html">MISSIONS</a></li>
+    <li><a href="hangar.html">HANGAR</a></li>
+  </ul>
+</nav>
+
+<main class="screen">
+  <p class="bar">// PILOT DATA</p>
+  <h1>SYLAS LYU</h1>
+
+  <section class="panel">
+    <h2>Identification</h2>
+    <dl class="rows">
+      <dt>CALLSIGN</dt><dd>Sylas Lyu</dd>
+      <dt>UNIT</dt><dd>SL-01 ARGUS</dd>
+      <dt>ROLE</dt><dd>Psychology and UX design, Purdue University</dd>
+      <dt>STATUS</dt><dd><span class="tag">ACTIVE</span></dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>Comms</h2>
+    <p>Psychology and UX design at Purdue. I research how people&rsquo;s everyday data can inform
+    mental health and healthcare decisions.</p>
+    <p class="meta">OPEN CHANNEL</p>
+    <p><a href="https://www.linkedin.com/in/steven-lyu-73815525b/">linkedin.com/in/steven-lyu-73815525b</a></p>
+  </section>
+
+</main>
+
+<script src="js/argus.js" defer></script>
+<script src="js/hud.js" defer></script>
+<script src="js/fx.js" defer></script>
+<script src="js/pages.js" defer></script>
+</body>
+</html>

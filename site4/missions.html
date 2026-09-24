@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Missions, Sylas Lyu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/cockpit.css">
+</head>
+<body class="page">
+<img id="frame" src="img/frame.svg" alt="" width="1920" height="1080">
+<canvas id="fx" aria-hidden="true"></canvas>
+<svg id="hud" aria-hidden="true"></svg>
+
+<nav class="strip" aria-label="Cockpit">
+  <a class="ret" href="index.html">&#9666; RETURN TO COCKPIT</a>
+  <ul>
+    <li><a href="pilot.html">PILOT</a></li>
+    <li><a href="missions.html" aria-current="page">MISSIONS</a></li>
+    <li><a href="hangar.html">HANGAR</a></li>
+  </ul>
+</nav>
+
+<main class="screen">
+  <p class="bar">// MISSION LOG</p>
+  <h1>MISSION LOG</h1>
+
+  <article class="panel reveal">
+    <p class="meta">MSN-01 &nbsp;/&nbsp; JULY 2026 &ndash; PRESENT &nbsp;/&nbsp; <span class="tag">ACTIVE</span></p>
+    <h2>UNC NIcE X Lab</h2>
+    <p class="meta">UNDERGRADUATE RESEARCH ASSISTANT, INTERNSHIP</p>
+    <p>Everyday smartphone and wearable data and student mental health, using a multi-year
+    dataset spanning four student cohorts.</p>
+    <p>Tested whether large language models can translate behavioural and self-report data into
+    established mental health measures, and co-wrote the paper through three rounds of review
+    to publication.</p>
+    <p>Built Python tools for data quality and coverage across cohorts, and visualisations
+    comparing groups. Reviewed lab manuscripts and presented at lab meetings.</p>
+  </article>
+
+  <article class="panel reveal">
+    <p class="meta">MSN-02 &nbsp;/&nbsp; DECEMBER 2025 &ndash; PRESENT &nbsp;/&nbsp; <span class="tag">ACTIVE</span></p>
+    <h2>Human Betterment Analytics Research Lab</h2>
+    <p class="meta">UNDERGRADUATE RESEARCH ASSISTANT, PURDUE</p>
+    <p>Healthcare, data science and decision systems: models that inform clinical decisions,
+    healthcare delivery and public health policy under uncertainty.</p>
+  </article>
+
+</main>
+
+<script src="js/argus.js" defer></script>
+<script src="js/hud.js" defer></script>
+<script src="js/fx.js" defer></script>
+<script src="js/pages.js" defer></script>
+</body>
+</html>

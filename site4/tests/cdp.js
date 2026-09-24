@@ -24,6 +24,9 @@ async function launch({ width = 1440, height = 900, reduce = false } = {}) {
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text); };
   const send = (method, params = {}) => new Promise(r => { pending[++id] = r; ws.send(JSON.stringify({ id, method, params })); });
   await send('Runtime.enable'); await send('Page.enable');
+  // without this the page is never foregrounded, so focus/blur events never fire
+  // even though document.activeElement updates -- focus-driven UI looks broken
+  await send('Page.bringToFront');
   const page = {
     errors, sleep, send,
     size: (w, h) => send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 700 }),
