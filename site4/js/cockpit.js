@@ -216,11 +216,20 @@
 
   ARGUS.on('boot-done', function () { targetYaw = state.yaw; targetPitch = state.pitch; });
 
-  // rear warning: a target more than 60deg off-centre gets .is-behind (CSS draws the chevron)
+  // rear warning: a target more than 60deg off-centre gets .is-behind (CSS draws the chevron).
+  // Past 95deg it is culled outright: the cylinder has no depth, so a target on the far side
+  // still projects onto the screen through it, arriving mirrored (its back face is toward us).
+  // At a wide enough field of view that put the UNKNOWN box, 180deg behind, in the middle of
+  // the screen as backwards text. Hiding it is the fix; backface-visibility alone would drop
+  // the box but leave the CSS ::after label painting.
   function updateBehind(yaw) {
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
-      t.classList.toggle('is-behind', Math.abs(shortestDelta(yaw, dy)) > 60);
+      var off = Math.abs(shortestDelta(yaw, dy));
+      t.classList.toggle('is-behind', off > 60);
+      var hidden = off > 95;
+      t.style.visibility = hidden ? 'hidden' : '';
+      t.style.pointerEvents = hidden ? 'none' : '';
     });
   }
 
