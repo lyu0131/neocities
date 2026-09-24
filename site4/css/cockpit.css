@@ -1,0 +1,391 @@
+/* ARGUS cockpit: tokens, hub layer stack, HUD look, boot sequence.
+   Owner: css/cockpit.css (see DESIGN.md "File ownership").
+   Hard rule: never set `transform` on .pano-ring, .pano-slice or .target —
+   js/cockpit.js writes those inline every frame. */
+
+:root {
+  --night: #060A12;
+  --indigo: #0E1830;
+  --teal: #1F4E5F;
+  --sodium: #FF9A3D;
+  --hud: #8CFFC1;
+  --hud-dim: rgba(140, 255, 193, .45);
+  --amber: #FFB02E;
+  --lock: #FF3347;
+  --ice: #DDE7EE;
+  --panel: rgba(6, 10, 18, .72);
+  --glow: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 8px rgba(140, 255, 193, .35));
+  --z-pano: 1;
+  --z-fx: 2;
+  --z-frame: 3;
+  --z-hud: 4;
+  --z-nav: 5;
+  --z-boot: 10;
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--night);
+  color: var(--ice);
+  font: 16px/1.55 'B612', 'Helvetica Neue', Arial, sans-serif;
+  overflow-x: hidden; /* belt-and-suspenders: no page ever scrolls sideways */
+}
+body.hub { height: 100vh; overflow: hidden; } /* the hub itself never scrolls */
+#cockpit { position: relative; height: 100%; background: var(--night); }
+
+a { color: inherit; }
+
+/* shared type utilities (spec 3's type scale) */
+.readout {
+  font: 700 13px/1 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+}
+.display {
+  font: 700 clamp(40px, 7vw, 112px) / 1.02 'B612', sans-serif;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hud);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+
+/* ---------- layer 1: the panorama cylinder ---------- */
+#pano {
+  --slice-w: 27vh;  /* 400 of pano.svg's 9600 units, scaled so 2000 units -> 135vh */
+  --slice-h: 135vh;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-pano);
+  overflow: hidden;
+  background: var(--night);
+  perspective: 42vw;         /* ~100deg horizontal FOV on landscape */
+  perspective-origin: 50% 50%;
+}
+@media (orientation: portrait) {
+  #pano { perspective: 71vw; } /* ~70deg horizontal FOV on portrait */
+}
+
+.pano-ring {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.pano-slice {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--slice-w);
+  height: var(--slice-h);
+  margin: calc(var(--slice-h) / -2) 0 0 calc(var(--slice-w) / -2);
+  background-image: url(../img/pano.svg);
+  background-repeat: no-repeat;
+  background-size: calc(var(--slice-w) * 24) var(--slice-h);
+  background-position-y: 0;
+  transform-origin: 50% 50% 0;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* boot: monitor panels flicker on one by one (js toggles this per slice) */
+.pano-slice.boot-flicker { animation: boot-flicker .5s steps(5, end) 1; }
+@keyframes boot-flicker {
+  0%, 100% { filter: none; opacity: 1; }
+  12% { filter: brightness(7) saturate(0) contrast(1.2); opacity: 1; }
+  30% { filter: brightness(.15); opacity: .8; }
+  48% { filter: brightness(5) saturate(0); opacity: 1; }
+  70% { filter: brightness(.4); opacity: .9; }
+}
+
+/* ---------- targets (children of .pano-ring, turn with the scene) ---------- */
+.target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  color: var(--hud);
+  cursor: pointer;
+  pointer-events: auto;
+  filter: var(--glow);
+  transition: width .35s steps(3, end), height .35s steps(3, end),
+              margin .35s steps(3, end), color .2s ease;
+  /* four corner brackets, drawn as background gradients pinned to the box's corners */
+  background:
+    linear-gradient(currentColor, currentColor) top left / 16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) top left / 2px 16px no-repeat,
+    linear-gradient(currentColor, currentColor) top right / 16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) top right / 2px 16px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom left / 16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom left / 2px 16px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom right / 16px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) bottom right / 2px 16px no-repeat;
+}
+/* the emblem: a small diamond mark centred in the bracket box */
+.target::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 13px; height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+/* label + range readout, stacked under the box */
+.target::after {
+  content: attr(data-label) '\a' attr(data-readout);
+  position: absolute;
+  top: 100%; left: 50%;
+  margin-top: 10px;
+  transform: translateX(-50%);
+  white-space: pre-line;
+  text-align: center;
+  width: max-content;
+  max-width: 30ch;
+  font: 700 12px/1.6 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  opacity: .8;
+  transition: opacity .3s ease;
+}
+.target.is-locked {
+  width: 56px; height: 56px; margin: -28px 0 0 -28px;
+  color: var(--lock);
+}
+.target.is-locked::after { opacity: 1; }
+
+/* rear-warning: a target more than 60deg off-centre shows an amber chevron
+   instead of its bracket box (js toggles .is-behind) */
+.target.is-behind {
+  width: 32px; height: 32px; margin: -16px 0 0 -16px;
+  background: none;
+  color: var(--amber);
+}
+.target.is-behind::before {
+  width: 20px; height: 20px; margin: -10px 0 0 -10px;
+  border: none;
+  border-top: 2.5px solid currentColor;
+  border-right: 2.5px solid currentColor;
+  transform: rotate(-135deg);
+}
+.target.is-behind::after { opacity: .9; }
+
+/* ---------- layer 2: canvas fx ---------- */
+#fx {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- layer 3: the fixed cockpit frame ---------- */
+#frame {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-frame);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- layer 4: the HUD overlay ---------- */
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-hud);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--hud);
+  filter: var(--glow);
+}
+#hud :is(path, line, polyline, polygon, circle, rect):not([fill]) {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+}
+#hud text, #hud .hdg-readout {
+  font: 700 13px/1 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  fill: currentColor;
+}
+
+/* HUD draw-in during boot: strokes draw in, the reticle drops from 3x with a snap */
+#hud.hud-draw :is(path, line, polyline, circle, rect) {
+  stroke-dasharray: 260;
+  animation: hud-stroke-in 1.1s ease-out 1 both;
+}
+@keyframes hud-stroke-in {
+  from { stroke-dashoffset: 260; }
+  to   { stroke-dashoffset: 0; }
+}
+#hud.hud-draw .boresight,
+#hud.hud-draw [data-boresight] {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reticle-drop .5s cubic-bezier(.2, 1.6, .4, 1) 1 both;
+}
+@keyframes reticle-drop {
+  0%   { transform: scale(3); opacity: 0; }
+  70%  { transform: scale(.94); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- controls: nav, sr-only, hud buttons ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hud-btn {
+  font: 700 12px/1 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--hud);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--hud);
+  border-radius: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.hud-btn:hover { background: rgba(140, 255, 193, .14); }
+
+#targets-nav {
+  position: fixed;
+  top: 16px; left: 16px;
+  z-index: var(--z-nav);
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+}
+#targets-nav:focus-within {
+  width: auto; height: auto;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--hud);
+  border-radius: 2px;
+  padding: 12px 16px;
+}
+#targets-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#targets-nav a {
+  display: block;
+  min-height: 44px;
+  padding: 6px 4px;
+  font: 700 13px/1.3 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--hud);
+  text-decoration: none;
+  white-space: nowrap;
+}
+#targets-nav a:hover, #targets-nav a:focus-visible { color: var(--ice); }
+
+#tilt { position: fixed; right: 16px; bottom: 16px; z-index: var(--z-nav); }
+#lock-status { z-index: var(--z-nav); }
+
+/* ---------- the boot overlay ---------- */
+#boot {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-boot);
+  background: var(--night);
+  color: var(--hud);
+  transition: opacity .35s ease; /* boot.js removes the node 350ms after adding .boot-out */
+}
+#boot.boot-out { opacity: 0; pointer-events: none; }
+
+#boot-log {
+  position: absolute;
+  left: 24px;
+  bottom: 48px; /* clears .boot-cursor, which boot.js pins to left:24px bottom:24px */
+  max-width: calc(100vw - 48px);
+  margin: 0;
+  font: 14px/1.7 'B612 Mono', monospace;
+  letter-spacing: .02em;
+  color: var(--hud);
+  filter: drop-shadow(0 0 2px var(--hud));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* boot.js creates these two elements and styles their position/size/colour inline as a
+   fallback; it relies on cockpit.css for the rest of the look (glow, type) and for the
+   --hud token the inline var(--hud, #8CFFC1) falls back from. Do not set position/left/
+   bottom/width/height/background/opacity here — the inline styles already own those. */
+.boot-cursor {
+  filter: drop-shadow(0 0 3px var(--hud));
+}
+.boot-callsign {
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  filter: var(--glow);
+}
+
+#boot #skip {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+}
+
+/* frame seam glow (spec 6, 1900-3100ms): "the frame seams glow green then settle".
+   No JS currently toggles this — #frame is a static <img> and boot.js correctly leaves
+   it alone. The hook is here and harmless if unused; wire it up with
+   frameEl.classList.add('seam-glow') at t=1900 (remove, or let the animation finish,
+   at t=3100) if this beat is wanted. See report. */
+#frame.seam-glow { animation: frame-seam-glow 1.2s ease-out 1; }
+@keyframes frame-seam-glow {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 6px var(--hud)) brightness(1.2); }
+}
+
+/* ---------- reduced motion: land in the finished state, no flashes ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .pano-slice.boot-flicker { animation: none; filter: none; opacity: 1; }
+  #hud.hud-draw :is(path, line, polyline, circle, rect) { animation: none; stroke-dashoffset: 0; }
+  #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
+  .target { transition: none; }
+  #boot { transition: none; }
+  #frame.seam-glow { animation: none; filter: none; }
+}
+
+/* ---------- 375px: no horizontal scroll, tilt reachable, 44px targets ---------- */
+@media (max-width: 480px) {
+  .hud-btn { padding: 10px 12px; font-size: 11px; }
+  #tilt { right: 10px; bottom: 10px; }
+  #targets-nav { top: 10px; left: 10px; }
+  #targets-nav:focus-within { max-width: calc(100vw - 20px); padding: 10px 12px; }
+  .target { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  .target.is-locked { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+  .target::after { max-width: 22ch; font-size: 11px; }
+  #boot-log { left: 12px; bottom: 12px; font-size: 12px; max-width: calc(100vw - 24px); }
+}
