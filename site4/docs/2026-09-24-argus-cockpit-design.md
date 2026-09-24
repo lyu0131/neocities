@@ -177,7 +177,8 @@ Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
   - left and right linear-seat arm rails and control grip silhouettes at the lower corners;
   - corner registration marks.
   - Mostly `--night` fills at 85–95% opacity, so the centre stays open.
-- **`img/hud.svg`:** a `<symbol>` sprite with ids `boresight`, `fpm`, `td-corner`, `rear-chevron`, `lock-diamond`, `emblem-pilot`, `emblem-missions`, `emblem-hangar`, `emblem-unknown`. Stroke-only, using `currentColor`, square caps.
+- ~~**`img/hud.svg`**~~ — **removed.** It was built but nothing ever referenced it; the HUD draws its
+  own glyphs in `hud.js` and the targets draw theirs in CSS. Originally specced as a `<symbol>` sprite with ids `boresight`, `fpm`, `td-corner`, `rear-chevron`, `lock-diamond`, `emblem-pilot`, `emblem-missions`, `emblem-hangar`, `emblem-unknown`. Stroke-only, using `currentColor`, square caps.
 - **`img/ms/sl01-{front,side,back}.svg`:** an original mobile suit, 18m class. Heroic proportions and angular armour, but **not** a V-fin copy of the RX-78: use a split single blade crest, sensor visor plus mono-eye slit, layered shoulder binders, and a backpack with two fin thrusters.
   - Technical line art: `--ice` strokes of 1.2–2.0px, panel lines, a few `--hud` accent strokes, no fills except a faint `--indigo` wash.
   - A shared viewBox of `0 0 800 1400`, with feet on y=1340, so the three views align.

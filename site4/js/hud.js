@@ -10,6 +10,7 @@
 (function () {
   'use strict';
   var ARGUS = window.ARGUS;
+  var wrap360 = ARGUS.wrap360, shortestDelta = ARGUS.shortestDelta, clamp = ARGUS.clamp;
   var svg = document.getElementById('hud');
   var isPage = document.body.classList.contains('page');
   var NS = 'http://www.w3.org/2000/svg';
@@ -21,11 +22,8 @@
     return e;
   }
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
-  function wrap360(a) { return ((a % 360) + 360) % 360; }
-  function shortestDelta(from, to) { var d = wrap360(to - from); if (d > 180) d -= 360; return d; }
   function pad3(n) { n = Math.round(wrap360(n)); return (n < 10 ? '00' : n < 100 ? '0' : '') + n; }
   function cardinal(h) { return h === 0 ? 'N' : h === 90 ? 'E' : h === 180 ? 'S' : h === 270 ? 'W' : null; }
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function xf(g, x, y, extra) { g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' + (extra || '')); }
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -100,7 +98,7 @@
   // nose plots to the right, so it agrees with the heading tape and the scene.
   var RAD = 100;
   var radar = el('g', { class: 'radar' });
-  var radarCone, radarSweep, blips = [];
+  var radarCone, blips = [];
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
   var PAD = 16, HEAD = 22;
@@ -125,8 +123,6 @@
     // the field of view you can actually see, as a wedge at the top
     radarCone = el('path', { fill: 'rgba(140,255,193,.14)', stroke: 'none' });
     radar.appendChild(radarCone);
-    radarSweep = el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: 0.35 });
-    radar.appendChild(radarSweep);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
     var cap = el('text', { x: -RAD - PAD + 8, y: -RAD - PAD - 7 });
     cap.textContent = 'CONTACTS';

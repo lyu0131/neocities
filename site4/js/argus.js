@@ -6,6 +6,9 @@
     state: { yaw: 0, pitch: 0, booted: false },
     reduce: mq('(prefers-reduced-motion: reduce)'),
     fine: mq('(pointer: fine)'),
+    wrap360: function (a) { return ((a % 360) + 360) % 360; },
+    shortestDelta: function (from, to) { var d = window.ARGUS.wrap360(to - from); return d > 180 ? d - 360 : d; },
+    clamp: function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); },
     on: function (type, fn) { document.addEventListener('argus:' + type, function (e) { fn(e.detail || {}); }); },
     emit: function (type, detail) { document.dispatchEvent(new CustomEvent('argus:' + type, { detail: detail || {} })); }
   };

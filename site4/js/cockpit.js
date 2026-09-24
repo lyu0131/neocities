@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var ARGUS = window.ARGUS;
+  var wrap360 = ARGUS.wrap360, shortestDelta = ARGUS.shortestDelta, clamp = ARGUS.clamp;
   var state = ARGUS.state;
   var root = document.documentElement;
   var pano = document.getElementById('pano');
@@ -22,8 +23,6 @@
   // (and slices, which inherit) need pointer-events:none.
   ring.style.pointerEvents = 'none';
 
-  function wrap360(a) { return ((a % 360) + 360) % 360; }
-  function shortestDelta(from, to) { var d = wrap360(to - from); if (d > 180) d -= 360; return d; }
   var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
@@ -135,7 +134,10 @@
     if (lockedId) {
       var t = document.getElementById(lockedId);
       if (t) t.classList.add('is-locked');
-      lockStatus.textContent = 'LOCK: ' + (d.label || '') + ' — ' + (d.readout || '');
+      // must carry everything the dossier shows: svg#hud is aria-hidden, so this
+      // live region is the only route to that text for assistive tech
+      lockStatus.textContent = 'LOCK: ' + (d.label || '') + ' — ' + (d.readout || '')
+        + (d.info ? ' — ' + d.info : '');
     } else {
       lockStatus.textContent = '';
     }
@@ -257,7 +259,7 @@
 
   ARGUS.on('boot-done', function () { targetYaw = state.yaw; targetPitch = state.pitch; });
 
-  // rear warning: a target more than 60deg off-centre gets .is-behind (CSS draws the chevron).
+  // Culling only: a target on the far side still projects through the depthless
   // Past 95deg it is culled outright: the cylinder has no depth, so a target on the far side
   // still projects onto the screen through it, arriving mirrored (its back face is toward us).
   // At a wide enough field of view that put the UNKNOWN box, 180deg behind, in the middle of
@@ -267,7 +269,6 @@
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       var off = Math.abs(shortestDelta(yaw, dy));
-      t.classList.toggle('is-behind', off > 60);
       var hidden = off > 95;
       t.style.visibility = hidden ? 'hidden' : '';
       t.style.pointerEvents = hidden ? 'none' : '';

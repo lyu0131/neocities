@@ -158,6 +158,10 @@ a { color: inherit; }
   letter-spacing: .08em;
   opacity: .8;
   transition: opacity .3s ease;
+  /* the label sits directly on the scene; without a backing it falls below
+     4.5:1 wherever it crosses lit windows or water reflections (measured) */
+  background: rgba(6, 10, 18, .82);
+  padding: 2px 6px;
 }
 .target.is-locked {
   width: 56px; height: 56px; margin: -28px 0 0 -28px;
@@ -165,21 +169,6 @@ a { color: inherit; }
 }
 .target.is-locked::after { opacity: 1; }
 
-/* rear-warning: a target more than 60deg off-centre shows an amber chevron
-   instead of its bracket box (js toggles .is-behind) */
-.target.is-behind {
-  width: 32px; height: 32px; margin: -16px 0 0 -16px;
-  background: none;
-  color: var(--amber);
-}
-.target.is-behind::before {
-  width: 20px; height: 20px; margin: -10px 0 0 -10px;
-  border: none;
-  border-top: 2.5px solid currentColor;
-  border-right: 2.5px solid currentColor;
-  transform: rotate(-135deg);
-}
-.target.is-behind::after { opacity: .9; }
 
 /* ---------- layer 2: canvas fx ---------- */
 #fx {

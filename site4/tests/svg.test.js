@@ -1,10 +1,9 @@
 const fs = require('fs'), path = require('path');
 const { launch, check, SITE } = require('./cdp');
-const only = process.argv[2]; // optional: pano | frame | hud | ms
+const only = process.argv[2]; // optional: pano | frame | ms
 const specs = {
   pano:  [['img/pano.svg', '0 0 9600 2000', 350, []]],
   frame: [['img/frame.svg', '0 0 1920 1080', 120, []]],
-  hud:   [['img/hud.svg', null, 120, ['boresight','fpm','td-corner','rear-chevron','lock-diamond','emblem-pilot','emblem-missions','emblem-hangar','emblem-unknown']]],
   ms:    [['img/ms/sl01-front.svg', '0 0 800 1400', 120, ['head','chest','binder-l','binder-r','leg-l','leg-r']],
           ['img/ms/sl01-side.svg', '0 0 800 1400', 120, ['head','chest','backpack','rifle']],
           ['img/ms/sl01-back.svg', '0 0 800 1400', 120, ['head','backpack','binder-l','binder-r']],

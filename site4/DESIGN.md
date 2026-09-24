@@ -44,16 +44,6 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 ## Tests
 `node tests/run.js` runs all of them, or run `tests/svg.test.js [pano|frame|hud|ms]`, `tests/hub.test.js` or `tests/pages.test.js` separately. Screenshots go to `tests/out/`, which is git-ignored.
 
-## File ownership (wave 2 — who sets what)
-Three agents build in parallel. Each writes only its own files and only touches the properties below, so nothing collides.
-
-| file | owns |
-|---|---|
-| `js/cockpit.js` | generating the 24 `.pano-slice` elements; the inline `transform` and `background-position-x` on each slice; the inline `transform` on `.pano-ring`; the inline `transform` on each `.target`; `ARGUS.state.yaw/pitch`; emitting `argus:view`, `argus:lock`, `argus:fire`; listening for `argus:face` |
-| `js/hud.js` | everything inside `svg#hud` (it builds the children, including `.hdg-readout`) |
-| `js/boot.js` | the `#boot` overlay's contents and removal; adding/removing `.boot-flicker` on slices and `.hud-draw` on `#hud`; writing `ARGUS.state.yaw` during the boot; `ARGUS.state.booted`; `argus:boot-done` |
-| `js/fx.js` | the `canvas#fx` bitmap only |
-| `css/cockpit.css` | all layout, size, colour, z-index, `perspective`, and the look of the boot overlay; the `.boot-flicker` and `.hud-draw` animations and transitions; reduced-motion; the 375px layout |
-
-**CSS must not set `transform` on `.pano-ring`, `.pano-slice` or `.target`** — cockpit.js writes those inline every frame and would overwrite it. Give `.pano-slice` its size, `backface-visibility` and `transform-origin` instead, and put `perspective` on `#pano` and `transform-style: preserve-3d` on `.pano-ring`.
-cockpit.js reads the slice width from the CSS custom property `--slice-w` on `#pano` if it is set, and otherwise computes it from the viewport.
+## Invariants
+- CSS must never set `transform` or `filter` on `.pano-ring`, `.pano-slice` or `.target` — cockpit.js and boot.js write those inline every frame.
+- `--slice-h` must stay `--slice-w * 5`; the strip is 400x2000 units per slice, and any other ratio distorts the whole scene. The floor and ceiling caps cover the pitch range instead.
