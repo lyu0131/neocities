@@ -9,3 +9,7 @@ Thumbs.db
 *.log
 node_modules/
 .vscode/
+
+# test screenshots and SDD scratch
+site4/tests/out/
+.superpowers/
