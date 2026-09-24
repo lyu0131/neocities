@@ -387,10 +387,10 @@ Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view
 - reduced-motion rules;
 - the phone layout at 375px, where targets are still reachable and the tilt button shows.
 
-- [ ] **Step 1:** `node site4/tests/hub.test.js`. The T5 checks FAIL.
-- [ ] **Step 2:** Dispatch both agents in parallel, with the class and event contract above. Each renders `tests/out/hub-*.png`, looks at it, and fixes problems before reporting.
-- [ ] **Step 3:** When both are back, rerun: the drag, arrow, focus, lock, unknown, overflow and error checks PASS. The boot checks can still fail until T6.
-- [ ] **Step 4: Commit and push.**
+- [x] **Step 1:** `node site4/tests/hub.test.js`. The T5 checks FAIL.
+- [x] **Step 2:** Dispatch both agents in parallel, with the class and event contract above. Each renders `tests/out/hub-*.png`, looks at it, and fixes problems before reporting.
+- [x] **Step 3:** When both are back, rerun: the drag, arrow, focus, lock, unknown, overflow and error checks PASS. The boot checks can still fail until T6.
+- [x] **Step 4: Commit and push.**
 
 ### Task 6: Boot sequence and canvas effects (wave 2, parallel with T5)
 **Files:** `javascript-pro` creates `site4/js/boot.js` and `site4/js/fx.js`.
@@ -415,9 +415,9 @@ With reduced motion, or the session key already set, it jumps straight to the en
 - a faint scanline flicker;
 - DPR capped at 1.5, paused when the tab is hidden, starting on `argus:boot-done`, half intensity on `body.page`, off under reduced motion (one static frame).
 
-- [ ] **Step 1:** hub.test.js: the boot checks FAIL.
-- [ ] **Step 2:** Dispatch. The agent records a frame sequence (screenshots at 0.3, 1.2, 2.4, 3.6, 4.8 and 6.0s) to `tests/out/boot-*.png` and reviews it.
-- [ ] **Step 3:** Every hub.test.js check PASSes. Commit and push.
+- [x] **Step 1:** hub.test.js: the boot checks FAIL.
+- [x] **Step 2:** Dispatch. The agent records a frame sequence (screenshots at 0.3, 1.2, 2.4, 3.6, 4.8 and 6.0s) to `tests/out/boot-*.png` and reviews it.
+- [x] **Step 3:** Every hub.test.js check PASSes. Commit and push.
 
 ### Task 7: Hub integration review (coordinator)
 - [ ] Load `frontend-design` and `ui-ux-pro-max` (on Python 3.11 you need the patched copy of its script, see memory or CLAUDE.md). Review the boot frames and hub screenshots at every test width. Check that it's legible, that the HUD doesn't cover the targets, and that the scene reads as a night city in rain.
