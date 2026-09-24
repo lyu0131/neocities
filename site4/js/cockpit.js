@@ -24,7 +24,8 @@
 
   function wrap360(a) { return ((a % 360) + 360) % 360; }
   function shortestDelta(from, to) { var d = wrap360(to - from); if (d > 180) d -= 360; return d; }
-  function clampPitch(p) { return Math.max(-12, Math.min(12, p)); }
+  var MAX_PITCH = 12;
+  function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
 
   // build the 24 slices once, ahead of the existing .target children. CSS owns their
   // size, background-image and background-size (via --slice-w); we only own transform
@@ -56,9 +57,25 @@
   // and shows pano content [i*sliceW, (i+1)*sliceW), so it's centred on content
   // (i+0.5)*sliceW — the ring's own rotateY corrects for that half-slice offset so
   // the DESIGN.md yaw->x mapping (yaw 0 = x0, yaw 180 = x4800) holds exactly.
+  // The cylinder is open at the top and bottom, so if the strip is not tall enough the
+  // viewer pitches straight past its edge and sees the void behind it. Pitching by t
+  // slides the scene P*tan(t) px on screen, so the strip has to project to at least the
+  // viewport height plus that shift at both extremes. Solve back through the projection
+  // (screen height = sliceH * P / R) for the slice height that guarantees it at any
+  // aspect ratio, and never go below the CSS default.
+  function fitSliceHeight() {
+    var P = parseFloat(getComputedStyle(pano).perspective);
+    if (!isFinite(P) || P <= 0) return;
+    var shift = P * Math.tan(MAX_PITCH * Math.PI / 180);
+    var needScreen = (innerHeight + 2 * shift) * 1.06;      // 6% slack for the ring's own tilt
+    var needSlice = needScreen * R / P;
+    pano.style.setProperty('--slice-h', Math.max(needSlice, innerHeight * 1.35) + 'px');
+  }
+
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
+    fitSliceHeight();
     for (var i = 0; i < SLICES; i++) {
       var el = sliceEls[i];
       el.style.backgroundPositionX = (-(i * sliceW)) + 'px';

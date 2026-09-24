@@ -12,6 +12,18 @@
   var blinkTimer = null;
   var done = false;
 
+  // .hud-draw is a ONE-SHOT intro: it animates every stroke inside #hud. hud.js rebuilds
+  // the heading ticks and ladder rungs on every view event, so if the class is left on,
+  // each newly created element re-matches the rule and restarts the 1.1s draw-in -- the
+  // tape and ladder then look like they are perpetually reloading. Drop it once it ends.
+  function drawHudOnce() {
+    var hud = document.getElementById('hud');
+    if (!hud) return;
+    hud.classList.add('hud-draw');
+    if (ARGUS.reduce) { hud.classList.remove('hud-draw'); return; }
+    setTimeout(function () { hud.classList.remove('hud-draw'); }, 1400);
+  }
+
   function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
   function render() { if (logEl) logEl.textContent = lines.join('\n'); }
@@ -34,7 +46,7 @@
     var flickering = document.querySelectorAll('.pano-slice.boot-flicker');
     for (var i = 0; i < flickering.length; i++) flickering[i].classList.remove('boot-flicker');
     var hud = document.getElementById('hud');
-    if (hud) hud.classList.add('hud-draw');
+    drawHudOnce();
     ARGUS.state.yaw = 0;
     ARGUS.state.booted = true;
     try { sessionStorage.setItem('argus-booted', '1'); } catch (e) {}
@@ -134,7 +146,7 @@
     // t=4300-5400: HUD draw-in
     at(4300, function () {
       var hud = document.getElementById('hud');
-      if (hud) hud.classList.add('hud-draw');
+      drawHudOnce();
     });
 
     // t=5400-6200: lock ping on MISSIONS, callsign flash, then fade
