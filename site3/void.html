@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VOID — DOLOR/SIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav" aria-label="site">
+  <a href="index.html">DOLOR/SIT</a>
+  <div>
+    <a href="work.html">[WORK]</a>
+    <a href="sound.html">[SOUND]</a>
+    <a href="zine.html">[ZINE]</a>
+    <a href="void.html" aria-current="page">[VOID]</a>
+  </div>
+</nav>
+
+<main>
+  <h1 class="t-xs" style="padding:8px;">MONITOR WALL — P.04</h1>
+
+  <div class="grid">
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="cctv" data-seed="1" data-cam="01" aria-hidden="true"></canvas>
+    </div>
+    <div class="c-4 cctv" data-cam="CAM 02" data-time="2026-09-21 01:12:44">
+      <img class="pixel" src="img/fx/cctv-garage-pixel.png" width="1680" height="944" alt="CCTV still of an empty underground parking garage at night, fisheye view" style="height:100%;">
+      <span class="rec">REC</span>
+    </div>
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="noise" data-seed="2" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="c-4 cctv" data-cam="CAM 05" data-time="2026-09-22 22:58:03">
+      <img class="pixel" src="img/fx/cctv-corridor-dither.png" width="1456" height="1088" alt="Overhead CCTV still of a blurred hooded figure walking down a long corridor" style="height:100%;">
+      <span class="rec">REC</span>
+    </div>
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="scan" data-seed="3" aria-hidden="true"></canvas>
+    </div>
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="halftone" data-seed="4" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="copy" data-seed="5" aria-hidden="true"></canvas>
+    </div>
+    <div class="c-4 cctv" data-cam="CAM 06" data-time="2026-09-20 14:07:29">
+      <img class="pixel" src="img/fx/scan-smear-pixel.png" width="1680" height="944" alt="Scanner glitch of an object dragged during the scan, stretched into streaks" style="height:100%;">
+      <span class="rec">REC</span>
+    </div>
+    <div class="c-4 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="cctv" data-seed="6" data-cam="09" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="c-6 canvas-box h-m" style="border:1px solid var(--ink);">
+      <canvas data-gen="barcode" data-seed="7" aria-hidden="true"></canvas>
+    </div>
+    <div class="c-6 cctv" data-cam="CAM 08" data-time="2026-09-23 03:33:51" style="height:360px;">
+      <img src="img/fx/hands-dither.png" width="1264" height="1264" alt="Two hands pressed flat on photocopier glass, high contrast">
+      <span class="rec">REC</span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span class="meta">DOLOR/SIT — VOL.03 — NO RIGHTS RESERVED — ALL COPY LOREM IPSUM</span>
+  <p class="barcode">*DS-VOID-12*</p>
+</footer>
+
+<script src="gen.js" defer></script>
+</body>
+</html>

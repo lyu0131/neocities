@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOLOR/SIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;700&family=VT323&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav" aria-label="site">
+  <a href="index.html" aria-current="page">DOLOR/SIT</a>
+  <div>
+    <a href="work.html">[WORK]</a>
+    <a href="sound.html">[SOUND]</a>
+    <a href="zine.html">[ZINE]</a>
+    <a href="void.html">[VOID]</a>
+  </div>
+</nav>
+
+<main>
+  <div class="wall" style="display:block;">
+    <img class="cut" src="img/poster-wall.jpg" width="1680" height="944" alt="Concrete wall layered with torn fly-posted posters and red scraps">
+
+    <h1 class="t-xl" style="position:relative;z-index:1;margin-top:-60px;">DOLOR<br>/SIT</h1>
+
+    <div class="paste rot-l" style="position:relative;z-index:2;margin-top:-70px;max-width:58%;">
+      <p class="t-xs">EVIDENCE No.04 — DO NOT REMOVE — 2026.09.23</p>
+      <p class="t-m">Lorem ipsum dolor sit amet consectetur, adipiscing elit sed do eiusmod tempor incididunt.</p>
+    </div>
+
+    <div class="paste-2 rot-r nudge taped" style="position:relative;z-index:3;margin-top:-40px;margin-left:38%;max-width:56%;">
+      <img class="cut-2 pixel" src="img/fx/scan-smear-pixel.png" width="1680" height="944" alt="Scanner glitch of an object dragged during the scan, stretched into streaks">
+      <span class="file">SCAN_0091.PNG — CORRUPT</span>
+    </div>
+
+    <div style="position:relative;z-index:2;margin-top:20px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;">
+      <div class="canvas-box h-m rot-l" style="width:min(420px,68vw);">
+        <canvas data-gen="cctv" data-seed="7" data-cam="03" aria-hidden="true"></canvas>
+      </div>
+      <div>
+        <span class="stamp rot-x" style="display:inline-block;">NOT A DRILL</span>
+        <p class="barcode rot-l" style="margin:8px 0 0;">*DS-0001*</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="t-xs" style="margin:16px 0 4px;">TABLE OF CONTENTS</h2>
+  <div class="receipt rot-l">
+    <p class="t-m" style="text-align:center;">DOLOR/SIT<br><span class="t-xs">ARCHIVE INDEX</span></p>
+    <hr>
+    <div class="line"><span><a href="work.html">WORK ..........</a></span><span>P.01</span></div>
+    <div class="line"><span><a href="sound.html">SOUND .........</a></span><span>P.02</span></div>
+    <div class="line"><span><a href="zine.html">ZINE ..........</a></span><span>P.03</span></div>
+    <div class="line"><span><a href="void.html">VOID ..........</a></span><span>P.04</span></div>
+    <hr>
+    <div class="line"><span>SUBTOTAL</span><span>4 FILES</span></div>
+    <div class="line"><span><strong>TOTAL</strong></span><span><strong>NO REFUNDS</strong></span></div>
+    <hr>
+    <p class="t-xs" style="text-align:center;">THANK YOU FOR VISITING<br>KEEP RECEIPT AS PROOF OF VIEWING</p>
+    <p class="barcode" style="text-align:center;">*DS-0001*</p>
+  </div>
+</main>
+
+<footer>
+  <span class="meta">DOLOR/SIT — VOL.03 — NO RIGHTS RESERVED — ALL COPY LOREM IPSUM</span>
+  <p class="barcode">*DS-INDEX-04*</p>
+</footer>
+
+<script src="gen.js" defer></script>
+</body>
+</html>

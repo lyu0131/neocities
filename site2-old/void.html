@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VOID — LOREM/IPSUM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav" aria-label="site">
+  <a href="index.html">LOREM/IPSUM</a>
+  <div>
+    <a href="work.html">[WORK]</a>
+    <a href="sound.html">[SOUND]</a>
+    <a href="zine.html">[ZINE]</a>
+    <a href="void.html" aria-current="page">[VOID]</a>
+  </div>
+</nav>
+
+<main>
+  <h1 class="t-xs">VOID</h1>
+
+  <canvas class="void-canvas" data-gen="scan" aria-hidden="true"></canvas>
+
+  <img class="xerox" src="img/glitch-hand.jpg" width="1680" height="944" alt="Smeared photocopier scan of a hand pressed against the copier glass, stretched into streaks">
+
+  <canvas class="void-canvas" data-gen="copy" aria-hidden="true"></canvas>
+
+  <img class="xerox rot-r narrow" src="img/face-scan.jpg" width="1136" height="1408" alt="Face pressed flat against a scanner bed, distorted and streaked by the moving scan light">
+
+  <canvas class="void-canvas" data-gen="halftone" aria-hidden="true"></canvas>
+
+  <img class="xerox" src="img/stairwell.jpg" width="1024" height="1536" alt="Dark concrete stairwell lit by a single orange emergency light">
+
+  <canvas class="void-canvas" data-gen="noise" aria-hidden="true"></canvas>
+</main>
+
+<footer>
+  <div class="meta">LOREM/IPSUM ZINE — VOL.02 — NO RIGHTS RESERVED</div>
+  <div class="tape" aria-hidden="true"></div>
+</footer>
+
+<script src="gen.js" defer></script>
+</body>
+</html>

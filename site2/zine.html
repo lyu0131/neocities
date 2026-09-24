@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zine, lorem/ipsum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-scanner>
+
+<nav class="edge-nav" aria-label="Site">
+  <ul>
+    <li class="n-home"><a href="index.html">lorem/ipsum</a></li>
+    <li class="n-work"><a href="work.html">Work</a></li>
+    <li class="n-sound"><a href="sound.html">Sound</a></li>
+    <li class="n-zine"><a href="zine.html" aria-current="page">Zine</a></li>
+    <li class="n-void"><a href="void.html">Void</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="head">
+    <h1 class="t-l" data-ransom>Zine</h1>
+    <p class="lede">Notes from the table, typed as they came. Click a picture to run it through the copier.</p>
+  </header>
+
+  <div class="table" data-scatter>
+    <article class="item sheet w-m" id="e1" data-drag>
+      <p class="meta">23 September 2026, 3:13</p>
+      <h2 class="misreg">Lorem ipsum dolor</h2>
+      <p>Sit amet, consectetur adipiscing elit. Sed do eiusmod<br>tempor incididunt ut labore et<br>dolore magna aliqua. Ut enim ad minim veniam, quis nostrud.</p>
+    </article>
+
+    <article class="item sheet sheet-2 w-s" id="e2" data-drag>
+      <p class="meta">18 September 2026, 21:07</p>
+      <p>Duis aute irure<br>dolor.</p>
+    </article>
+
+    <article class="item sheet sheet-3 w-l" id="e3" data-drag>
+      <p class="meta">11 September 2026, 22:40</p>
+      <h2 class="misreg">Excepteur sint</h2>
+      <p>Occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, <span class="flip">totam rem aperiam</span>, eaque ipsa quae ab illo inventore veritatis.</p>
+    </article>
+
+    <article class="item sheet w-s" id="e4" data-drag>
+      <p class="meta">30 August 2026, 4:02</p>
+      <p><span class="side">nemo enim</span> Ipsam voluptatem quia voluptas sit aspernatur aut odit.</p>
+    </article>
+
+    <article class="item sheet sheet-2 w-m" id="e5" data-drag>
+      <p class="meta">14 August 2026, 11:58</p>
+      <h2 class="misreg">Neque porro</h2>
+      <p>Quisquam est, qui dolorem ipsum<br>quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt.</p>
+    </article>
+
+    <article class="item sheet w-s" id="e6" data-drag>
+      <p class="meta">29 July 2026, 6:21</p>
+      <p>Ut labore.</p>
+    </article>
+
+    <article class="item sheet sheet-3 w-m" id="e7" data-drag>
+      <p class="meta">2 July 2026, 19:44</p>
+      <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque<br>corrupti quos dolores.</p>
+    </article>
+
+    <p class="item t-l slice" id="quote" data-keep data-text="Sunt in culpa.">Sunt in culpa.</p>
+
+    <figure class="item print w-m" id="desk" data-drag>
+      <img data-copy src="img/desk.jpg" width="1456" height="1088" alt="Overhead scan of a zine-making desk: scissors, glue stick, tape and stacks of photocopied pages">
+      <figcaption class="cap"><b>Desk no. 4</b>, photocopy, 2026</figcaption>
+    </figure>
+    <figure class="item print w-s" id="collage" data-drag>
+      <img data-copy src="img/collage.jpg" width="1088" height="1456" alt="Torn black-and-white magazine fragments of faces and hands layered with orange hazard tape">
+      <img class="tape-img" src="img/cut/tape-05.png" width="484" height="160" alt="">
+      <figcaption class="cap"><b>Cut up no. 2</b>, collage, 2024</figcaption>
+    </figure>
+    <img class="item scrap" id="scrap-eye" data-drag src="img/cut/scrap-03.png" width="275" height="493" alt="">
+    <img class="item scrap" id="q" data-drag src="img/cut/letter-13.png" width="126" height="168" alt="" style="width:4%">
+    <img class="item scrap" id="d" data-drag src="img/cut/letter-33.png" width="110" height="132" alt="" style="width:3.6%">
+  </div>
+</main>
+
+<footer class="foot">
+  <p class="meta">lorem/ipsum, volume 2. No rights reserved.</p>
+  <div class="tape" aria-hidden="true"></div>
+</footer>
+
+<script src="gen.js" defer></script>
+<script src="play.js" defer></script>
+</body>
+</html>

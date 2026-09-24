@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sylas Lyu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-scanner>
+
+<nav class="edge-nav" aria-label="Site">
+  <ul>
+    <li class="n-home"><a href="index.html" aria-current="page">lorem/ipsum</a></li>
+    <li class="n-work"><a href="work.html">Work</a></li>
+    <li class="n-sound"><a href="sound.html">Sound</a></li>
+    <li class="n-zine"><a href="zine.html">Zine</a></li>
+    <li class="n-void"><a href="void.html">Void</a></li>
+  </ul>
+</nav>
+
+<main class="cover" data-parallax>
+  <canvas data-gen="noise" aria-hidden="true"></canvas>
+
+  <h1 id="name" data-ransom="type" data-recut data-depth=".25">Sylas Lyu</h1>
+
+  <!-- the paste-up board around the name; shifts with the mouse at different depths -->
+  <div class="collage" aria-hidden="true">
+    <img class="bit phone" data-depth=".5" src="img/cut/scrap-03.png" width="275" height="493" alt="" style="left:66%;top:5%;width:7%;transform:rotate(9deg)">
+    <img class="bit" data-depth=".4" src="img/cut/scrap-05.png" width="279" height="487" alt="" style="left:57%;top:27%;width:6%;transform:rotate(-8deg)">
+    <img class="bit phone" data-depth="1.2" src="img/cut/scrap-07.png" width="273" height="482" alt="" style="left:3%;top:60%;width:6%;transform:rotate(-12deg)">
+    <span class="bit mini" data-depth=".9" style="left:77%;top:8%;width:11%;transform:rotate(7deg)"><img src="img/thumb/face-scan.jpg" width="480" height="595" alt=""></span>
+    <img class="bit" data-depth="1" src="img/cut/tape-02.png" width="569" height="148" alt="" style="left:80%;top:5%;width:9%;transform:rotate(24deg)">
+    <span class="bit mini" data-depth=".6" style="left:89%;top:33%;width:8%;transform:rotate(-5deg)"><img src="img/thumb/tower.jpg" width="480" height="720" alt=""></span>
+    <span class="bit mini" data-depth="1.1" style="left:66%;top:47%;width:13%;transform:rotate(4deg)"><img src="img/thumb/fence.jpg" width="480" height="320" alt=""></span>
+    <img class="bit" data-depth="1.2" src="img/cut/tape-05.png" width="484" height="160" alt="" style="left:64%;top:45%;width:6%;transform:rotate(-30deg)">
+    <img class="bit" data-depth=".3" src="img/cut/tape-04.png" width="678" height="161" alt="" style="left:38%;top:80%;width:17%;transform:rotate(-5deg)">
+    <img class="bit" data-depth="1.4" src="img/cut/letter-21.png" width="106" height="172" alt="" style="left:91%;top:63%;width:3.4%;transform:rotate(12deg)">
+    <img class="bit" data-depth="1.3" src="img/cut/letter-46.png" width="124" height="158" alt="" style="left:81%;top:30%;width:3.2%;transform:rotate(-14deg)">
+  </div>
+
+  <div class="drift-zone" data-depth=".35">
+    <a class="word misreg" data-drift href="work.html">work<span class="peek" aria-hidden="true"><img src="img/thumb/factory.jpg" width="480" height="359" alt=""></span></a>
+    <a class="word misreg" data-drift href="sound.html">sound<span class="peek" aria-hidden="true"><img src="img/thumb/tapes.jpg" width="480" height="480" alt=""></span></a>
+    <a class="word misreg" data-drift href="zine.html">zine<span class="peek" aria-hidden="true"><img src="img/thumb/desk.jpg" width="480" height="359" alt=""></span></a>
+    <a class="word misreg" data-drift href="void.html">void<span class="peek" aria-hidden="true"><img src="img/thumb/glitch-hand.jpg" width="480" height="270" alt=""></span></a>
+  </div>
+
+  <div class="label note" data-depth=".7">
+    <p>Pick a word to go in. Past this page, everything can be moved, copied or scanned.</p>
+    <button class="recut" type="button" data-recut="#name">Cut my name again</button>
+  </div>
+
+  <span class="reg" aria-hidden="true" data-depth=".2" style="left:4%;top:13%"></span>
+  <span class="reg" aria-hidden="true" data-depth=".2" style="right:5%;bottom:7%"></span>
+</main>
+
+<footer class="foot">
+  <p class="meta">lorem/ipsum, volume 2. No rights reserved.</p>
+  <div class="tape" aria-hidden="true"></div>
+</footer>
+
+<script src="gen.js" defer></script>
+<script src="play.js" defer></script>
+</body>
+</html>

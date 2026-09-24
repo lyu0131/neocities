@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound, lorem/ipsum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="edge-nav" aria-label="Site">
+  <ul>
+    <li class="n-home"><a href="index.html">lorem/ipsum</a></li>
+    <li class="n-work"><a href="work.html">Work</a></li>
+    <li class="n-sound"><a href="sound.html" aria-current="page">Sound</a></li>
+    <li class="n-zine"><a href="zine.html">Zine</a></li>
+    <li class="n-void"><a href="void.html">Void</a></li>
+  </ul>
+</nav>
+
+<main>
+  <header class="head">
+    <h1 class="t-l" data-ransom>Sound</h1>
+    <p class="lede">Three tapes, newest first. Drag the cases around the table.</p>
+  </header>
+
+  <div class="canvas-box h-s"><canvas data-gen="wave" aria-hidden="true"></canvas></div>
+
+  <div class="table" data-scatter>
+    <article class="item release w-xl" id="tape-0003" data-drag>
+      <p class="spine"><span>0003</span><span>Lorem tape vol. 2</span></p>
+      <div class="sleeve"><img src="img/tapes.jpg" width="1264" height="1264" alt="Halftone print of a stack of cassette tapes beside a reel-to-reel tape machine"></div>
+      <div class="jcard">
+        <h2>Lorem tape vol. 2</h2>
+        <p class="meta">6 tracks, 21:40, 23 September 2026</p>
+        <ol>
+          <li>Dolor (prod. sit amet)</li>
+          <li>Consectetur</li>
+          <li>Adipiscing elit (with sed do)</li>
+          <li>Eiusmod</li>
+          <li>Tempor incididunt</li>
+          <li>Labore et dolore</li>
+        </ol>
+        <p>Stream on <a href="#">lorem</a> or <a href="#">ipsum</a>.</p>
+      </div>
+    </article>
+
+    <article class="item release w-xl" id="tape-0002" data-drag>
+      <p class="spine"><span>0002</span><span>Static bloom</span></p>
+      <div class="sleeve"><img src="img/speakers.jpg" width="1088" height="1456" alt="Halftone print of a wall of stacked speaker cabinets"></div>
+      <div class="jcard">
+        <h2>Static bloom</h2>
+        <p class="meta">9 tracks, 33:02, 3 November 2025</p>
+        <ol>
+          <li>Grid fault</li>
+          <li>Spool</li>
+          <li>Warning plate</li>
+          <li>Off cycle</li>
+          <li>Bloom</li>
+          <li>Magna aliqua</li>
+          <li>Ut enim ad minim</li>
+          <li>Quis nostrud</li>
+          <li>Exercitation</li>
+        </ol>
+        <p>Stream on <a href="#">lorem</a> or <a href="#">ipsum</a>.</p>
+      </div>
+    </article>
+
+    <article class="item release w-xl" id="tape-0001" data-drag>
+      <p class="spine"><span>0001</span><span>Null signal</span></p>
+      <div class="sleeve"><img src="img/cover-0001.jpg" width="1264" height="1264" alt="Xeroxed cracked cassette tape with its ribbon spilling out, one orange label"></div>
+      <div class="jcard">
+        <h2>Null signal</h2>
+        <p class="meta">5 tracks, 16:55, 18 February 2025</p>
+        <ol>
+          <li>Press plate</li>
+          <li>Smear</li>
+          <li>Copy of a copy</li>
+          <li>Streak</li>
+          <li>Run out</li>
+        </ol>
+        <p>Stream on <a href="#">lorem</a> or <a href="#">ipsum</a>.</p>
+      </div>
+    </article>
+
+    <figure class="item print w-l" id="crowd" data-drag>
+      <img src="img/crowd.jpg" width="1680" height="944" alt="Blurred flash photo of a packed crowd at an underground show, photocopied into harsh black and grey">
+      <img class="tape-img tr" src="img/cut/tape-02.png" width="569" height="148" alt="">
+      <figcaption class="cap"><b>Basement</b>, flash, 2025</figcaption>
+    </figure>
+    <img class="item scrap" id="o" data-drag src="img/cut/letter-46.png" width="124" height="158" alt="" style="width:5%">
+    <img class="item scrap" id="tape-strip" data-drag src="img/cut/tape-06.png" width="885" height="165" alt="" style="width:24%">
+  </div>
+</main>
+
+<footer class="foot">
+  <p class="meta">lorem/ipsum, volume 2. No rights reserved.</p>
+  <div class="tape" aria-hidden="true"></div>
+</footer>
+
+<script src="gen.js" defer></script>
+<script src="play.js" defer></script>
+</body>
+</html>

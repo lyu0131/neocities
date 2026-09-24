@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Void, lorem/ipsum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="edge-nav" aria-label="Site">
+  <ul>
+    <li class="n-home"><a href="index.html">lorem/ipsum</a></li>
+    <li class="n-work"><a href="work.html">Work</a></li>
+    <li class="n-sound"><a href="sound.html">Sound</a></li>
+    <li class="n-zine"><a href="zine.html">Zine</a></li>
+    <li class="n-void"><a href="void.html" aria-current="page">Void</a></li>
+  </ul>
+</nav>
+
+<main class="void">
+  <header class="void-head">
+    <h1 class="t-m" data-ransom>Void</h1>
+    <p class="lede">Scroll slowly. Click a picture to copy it again, and again.</p>
+  </header>
+
+  <section class="stage"><canvas data-gen="noise" aria-hidden="true"></canvas></section>
+  <figure class="flash"><img data-copy src="img/glitch-hand.jpg" width="1680" height="944" alt="Smeared photocopier scan of a hand pressed against the copier glass, stretched into streaks"></figure>
+
+  <section class="stage"><canvas data-gen="scan" aria-hidden="true"></canvas></section>
+  <figure class="flash narrow"><img data-copy src="img/face-scan.jpg" width="1136" height="1408" alt="Face pressed flat against a scanner bed, distorted and streaked by the moving scan light"></figure>
+
+  <section class="stage"><canvas data-gen="copy" aria-hidden="true"></canvas></section>
+  <figure class="flash narrow"><img data-copy src="img/stairwell.jpg" width="1024" height="1536" alt="Dark concrete stairwell lit by a single orange emergency light"></figure>
+
+  <section class="stage"><canvas data-gen="halftone" aria-hidden="true"></canvas></section>
+  <figure class="flash"><img data-copy src="img/crowd.jpg" width="1680" height="944" alt="Blurred flash photo of a packed crowd at an underground show, photocopied into harsh black and grey"></figure>
+
+  <!-- finale: everything above piles up, and the tape waveform prints across it -->
+  <section class="stage finale" data-pile>
+    <div class="pile" aria-hidden="true">
+      <span class="pc mini" style="left:5%;top:12%;width:31%;transform:rotate(-5deg);--dx:-80vw;--dy:10vh;--dr:-24deg;--s:0"><img src="img/thumb/glitch-hand.jpg" width="480" height="270" alt=""></span>
+      <img class="pc" src="img/cut/tape-06.png" width="885" height="165" alt="" style="left:13%;top:9%;width:13%;transform:rotate(-7deg);--dx:-80vw;--dy:10vh;--dr:-24deg;--s:.06">
+      <span class="pc mini" style="left:65%;top:5%;width:16%;transform:rotate(6deg);--dx:60vw;--dy:-40vh;--dr:28deg;--s:.1"><img src="img/thumb/face-scan.jpg" width="480" height="595" alt=""></span>
+      <span class="pc panel" style="left:37%;top:19%;width:25%;height:36%;transform:rotate(3deg);--dy:-90vh;--dr:-12deg;--s:.16"><canvas data-gen="halftone"></canvas></span>
+      <img class="pc" src="img/cut/scrap-08.png" width="272" height="536" alt="" style="left:45%;top:50%;width:7%;transform:rotate(12deg);--dy:80vh;--dr:40deg;--s:.2">
+      <span class="pc mini" style="left:81%;top:40%;width:13%;transform:rotate(-8deg);--dx:55vw;--dy:20vh;--dr:-30deg;--s:.26"><img src="img/thumb/stairwell.jpg" width="480" height="720" alt=""></span>
+      <span class="pc mini" style="left:15%;top:57%;width:29%;transform:rotate(4deg);--dx:-60vw;--dy:60vh;--dr:18deg;--s:.32"><img src="img/thumb/crowd.jpg" width="480" height="270" alt=""></span>
+      <span class="pc panel" style="left:52%;top:63%;width:30%;height:19%;transform:rotate(-3deg);--dx:75vw;--dy:30vh;--dr:14deg;--s:.38"><canvas data-gen="scan"></canvas></span>
+      <img class="pc" src="img/cut/tape-03.png" width="652" height="157" alt="" style="left:56%;top:60%;width:9%;transform:rotate(9deg);--dx:75vw;--dy:30vh;--dr:14deg;--s:.42">
+      <span class="pc reg" style="left:91%;top:10%;--dx:30vw;--s:.46"></span>
+    </div>
+    <canvas data-gen="wave" aria-hidden="true"></canvas>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="meta">lorem/ipsum, volume 2. No rights reserved.</p>
+  <div class="tape" aria-hidden="true"></div>
+</footer>
+
+<script src="gen.js" defer></script>
+<script src="play.js" defer></script>
+</body>
+</html>
