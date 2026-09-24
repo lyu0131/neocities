@@ -211,57 +211,65 @@ add('<use href="#blk" x="6620" y="%s" transform="scale(1)"/>' % f(HZ - hills_far
 add('<rect x="6618" y="%s" width="4" height="60" fill="%s"/>' % (f(HZ - hills_far(6620) - 60), mix(INDIGO, TEAL, .22)))
 
 # ---------------------------------------------------------------- the enemy: an original visor-slit suit behind the viewer (yaw 180)
-def poly(*pts): return 'M' + 'L'.join('%s %s' % (f(x), f(y)) for x, y in pts) + 'Z'
+def poly(*pts):
+    # one winding for every subpath: the suit is a single nonzero-filled path, so two
+    # overlapping parts wound the opposite way would cancel and punch a hole.
+    if sum(pts[i - 1][0] * pts[i][1] - pts[i][0] * pts[i - 1][1] for i in range(len(pts))) < 0: pts = pts[::-1]
+    return 'M' + 'L'.join('%s %s' % (f(x), f(y)) for x, y in pts) + 'Z'
 def seg(p0, p1, w0, w1):  # tapered limb between two joints
     (x0, y0), (x1, y1) = p0, p1
     L = math.hypot(x1 - x0, y1 - y0); nx, ny = -(y1 - y0) / L, (x1 - x0) / L
     return poly((x0 + nx * w0 / 2, y0 + ny * w0 / 2), (x1 + nx * w1 / 2, y1 + ny * w1 / 2),
                 (x1 - nx * w1 / 2, y1 - ny * w1 / 2), (x0 - nx * w0 / 2, y0 - ny * w0 / 2))
 def both(*pts): return poly(*pts) + poly(*[(-x, y) for x, y in pts])
-BLADES = [((-54, -382), (-92, -412), (-170, -418), (-112, -380), (-66, -360)),    # layered, sharply pointed pauldron blades
-          ((-62, -364), (-118, -378), (-162, -384), (-116, -354), (-70, -344)),
-          ((-66, -346), (-110, -354), (-148, -352), (-108, -330), (-72, -328))]
+def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
+    return seg(p0, p1, w0, w1) + seg((-p0[0], p0[1]), (-p1[0], p1[1]), w0, w1)
+# Tall and narrow: ground at y 0, crest tips at -610, with the legs taking a little over
+# half the height and the head kept small.  Everything is mirrored about x=0.
+CREST = ((-21, -514), (-34, -552), (-48, -610), (-25, -550), (-7, -508))   # one crest blade
+PAULDRON = [((-54, -470), (-80, -496), (-116, -520), (-94, -484), (-62, -450)),   # one long swept blade
+            ((-58, -448), (-84, -462), (-104, -466), (-84, -442), (-62, -428))]   # and a blunter one under it
 SUIT = [
-    poly((-17, -386), (-23, -404), (-17, -424), (-6, -432), (6, -432), (17, -424), (23, -404), (17, -386), (0, -376)),  # wedge head
-    both((-21, -412), (-36, -396), (-22, -394)),                                          # cheek guards
-    seg((-14, -428), (-36, -484), 5, 3),                                                  # single rod antenna
-    poly((-30, -372), (-24, -392), (-14, -384), (14, -384), (24, -392), (30, -372)),      # collar
-    poly((-60, -376), (60, -376), (68, -348), (52, -306), (26, -276), (-26, -276), (-52, -306), (-68, -348)),  # V chest
-    poly((-24, -280), (24, -280), (18, -246), (-18, -246)),                               # tapered waist
-    poly((-34, -252), (34, -252), (42, -230), (18, -210), (0, -218), (-18, -210), (-42, -230)),  # pelvis
-    both((-38, -250), (-60, -240), (-72, -194), (-48, -210)),                             # pointed side skirts
-    *[both(*b) for b in BLADES],
-    seg((-84, -346), (-104, -282), 26, 22), seg((-104, -282), (-122, -212), 26, 20),     # left arm
-    seg((-90, -330), (-130, -186), 17, 15),                                               # beam cannon housing along the forearm
-    seg((-126, -200), (-162, -66), 10, 7), poly((-158, -72), (-170, -70), (-168, -50), (-160, -52)),  # barrel, emitter
-    seg((84, -346), (100, -282), 26, 22), seg((100, -282), (112, -210), 28, 20),          # right arm
-    poly((102, -214), (122, -214), (128, -188), (120, -174), (114, -190), (108, -176), (100, -192)),  # clawed hand
-    seg((-22, -222), (-34, -128), 34, 26), poly((-52, -146), (-18, -146), (-20, -118), (-35, -98), (-52, -118)),  # thigh, knee L
-    seg((-35, -118), (-44, 0), 26, 40),
-    seg((22, -222), (36, -126), 34, 26), poly((18, -144), (54, -144), (54, -116), (38, -96), (22, -116)),         # thigh, knee R
-    seg((38, -116), (48, 0), 26, 40),
+    poly((-15, -490), (-20, -506), (-15, -524), (-5, -531), (5, -531), (15, -524), (20, -506), (15, -490), (0, -482)),  # small wedge head
+    both((-18, -512), (-31, -498), (-19, -494)),                                          # cheek guards
+    both(*CREST), poly((-5, -518), (0, -570), (5, -518)),                                 # twin crest blades and centre fin
+    poly((-28, -474), (-22, -492), (-12, -484), (12, -484), (22, -492), (28, -474)),      # collar
+    poly((-58, -478), (58, -478), (66, -448), (52, -412), (26, -384), (-26, -384), (-52, -412), (-66, -448)),  # V chest
+    poly((-22, -386), (22, -386), (16, -352), (-16, -352)),                               # narrow waist
+    poly((-33, -358), (33, -358), (40, -336), (15, -318), (0, -326), (-15, -318), (-40, -336)),  # pelvis
+    both((-36, -356), (-58, -344), (-72, -276), (-44, -300)),                             # long pointed side skirts
+    *[both(*b) for b in PAULDRON],
+    segb((-74, -452), (-81, -372), 30, 24), segb((-81, -372), (-86, -288), 26, 20),       # upper arms, forearms
+    both((-94, -294), (-78, -294), (-76, -258), (-86, -248), (-96, -262)),                # hands
+    segb((-27, -334), (-31, -186), 46, 28),                                               # long thighs
+    both((-46, -200), (-16, -200), (-16, -166), (-31, -150), (-46, -168)),                # knee guards
+    segb((-31, -166), (-35, -30), 26, 22),                                                # shins
+    both((-52, -34), (-16, -34), (-12, -4), (-56, -4)),                                   # feet
 ]
+# luminous seams: thin tapered strokes running down the crest, shoulders, chest, arms and legs
+SEAMS = [((0, -476), (0, -352), 4), ((-15, -468), (-19, -392), 3), ((15, -468), (19, -392), 3),
+         ((-74, -446), (-84, -294), 3), ((74, -446), (84, -294), 3),
+         ((-24, -320), (-31, -50), 4), ((24, -320), (31, -50), 4),
+         ((-66, -468), (-110, -514), 2.5), ((66, -468), (110, -514), 2.5),
+         ((-16, -512), (-43, -592), 2.5), ((16, -512), (43, -592), 2.5)]
 D.append('<symbol id="suit" overflow="visible"><path d="%s"/></symbol>' % ''.join(SUIT))
-bgrad('suitrim', [(0, mix(TEAL, WHITE, .45), .9), (.6, mix(TEAL, WHITE, .2), .5), (1, TEAL, .1)])
-SX, SY, SS = 4800, 1160, 1.05
+bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
+SX, SY, SS = 4800, 1162, 1.0
 add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
-add('<use href="#suit" x="-3" y="-2" fill="url(#suitrim)"/>')          # rim light from the searchlight side
-add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .55))
-sh = [poly((-92, -410), (-168, -417), (-160, -413), (-94, -406)), poly((-118, -377), (-160, -383), (-154, -380), (-118, -373)),
-      poly((-40, -350), (40, -350), (36, -344), (-36, -344)), poly((-18, -300), (18, -300), (12, -290), (-12, -290)),
-      poly((-50, -142), (-22, -142), (-24, -136), (-48, -136)), seg((-94, -318), (-126, -198), 3, 3)]
-add('<path fill="%s" opacity=".5" d="%s"/>' % (mix(INDIGO, TEAL, .6), ''.join(sh)))
-add('<path fill="%s" d="%s"/>' % (NIGHT, poly((-17, -413), (17, -413), (15, -404), (-15, -404))))          # visor band
-add('<path fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), both((-13, -411), (-3, -411), (-3, -407), (-12, -406))))  # twin glowing slits
+add('<use href="#suit" x="-4" y="-3" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
+add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .18))          # near-black body
+add('<path fill="%s" opacity=".1" d="%s"/>' % (GLINT, ''.join(seg(a, b, w + 7, w + 4) for a, b, w in SEAMS)))
+add('<path fill="%s" opacity=".55" d="%s"/>' % (mix(TEAL, WHITE, .5), ''.join(seg(a, b, w, w * .5) for a, b, w in SEAMS)))
+add('<path fill="%s" d="%s"/>' % (NIGHT, poly((-16, -513), (16, -513), (14, -499), (-14, -499))))            # visor recess
+add('<path fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), poly((-13, -509), (13, -509), (11, -503), (-11, -503))))  # glowing visor slit
 add('</g>')
 rgrad('gF', FOG, ((0, 1), (.45, .88), (.8, .35), (1, 0)))
-for x, y, rx, ry, op in [(4800, 1112, 540, 100, .95), (4690, 1128, 760, 70, .85), (4930, 1092, 320, 58, .75), (4640, 1080, 260, 40, .5)]:
+for x, y, rx, ry, op in [(4800, 1074, 560, 100, .95), (4690, 1090, 780, 70, .85), (4930, 1054, 330, 58, .75), (4640, 1042, 270, 40, .5)]:
     glow(x, y, rx, ry, 'gF', op)                                            # fog bank swallowing the legs at the knee
-EX, EY = SX, SY + SS * -409
+EX, EY = SX, SY + SS * -506
 glow(EX, EY, 110, 42, 'gS', .28)
 glow(EX, EY, 50, 16, 'gS', .85)
-glow(EX, EY, 170, 4, 'gS', .8)                                             # horizontal flare off the visor
-
+glow(EX, EY, 190, 4, 'gS', .8)                                             # horizontal flare off the visor
 # a lone ship far off the left quarter, and the lighthouse on the headland
 add('<path fill="%s" d="M5880 1150L5872 1136H5990L5996 1128H6020L6030 1150Z M5930 1136V1112H5962V1136Z M5940 1112V1096H5946V1112Z"/>' % mix(NIGHT, INDIGO, .75))
 dots([(5890, 1140), (5905, 1140), (5920, 1140), (5975, 1140), (6000, 1133)], LAMP, .8, 3)
