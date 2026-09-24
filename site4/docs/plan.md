@@ -318,46 +318,46 @@ Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view
 ### Task 1: Panorama art, `img/pano.svg` (art agent A, wave 1)
 **Files:** create `site4/img/pano.svg`.
 **Produces:** a seamless 9600×2000 strip. `cockpit.js` uses it as the background for 24 slices of 400px each, 15° per slice. Yaw 0° (straight ahead, where MISSIONS sits) is at x = 0. Yaw 180° (the UNKNOWN target) is at x = 4800.
-- [ ] **Step 1: Run** `node site4/tests/svg.test.js pano`. Expected: FAIL (the file is missing).
-- [ ] **Step 2: Draw it** per spec section 8:
+- [x] **Step 1: Run** `node site4/tests/svg.test.js pano`. Expected: FAIL (the file is missing).
+- [x] **Step 2: Draw it** per spec section 8:
   - **City and sky:** a night coastal city in rain; the horizon at y≈1150; sodium-orange window grids using `<symbol>`/`<use>`; layered storm clouds in `--indigo`/`--teal`; 2–3 searchlight beams.
   - **Sea:** a dark sea with teal glints below the horizon.
   - **Enemy silhouette:** an original enemy mobile-suit silhouette at x≈4800 (behind the viewer), plus 2–3 aircraft blinker dots.
   - **Seam:** the region x 9200–9600 must continue into x 0–400.
   - **Rules:** no text, no strokes thinner than 2px (it gets scaled), 350KB or less.
-- [ ] **Step 3: Run the test again and look at `tests/out/pano-seam.png`.** The seam must be invisible. Also screenshot the whole strip scaled down and check the composition: strong silhouettes, city light density highest at yaw −60° to +60°, and a calm, dark region behind the targets so the HUD reads clearly.
-- [ ] **Step 4: Commit and push:** `git add site4/img/pano.svg && git commit -m "site4: panorama art" && git push`
+- [x] **Step 3: Run the test again and look at `tests/out/pano-seam.png`.** The seam must be invisible. Also screenshot the whole strip scaled down and check the composition: strong silhouettes, city light density highest at yaw −60° to +60°, and a calm, dark region behind the targets so the HUD reads clearly.
+- [x] **Step 4: Commit and push:** `git add site4/img/pano.svg && git commit -m "site4: panorama art" && git push`
 
 ### Task 2: Cockpit frame and HUD sprite (art agent B, wave 1)
 **Files:** create `site4/img/frame.svg` and `site4/img/hud.svg`.
 **Produces:** `frame.svg`, which is fixed and stays out of the view's way, and the `hud.svg` symbols (ids per the test). The symbols use `currentColor`, so CSS colours them `--hud` or `--lock`.
-- [ ] **Step 1: Run** `node site4/tests/svg.test.js frame` and `… hud`. Expected: FAIL.
-- [ ] **Step 2: Draw `frame.svg`** per spec section 8:
+- [x] **Step 1: Run** `node site4/tests/svg.test.js frame` and `… hud`. Expected: FAIL.
+- [x] **Step 2: Draw `frame.svg`** per spec section 8:
   - dome seam lines in 1px `--hud` at 40% opacity;
   - a bottom console silhouette with small glyph readouts;
   - left and right linear-seat arm rails and grip silhouettes at the bottom corners;
   - corner registration marks;
   - `--night` fills at 85–95% opacity. **The centre 70% width × 65% height must stay clear.**
-- [ ] **Step 3: Draw `hud.svg`** as a `<symbol>` sprite: the boresight, a flight-path marker (circle plus wings plus tail), a target-designator corner bracket, the rear chevron, a lock diamond, and four 64×64 emblems (pilot helmet, mission flag, hangar gantry, and "unknown" as a question mark in a diamond). Stroke-only, 1.5px, square caps.
-- [ ] **Step 4: Render a check page** that places `frame.svg` at 1440×900 and 375×740 over a mid-grey background, plus every sprite symbol at 4×. Look at it and confirm the centre stays clear and nothing smears at the edges. Rerun the tests: PASS.
-- [ ] **Step 5: Commit and push.**
+- [x] **Step 3: Draw `hud.svg`** as a `<symbol>` sprite: the boresight, a flight-path marker (circle plus wings plus tail), a target-designator corner bracket, the rear chevron, a lock diamond, and four 64×64 emblems (pilot helmet, mission flag, hangar gantry, and "unknown" as a question mark in a diamond). Stroke-only, 1.5px, square caps.
+- [x] **Step 4: Render a check page** that places `frame.svg` at 1440×900 and 375×740 over a mid-grey background, plus every sprite symbol at 4×. Look at it and confirm the centre stays clear and nothing smears at the edges. Rerun the tests: PASS.
+- [x] **Step 5: Commit and push.**
 
 ### Task 3: SL-01 ARGUS three-view and decals (art agent C, wave 1)
 **Files:** create `site4/img/ms/sl01-front.svg`, `sl01-side.svg`, `sl01-back.svg` and `decals.svg`.
 **Produces:** part ids for the hangar callouts (see the test), and the same viewBox `0 0 800 1400` with feet on y = 1340 in all three views.
-- [ ] **Step 1: Run** `node site4/tests/svg.test.js ms`. Expected: FAIL.
-- [ ] **Step 2: Draw the three-view** per spec section 8:
+- [x] **Step 1: Run** `node site4/tests/svg.test.js ms`. Expected: FAIL.
+- [x] **Step 2: Draw the three-view** per spec section 8:
   - an original suit: a split single blade crest (**no V-fin**), a sensor visor plus mono-eye slit, layered shoulder binders, and a backpack with two fin thrusters; a rifle in the side view;
   - `--ice` technical line art at 1.2–2.0px, panel lines, sparse `--hud` accents, a faint `--indigo` wash;
   - each part is a `<g id="…">`.
   - **Proportions must match across views:** shoulders, waist and knees at the same y in all three.
-- [ ] **Step 3: Draw `decals.svg` symbols:** `unit-mark` (an original emblem: an eye within a hexagon), `serial` ("SL-01" in stroke lettering, as paths, not a font), `caution-chevron` (amber outline, no stripes) and `no-step`.
-- [ ] **Step 4: Render all three views side by side** on `--night` at 1:1 plus a 2× crop of the head. Look at them: they should be clean, sharp and clearly a mobile suit, yet not a copy of the RX-78 silhouette. Tests PASS.
-- [ ] **Step 5: Commit and push.**
+- [x] **Step 3: Draw `decals.svg` symbols:** `unit-mark` (an original emblem: an eye within a hexagon), `serial` ("SL-01" in stroke lettering, as paths, not a font), `caution-chevron` (amber outline, no stripes) and `no-step`.
+- [x] **Step 4: Render all three views side by side** on `--night` at 1:1 plus a 2× crop of the head. Look at them: they should be clean, sharp and clearly a mobile suit, yet not a copy of the RX-78 silhouette. Tests PASS.
+- [x] **Step 5: Commit and push.**
 
 ### Task 4: Wave-1 review (coordinator)
-- [ ] Load `frontend-design`, then look at every art screenshot together. Check they share one visual language: line weights, the palette, and how stylised they are. If needed, send fixes back to the agent that drew the piece (SendMessage to its id).
-- [ ] `node site4/tests/svg.test.js`: every check PASSes. Tick T1–T3, commit and push.
+- [x] Load `frontend-design`, then look at every art screenshot together. Check they share one visual language: line weights, the palette, and how stylised they are. If needed, send fixes back to the agent that drew the piece (SendMessage to its id).
+- [x] `node site4/tests/svg.test.js`: every check PASSes. Tick T1–T3, commit and push.
 
 ### Task 5: 360 engine, HUD and styles (wave 2, two agents in parallel)
 **Files:**

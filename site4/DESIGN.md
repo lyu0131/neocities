@@ -35,5 +35,11 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 - **During the boot** (`state.booted` is false), boot.js writes `ARGUS.state.yaw` directly and cockpit.js renders from it without easing or input.
 - **Session key:** `sessionStorage['argus-booted']`.
 
+## Yaw to panorama mapping (pano.svg and cockpit.js must agree)
+- `pano.svg` is 9600 units wide, so 1° is 26.667 units.
+- Looking at yaw θ puts the view's centre at `x = θ × 26.667`, wrapping modulo 9600. Yaw 0 (MISSIONS, straight ahead) is centred on x = 0, which is the same as x = 9600. Yaw +52 (HANGAR) is at x ≈ 1387, yaw −52 (PILOT) at x ≈ 8213, and yaw 180 (UNKNOWN) at x = 4800.
+- Positive yaw turns right. At pitch 0 the view is centred on y ≈ 1000 and shows roughly y 330–1670 on a 16:9 screen. The horizon is at y ≈ 1150.
+- Targets sit around y 700–1050 in panorama space.
+
 ## Tests
 `node tests/run.js` runs all of them, or run `tests/svg.test.js [pano|frame|hud|ms]`, `tests/hub.test.js` or `tests/pages.test.js` separately. Screenshots go to `tests/out/`, which is git-ignored.

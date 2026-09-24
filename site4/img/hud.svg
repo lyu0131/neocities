@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<title>ARGUS HUD glyph sprite</title>
+
+<symbol id="boresight" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M20,3 20,15 M20,25 20,37 M3,20 15,20 M25,20 37,20"/>
+</symbol>
+
+<symbol id="fpm" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <circle cx="20" cy="20" r="8"/>
+  <path d="M2,20 12,20 M28,20 38,20 M20,28 20,35"/>
+</symbol>
+
+<symbol id="td-corner" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M4,16 4,4 16,4"/>
+</symbol>
+
+<symbol id="rear-chevron" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M10,26 20,14 30,26"/>
+  <path d="M13,33 20,23 27,33"/>
+</symbol>
+
+<symbol id="lock-diamond" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M20,4 36,20 20,36 4,20 Z"/>
+  <path d="M20,17 20,23 M17,20 23,20"/>
+</symbol>
+
+<symbol id="emblem-pilot" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M14,40 C14,18 20,10 32,10 C44,10 50,18 50,40"/>
+  <path d="M14,40 C14,50 20,56 32,56 C44,56 50,50 50,40"/>
+  <path d="M18,36 46,36"/>
+  <path d="M22,50 22,44"/>
+  <path d="M42,50 42,44"/>
+</symbol>
+
+<symbol id="emblem-missions" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M22,52 22,10"/>
+  <path d="M22,12 46,18 22,26 Z"/>
+  <path d="M14,52 30,52"/>
+</symbol>
+
+<symbol id="emblem-hangar" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M14,50 14,16"/>
+  <path d="M50,50 50,16"/>
+  <path d="M10,16 54,16"/>
+  <path d="M14,34 50,34"/>
+  <path d="M14,30 26,16"/>
+  <path d="M50,30 38,16"/>
+  <path d="M8,50 20,50"/>
+  <path d="M44,50 56,50"/>
+</symbol>
+
+<symbol id="emblem-unknown" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+  <path d="M32,6 58,32 32,58 6,32 Z"/>
+  <path d="M24,25 C24,17 40,17 40,25 C40,31 32,30 32,37"/>
+  <path d="M32,44 32,46"/>
+</symbol>
+
+</svg>
