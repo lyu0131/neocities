@@ -3,7 +3,8 @@
 Seam rule: everything is periodic in x with period W.  Full-width shapes are sampled from
 periodic functions (integer-frequency sines, circular gaussians); every placed element is
 emitted at each image (x, x-W, x+W) that intersects [0, W).  So x=9600 and x=0 match by construction."""
-import math, os, random
+import math, os, sys, random
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 W, H, HZ = 9600, 2000, 1150
 rnd = random.Random(1979)
@@ -224,49 +225,24 @@ def seg(p0, p1, w0, w1):  # tapered limb between two joints
 def both(*pts): return poly(*pts) + poly(*[(-x, y) for x, y in pts])
 def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
     return seg(p0, p1, w0, w1) + seg((-p0[0], p0[1]), (-p1[0], p1[1]), w0, w1)
-# Silhouette cues, from the reference: a single tall head spike, two big crescent horns
-# sweeping up off the shoulders, a heavy planted stance and broad feet. Ground at y 0,
-# spike tip at -648. Everything is mirrored about x=0.
-HORN = ((-56, -492), (-96, -520), (-130, -560), (-146, -596),
-        (-126, -552), (-98, -508), (-70, -478))                       # one crescent shoulder horn
-SUIT = [
-    poly((-20, -492), (-24, -512), (-18, -534), (0, -542), (18, -534), (24, -512), (20, -492), (0, -486)),  # domed head
-    poly((-5, -536), (0, -648), (5, -536)),                                               # single tall spike
-    both(*HORN),
-    both((-46, -500), (-96, -486), (-100, -440), (-52, -444)),                            # shoulder blocks under the horns
-    poly((-28, -478), (-22, -494), (-12, -486), (12, -486), (22, -494), (28, -478)),      # collar
-    poly((-66, -492), (66, -492), (74, -456), (58, -412), (30, -386), (-30, -386), (-58, -412), (-74, -456)),  # broad chest
-    poly((-26, -388), (26, -388), (20, -352), (-20, -352)),                               # waist
-    poly((-40, -358), (40, -358), (48, -330), (18, -312), (0, -320), (-18, -312), (-48, -330)),  # pelvis
-    both((-42, -356), (-68, -342), (-78, -282), (-48, -300)),                             # side skirts
-    segb((-80, -466), (-92, -382), 34, 28), segb((-92, -382), (-100, -300), 30, 26),      # heavy tube arms
-    both((-112, -306), (-90, -306), (-88, -266), (-100, -254), (-114, -270)),             # fists
-    segb((-30, -330), (-42, -208), 52, 34),                                               # thighs, wide stance
-    both((-64, -226), (-20, -226), (-18, -180), (-44, -164), (-66, -186)),                # flared knee armour
-    segb((-42, -184), (-50, -40), 32, 28),                                                # shins
-    both((-74, -46), (-24, -46), (-18, -6), (-80, -6)),                                   # broad feet
-]
-# luminous seams: thin tapered strokes down the spike, horns, chest, arms and legs
-SEAMS = [((0, -486), (0, -352), 4), ((-16, -474), (-20, -396), 3), ((16, -474), (20, -396), 3),
-         ((-82, -460), (-98, -304), 3), ((82, -460), (98, -304), 3),
-         ((-30, -320), (-46, -56), 4), ((30, -320), (46, -56), 4),
-         ((-62, -488), (-134, -566), 2.5), ((62, -488), (134, -566), 2.5),
-         ((0, -540), (0, -632), 2.5)]
-D.append('<symbol id="suit" overflow="visible"><path d="%s"/></symbol>' % ''.join(SUIT))
+# The suit is TRACED from the supplied reference by tools/trace_suit.py, which
+# segments the photo into tone bands, walks each region's boundary and simplifies
+# it. suit_trace.py is generated; regenerate it rather than editing it by hand.
+import suit_trace as TR
+D.append('<symbol id="suit" overflow="visible"><path fill-rule="evenodd" d="%s"/></symbol>' % TR.BODY)
 bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
 SX, SY, SS = 4800, 1162, 1.0
 add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
-add('<use href="#suit" x="-4" y="-3" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
+add('<use href="#suit" x="-5" y="-4" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
 add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .18))          # near-black body
-add('<path fill="%s" opacity=".1" d="%s"/>' % (GLINT, ''.join(seg(a, b, w + 7, w + 4) for a, b, w in SEAMS)))
-add('<path fill="%s" opacity=".55" d="%s"/>' % (mix(TEAL, WHITE, .5), ''.join(seg(a, b, w, w * .5) for a, b, w in SEAMS)))
-add('<path fill="%s" d="%s"/>' % (NIGHT, poly((-26, -518), (26, -518), (23, -503), (-23, -503))))            # visor recess
-add('<path fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), poly((-22, -514), (22, -514), (19, -507), (-19, -507))))  # glowing visor slit
+add('<path fill-rule="evenodd" fill="%s" opacity=".85" d="%s"/>' % (mix(NIGHT, TEAL, .30), TR.MID))   # armour catching the sky
+add('<path fill-rule="evenodd" fill="%s" opacity=".7" d="%s"/>' % (mix(TEAL, WHITE, .45), TR.LIT))    # rim highlights
+add('<path fill-rule="evenodd" fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), TR.EYE))                  # mono-eye
 add('</g>')
 rgrad('gF', FOG, ((0, 1), (.45, .88), (.8, .35), (1, 0)))
 for x, y, rx, ry, op in [(4800, 1074, 560, 100, .95), (4690, 1090, 780, 70, .85), (4930, 1054, 330, 58, .75), (4640, 1042, 270, 40, .5)]:
     glow(x, y, rx, ry, 'gF', op)                                            # fog bank swallowing the legs at the knee
-EX, EY = SX, SY + SS * -511
+EX, EY = SX + SS * TR.EYE_POS[0], SY + SS * TR.EYE_POS[1]
 glow(EX, EY, 110, 42, 'gS', .28)
 glow(EX, EY, 50, 16, 'gS', .85)
 glow(EX, EY, 190, 4, 'gS', .8)                                             # horizontal flare off the visor
