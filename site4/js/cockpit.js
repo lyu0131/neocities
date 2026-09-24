@@ -67,19 +67,13 @@
   // and shows pano content [i*sliceW, (i+1)*sliceW), so it's centred on content
   // (i+0.5)*sliceW — the ring's own rotateY corrects for that half-slice offset so
   // the DESIGN.md yaw->x mapping (yaw 0 = x0, yaw 180 = x4800) holds exactly.
-  // The cylinder is open at the top and bottom, so if the strip is not tall enough the
-  // viewer pitches straight past its edge and sees the void behind it. Pitching by t
-  // slides the scene P*tan(t) px on screen, so the strip has to project to at least the
-  // viewport height plus that shift at both extremes. Solve back through the projection
-  // (screen height = sliceH * P / R) for the slice height that guarantees it at any
-  // aspect ratio, and never go below the CSS default.
+  // The strip must keep its natural aspect or the whole scene distorts: 24 slices of
+  // 400 panorama units span the full 9600, so a slice is 400x2000 and its height is
+  // exactly 5x its width. Oversizing it to cover more pitch stretched everything
+  // vertically -- which made the suit and the skyline render about two thirds of
+  // their true width. The floor and ceiling caps cover the pitch range instead.
   function fitSliceHeight() {
-    var P = parseFloat(getComputedStyle(pano).perspective);
-    if (!isFinite(P) || P <= 0) return;
-    var shift = P * Math.tan(COVER_PITCH * Math.PI / 180);
-    var needScreen = (innerHeight + 2 * shift) * 1.06;      // 6% slack for the ring's own tilt
-    var needSlice = needScreen * R / P;
-    pano.style.setProperty('--slice-h', Math.max(needSlice, innerHeight * 1.35) + 'px');
+    pano.style.setProperty('--slice-h', (sliceW * 5) + 'px');
   }
 
   function layout() {
