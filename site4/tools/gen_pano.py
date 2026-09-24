@@ -231,7 +231,7 @@ def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
 import suit_trace as TR
 D.append('<symbol id="suit" overflow="visible"><path fill-rule="evenodd" d="%s"/></symbol>' % TR.BODY)
 bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
-SX, SY, SS = 4800, 1162, 1.0
+SX, SY, SS = 4800, 1162, 1.35   # closer to the viewer; head lands near y=230
 add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
 add('<use href="#suit" x="-5" y="-4" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
 add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .18))          # near-black body
@@ -240,8 +240,10 @@ add('<path fill-rule="evenodd" fill="%s" opacity=".7" d="%s"/>' % (mix(TEAL, WHI
 add('<path fill-rule="evenodd" fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), TR.EYE))                  # mono-eye
 add('</g>')
 rgrad('gF', FOG, ((0, 1), (.45, .88), (.8, .35), (1, 0)))
-for x, y, rx, ry, op in [(4800, 1074, 560, 100, .95), (4690, 1090, 780, 70, .85), (4930, 1054, 330, 58, .75), (4640, 1042, 270, 40, .5)]:
-    glow(x, y, rx, ry, 'gF', op)                                            # fog bank swallowing the legs at the knee
+# offsets are measured up from the feet so the bank tracks the suit's scale
+for x, dy, rx, ry, op in [(4800, -88, 560, 100, .95), (4690, -72, 780, 70, .85), (4930, -108, 330, 58, .75), (4640, -120, 270, 40, .5)]:
+    y = SY + dy * SS
+    glow(x, y, rx * SS, ry, 'gF', op)                                       # fog bank swallowing the legs at the knee
 EX, EY = SX + SS * TR.EYE_POS[0], SY + SS * TR.EYE_POS[1]
 glow(EX, EY, 110, 42, 'gS', .28)
 glow(EX, EY, 50, 16, 'gS', .85)

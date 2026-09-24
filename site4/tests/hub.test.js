@@ -12,7 +12,9 @@ const { launch, check } = require('./cdp');
   await p.key(' ', 'Space', 32); await p.sleep(700);
   check('skip boot works', await p.eval('!!window.ARGUS && ARGUS.state.booted === true'));
   // T5: 24 slices, drag turns yaw, heading tape follows, arrows turn
-  check('24 pano slices', await p.eval("document.querySelectorAll('.pano-slice').length === 24"));
+  // the sphere is tessellated 24 longitude segments x N latitude bands
+  const tiles = await p.eval("document.querySelectorAll('.pano-slice').length");
+  check('sphere tessellated in 24-wide bands', tiles >= 24 && tiles % 24 === 0, tiles + ' tiles');
   const y0 = await p.eval('window.ARGUS ? ARGUS.state.yaw : 0');
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 10; k++) await p.mouse('mouseMoved', 700 - 30 * k, 450, 1); await p.mouse('mouseReleased', 400, 450);
   await p.sleep(900);
@@ -42,8 +44,21 @@ const { launch, check } = require('./cdp');
   // reduced motion: no boot animation, still interactive
   const r = await launch({ width: 1440, height: 900, reduce: true });
   await r.goto('index.html', 900);
+  // wait for readiness instead of assuming a fixed load time: cockpit.js parses before
+  // boot.js, so booted===true means its key listeners are attached. A bare sleep raced
+  // script load and made the arrow check flaky.
+  for (let i = 0; i < 40 && !(await r.eval('!!window.ARGUS && ARGUS.state.booted === true')); i++) await r.sleep(100);
   check('reduced motion: booted at once', await r.eval('!!window.ARGUS && ARGUS.state.booted === true'));
-  await r.key('ArrowLeft', 'ArrowLeft', 37); await r.sleep(400);
-  check('reduced motion: arrows still turn', Math.abs(await r.eval('window.ARGUS ? ARGUS.state.yaw : 0')) > 5);
+  // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
+  // something wakes the compositor, so the easing that applies the keypress can start
+  // late. The keypress itself registers immediately.
+  await r.key('ArrowLeft', 'ArrowLeft', 37);
+  let rYaw = 0;
+  for (let i = 0; i < 25; i++) {
+    rYaw = await r.eval('window.ARGUS ? ARGUS.state.yaw : 0');
+    if (Math.abs(rYaw) > 5) break;
+    await r.sleep(100);
+  }
+  check('reduced motion: arrows still turn', Math.abs(rYaw) > 5, 'yaw ' + rYaw);
   r.close();
 })();

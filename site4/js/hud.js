@@ -163,17 +163,25 @@
   // ---------------------------------------------------------------- system gauges
   // Fictional readouts. They drift rather than sit still, so the panel reads as live.
   var GAUGES = [
-    { key: 'PROP', base: 0.78, drift: 0.05, unit: '%' },
-    { key: 'COOL', base: 0.61, drift: 0.09, unit: '%' },
-    { key: 'PWR', base: 0.92, drift: 0.03, unit: '%' },
-    { key: 'P-INT', base: 0.24, drift: 0.14, unit: '%' }
+    { key: 'PROP', base: 0.78, drift: 0.05 },
+    { key: 'COOL', base: 0.61, drift: 0.09 },
+    { key: 'PWR',  base: 0.92, drift: 0.03 },
+    { key: 'P-INT', base: 0.24, drift: 0.14 },
+    { key: 'FRAME', base: 0.88, drift: 0.04 },
+    { key: 'OPTIC', base: 0.70, drift: 0.11 }
   ];
+  var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM'];
   var gaugeBox = el('g', { class: 'gauges' });
+  var sparkPts = [], spark = null, lamps = [];
   function buildGauges() {
-    var w = 108, rowH = 22;
-    gaugeBox.appendChild(el('rect', { x: -6, y: -16, width: w + 54, height: GAUGES.length * rowH + 22, rx: 2, fill: 'rgba(6,10,18,.55)', opacity: 0.9 }));
+    var w = 118, rowH = 20, top = -30, h = rowH * GAUGES.length + 130;
+    gaugeBox.appendChild(el('rect', { x: -10, y: top, width: w + 76, height: h, rx: 3, fill: 'rgba(6,10,18,.85)' }));
+    var hdr = el('text', { x: -2, y: top + 14 });
+    hdr.textContent = 'SYS / SL-01';
+    gaugeBox.appendChild(hdr);
+    gaugeBox.appendChild(el('line', { x1: -10, y1: top + 22, x2: w + 66, y2: top + 22, opacity: .55 }));
     GAUGES.forEach(function (g, i) {
-      var y = i * rowH;
+      var y = i * rowH + 12;
       var lbl = el('text', { x: 0, y: y + 4 });
       lbl.textContent = g.key;
       gaugeBox.appendChild(lbl);
@@ -183,14 +191,43 @@
       g.txt = el('text', { x: w + 10, y: y + 4 });
       gaugeBox.appendChild(g.txt);
     });
+    // particle-density trace, so the panel has something moving that is not a bar
+    var sy = GAUGES.length * rowH + 30;
+    var sl = el('text', { x: 0, y: sy - 8 });
+    sl.textContent = 'P-DENSITY';
+    gaugeBox.appendChild(sl);
+    gaugeBox.appendChild(el('rect', { x: 0, y: sy, width: w + 66, height: 30, opacity: .45 }));
+    spark = el('polyline', { points: '', opacity: .9 });
+    gaugeBox.appendChild(spark);
+    // status lamps
+    LAMPS.forEach(function (name, i) {
+      var lx = i * 26, ly = sy + 56;
+      var box = el('rect', { x: lx, y: ly - 8, width: 18, height: 11, opacity: .8 });
+      var pip = el('rect', { x: lx + 2, y: ly - 6, width: 14, height: 7, fill: 'currentColor', stroke: 'none' });
+      var t = el('text', { x: lx + 9, y: ly + 14, 'text-anchor': 'middle', style: 'font-size:8px' });
+      t.textContent = name;
+      gaugeBox.appendChild(box); gaugeBox.appendChild(pip); gaugeBox.appendChild(t);
+      lamps.push(pip);
+    });
     svg.appendChild(gaugeBox);
   }
+
   function drawGauges(now) {
     GAUGES.forEach(function (g, i) {
       var v = clamp(g.base + Math.sin(now / (3100 + i * 900) + i) * g.drift, 0.02, 1);
-      g.fill.setAttribute('width', (1 + v * 60).toFixed(1));
-      g.txt.textContent = Math.round(v * 100) + g.unit;
+      g.fill.setAttribute('width', (1 + v * 70).toFixed(1));
+      g.txt.textContent = Math.round(v * 100) + '%';
       g.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
+    });
+    var sy = GAUGES.length * 20 + 30;
+    sparkPts.push(Math.sin(now / 900) * 0.4 + Math.sin(now / 340) * 0.3 + (Math.random() - 0.5) * 0.25);
+    if (sparkPts.length > 58) sparkPts.shift();
+    spark.setAttribute('points', sparkPts.map(function (v, i) {
+      return (3 + i * 3) + ',' + (sy + 15 - clamp(v, -1, 1) * 12).toFixed(1);
+    }).join(' '));
+    lamps.forEach(function (pip, i) {
+      var on = Math.sin(now / (1700 + i * 600) + i * 2) > -0.75;
+      pip.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.18)');
     });
   }
 
@@ -226,11 +263,13 @@
     'IFF HANDSHAKE TIMEOUT'
   ];
   var warn = el('g', { class: 'warn', opacity: 0 });
-  var warnText = el('text', { x: 0, y: 5, 'text-anchor': 'middle' });
+  var warnText = el('text', { x: 28, y: 8, 'text-anchor': 'middle', class: 'warn-text' });
   function buildWarn() {
-    warn.appendChild(el('rect', { x: -170, y: -16, width: 340, height: 30, fill: 'rgba(6,10,18,.72)' }));
-    warn.appendChild(el('path', { d: 'M-152,7 L-142,-11 L-132,7 Z' }));
-    warn.appendChild(el('line', { x1: -142, y1: -5, x2: -142, y2: 1 }));
+    warn.appendChild(el('rect', { x: -280, y: -30, width: 560, height: 60, fill: 'rgba(6,10,18,.86)' }));
+    warn.appendChild(el('rect', { x: -274, y: -24, width: 548, height: 48, opacity: .5 }));
+    warn.appendChild(el('path', { d: 'M-248,14 L-228,-22 L-208,14 Z' }));
+    warn.appendChild(el('line', { x1: -228, y1: -10, x2: -228, y2: 2 }));
+    warn.appendChild(el('circle', { cx: -228, cy: 8, r: 1.6 }));
     warn.appendChild(warnText);
     svg.appendChild(warn);
   }

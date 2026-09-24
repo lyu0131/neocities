@@ -14,7 +14,16 @@
   var tiltBtn = document.getElementById('tilt');
 
   var SLICES = 24, SLICE_DEG = 15, HALF_SLICE = SLICE_DEG / 2;
-  var sliceEls = [];
+  // The world is a sphere, not a ring: the strip is tessellated into LAT_BANDS rows of
+  // SLICES quads, each tilted to its own latitude. pano.svg is equirectangular at
+  // 360deg / 9600px, so one pixel is DEG_PER_PX of arc in BOTH axes and the vertical
+  // mapping falls out of the horizon row -- no extra distortion term needed.
+  var LAT_BANDS = 8, IMG_W = 9600, IMG_H = 2000, HORIZON_Y = 1150;
+  var DEG_PER_PX = 360 / IMG_W;
+  var BAND_PX = IMG_H / LAT_BANDS, BAND_DEG = BAND_PX * DEG_PER_PX;
+  function bandTopLat(j) { return (HORIZON_Y - j * BAND_PX) * DEG_PER_PX; }
+  function bandMidLat(j) { return bandTopLat(j) - BAND_DEG / 2; }
+  var tiles = [];
   var sliceW = 0, R = 0;
 
   // .pano-ring sits at z~0 (its children are pushed back via translateZ), so its own flat
@@ -30,13 +39,15 @@
   // build the 24 slices once, ahead of the existing .target children. CSS owns their
   // size, background-image and background-size (via --slice-w); we only own transform
   // and background-position-x.
-  (function buildSlices() {
+  (function buildSphere() {
     var frag = document.createDocumentFragment();
-    for (var i = 0; i < SLICES; i++) {
-      var el = document.createElement('div');
-      el.className = 'pano-slice';
-      frag.appendChild(el);
-      sliceEls.push(el);
+    for (var j = 0; j < LAT_BANDS; j++) {
+      for (var i = 0; i < SLICES; i++) {
+        var el = document.createElement('div');
+        el.className = 'pano-slice';
+        frag.appendChild(el);
+        tiles.push({ el: el, i: i, j: j, lat: bandMidLat(j) });
+      }
     }
     ring.insertBefore(frag, ring.firstChild);
   })();
@@ -50,13 +61,11 @@
   capBot.className = 'pano-cap cap-bottom';
   ring.appendChild(capTop); ring.appendChild(capBot);
 
-  // sliceW: the resolved pixel width of a slice, which CSS sizes from --slice-w on
-  // #pano (default 27vh — 0.27x viewport height, i.e. the strip's 2000px maps to
-  // ~1.35x viewport height). Read the computed box, not the custom property string,
-  // so vh/vw/% units resolve correctly; fall back if CSS hasn't sized it yet.
+  // One longitude segment's width on screen. It sets R, and through R the scale of
+  // the whole sphere. 0.27 of the viewport height reproduces the framing the cylinder
+  // had, so the skyline sits where it always did.
   function readSliceW() {
-    var w = sliceEls.length ? parseFloat(getComputedStyle(sliceEls[0]).width) : NaN;
-    return isFinite(w) && w > 0 ? w : innerHeight * 0.27;
+    return Math.max(80, innerHeight * 0.27);
   }
 
   // radius R = sliceW / (2*tan(7.5deg)); slice i sits at rotateY(-i*15) translateZ(-R).
@@ -71,31 +80,41 @@
   // exactly 5x its width. Oversizing it to cover more pitch stretched everything
   // vertically -- which made the suit and the skyline render about two thirds of
   // their true width. The floor and ceiling caps cover the pitch range instead.
-  function fitSliceHeight() {
-    pano.style.setProperty('--slice-h', (sliceW * 5) + 'px');
-  }
-
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
-    fitSliceHeight();
-    for (var i = 0; i < SLICES; i++) {
-      var el = sliceEls[i];
-      el.style.backgroundPositionX = (-(i * sliceW)) + 'px';
-      el.style.transform = 'rotateY(' + (-i * SLICE_DEG) + 'deg) translateZ(' + (-R) + 'px)';
-    }
+    var tileH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
+    var OVER = 1.04;               // quads are chords, so overlap slightly or seams show
+
+    tiles.forEach(function (t) {
+      var cos = Math.cos(t.lat * Math.PI / 180);
+      var w = sliceW * cos;
+      // texture: this quad shows image cell (i, j), so scale the whole image by the
+      // cell count and offset to that cell
+      t.el.style.width = (w * OVER) + 'px';
+      t.el.style.height = (tileH * OVER) + 'px';
+      t.el.style.marginLeft = (-w * OVER / 2) + 'px';
+      t.el.style.marginTop = (-tileH * OVER / 2) + 'px';
+      t.el.style.backgroundSize = (w * SLICES) + 'px ' + (tileH * LAT_BANDS) + 'px';
+      t.el.style.backgroundPosition = (-(t.i * w) - w * (OVER - 1) / 2) + 'px '
+                                    + (-(t.j * tileH) - tileH * (OVER - 1) / 2) + 'px';
+      t.el.style.transform = 'rotateY(' + (-t.i * SLICE_DEG) + 'deg) rotateX('
+                           + (-t.lat) + 'deg) translateZ(' + (-R) + 'px)';
+    });
+
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       t.style.transform = 'rotateY(' + (HALF_SLICE - dy) + 'deg) translateZ(' + (-R + 40) + 'px)';
     });
-    // caps span the full cylinder and sit at the strip's top and bottom edges
-    var halfH = parseFloat(getComputedStyle(sliceEls[0]).height) / 2;
-    var span = R * 2.4;
-    [[capTop, -1], [capBot, 1]].forEach(function (pair) {
-      var c = pair[0];
+
+    // caps close the sphere past the strip's top and bottom latitudes
+    var latT = bandTopLat(0) * Math.PI / 180, latB = bandTopLat(LAT_BANDS) * Math.PI / 180;
+    [[capTop, latT], [capBot, latB]].forEach(function (pair) {
+      var c = pair[0], lat = pair[1];
+      var span = 2 * R * Math.cos(lat) * 1.06;
       c.style.width = c.style.height = span + 'px';
       c.style.marginLeft = c.style.marginTop = (-span / 2) + 'px';
-      c.style.transform = 'translateY(' + (pair[1] * halfH) + 'px) rotateX(90deg)';
+      c.style.transform = 'translateY(' + (-R * Math.sin(lat)) + 'px) rotateX(90deg)';
     });
   }
   layout();
@@ -200,7 +219,9 @@
   // -- input: drag, wheel, keys, idle sway, all held until boot-done --
   var targetYaw = state.yaw, targetPitch = state.pitch;
   var lastInputTime = performance.now();
-  function markInput() { lastInputTime = performance.now(); }
+  var hadInput = false;
+  function markInput() {
+    hadInput = true; lastInputTime = performance.now(); }
 
   var dragging = false, lastDragX = 0, lastDragY = 0, velYaw = 0;
   document.addEventListener('mousedown', function (e) {
@@ -257,7 +278,14 @@
     });
   }
 
-  ARGUS.on('boot-done', function () { targetYaw = state.yaw; targetPitch = state.pitch; });
+  // boot.js sets state.booted true and only THEN emits boot-done, so a keypress can land
+  // in between: input is accepted, and this handler would then discard it by snapping the
+  // target back. Only re-sync when the user has not already steered.
+  ARGUS.on('boot-done', function () {
+    if (hadInput) return;
+    targetYaw = state.yaw;
+    targetPitch = state.pitch;
+  });
 
   // Culling only: a target on the far side still projects through the depthless
   // Past 95deg it is culled outright: the cylinder has no depth, so a target on the far side
@@ -286,7 +314,6 @@
     if (!state.booted) {
       applyRing(state.yaw, state.pitch);
       updateBehind(state.yaw);
-    updateBoresight(state.yaw);
       updateBoresight(state.yaw);
       emitView(state.yaw, state.pitch, 0, 0);
       return;

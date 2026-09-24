@@ -61,8 +61,6 @@ a { color: inherit; }
 
 /* ---------- layer 1: the panorama cylinder ---------- */
 #pano {
-  --slice-w: 27vh;  /* 400 of pano.svg's 9600 units, scaled so 2000 units -> 135vh */
-  --slice-h: 135vh;
   position: fixed;
   inset: 0;
   z-index: var(--z-pano);
@@ -86,13 +84,13 @@ a { color: inherit; }
   position: absolute;
   top: 50%;
   left: 50%;
-  width: var(--slice-w);
-  height: var(--slice-h);
-  margin: calc(var(--slice-h) / -2) 0 0 calc(var(--slice-w) / -2);
+  /* size, background-size and background-position are written by cockpit.js:
+     every tile is a different size and shows a different cell of the sphere */
   background-image: url(../img/pano.svg);
-  background-repeat: no-repeat;
-  background-size: calc(var(--slice-w) * 24) var(--slice-h);
-  background-position-y: 0;
+  /* repeat-x, not no-repeat: tiles overlap their neighbours to hide the chord seams,
+     and at the x=0 wrap that bleed runs off the image. The strip is periodic in x by
+     construction, so repeating horizontally makes the wrap continuous. */
+  background-repeat: repeat-x;
   transform-origin: 50% 50% 0;
   backface-visibility: hidden;
   will-change: transform;
@@ -488,4 +486,29 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   .views svg { width: min(46%, 200px); }
   .rows { grid-template-columns: 1fr; gap: 2px 0; }
   .rows dd { margin: 0 0 10px; }
+}
+
+/* bigger caution banner, and the richer left instrument panel */
+#hud .warn text.warn-text { font-size: 22px; letter-spacing: .06em; }
+#hud .gauges polyline { fill: none; stroke: currentColor; stroke-width: 1.2; }
+
+/* ---------- hover magnifies text on the content pages ---------- */
+/* Scaling type reflows and blurs it, so step the font-size instead and let the
+   panel grow with it. transform-based zoom would smear the glyph edges. */
+.screen .panel { transition: font-size .18s ease-out, border-color .18s ease-out, background-color .18s ease-out; }
+.screen .panel:hover, .screen .panel:focus-within {
+  font-size: 1.12em;
+  border-color: rgba(140, 255, 193, .6);
+  background: rgba(6, 10, 18, .88);
+}
+.screen .rows dd, .screen p, .screen li { transition: font-size .18s ease-out; }
+.screen a { transition: font-size .15s ease-out, background-color .15s ease-out; display: inline-block; }
+.screen a:hover, .screen a:focus-visible { font-size: 1.18em; }
+.strip a { transition: font-size .15s ease-out; }
+.strip a:hover, .strip a:focus-visible { font-size: 1.15em; }
+.callouts button { transition: font-size .15s ease-out; }
+.callouts button:hover, .callouts button:focus-visible { font-size: 1.2em; }
+@media (prefers-reduced-motion: reduce) {
+  .screen .panel, .screen a, .strip a, .callouts button,
+  .screen .rows dd, .screen p, .screen li { transition: none; }
 }
