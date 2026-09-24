@@ -384,7 +384,9 @@ while x < W:
     x += rnd.uniform(14, 60)
 
 # ---------------------------------------------------------------- sea
-vgrad('sea', HZ, H, [(0, mix(INDIGO, TEAL, .34), 1), (.05, mix(NIGHT, INDIGO, .85), 1), (.45, mix(NIGHT, INDIGO, .45), 1), (1, NIGHT, 1)])
+# the strip's bottom edge is where the floor cap joins, so it must not fall to pure
+# night or looking down reads as a void instead of water
+vgrad('sea', HZ, H, [(0, mix(INDIGO, TEAL, .34), 1), (.05, mix(NIGHT, INDIGO, .85), 1), (.45, mix(NIGHT, INDIGO, .55), 1), (1, mix(NIGHT, INDIGO, .42), 1)])
 add('<rect x="-10" y="%d" width="%d" height="%d" fill="url(#sea)"/>' % (HZ + 2, W + 20, H - HZ + 8))
 D.append('<clipPath id="kw"><rect x="-10" y="%d" width="%d" height="%d"/></clipPath>' % (HZ + 1, W + 20, H - HZ))
 add('<g clip-path="url(#kw)">')

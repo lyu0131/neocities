@@ -24,7 +24,8 @@
 
   function wrap360(a) { return ((a % 360) + 360) % 360; }
   function shortestDelta(from, to) { var d = wrap360(to - from); if (d > 180) d -= 360; return d; }
-  var MAX_PITCH = 12;
+  var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
+  var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
 
   // build the 24 slices once, ahead of the existing .target children. CSS owns their
@@ -40,6 +41,15 @@
     }
     ring.insertBefore(frag, ring.firstChild);
   })();
+
+  // The cylinder is open at both ends, so a floor and a ceiling close it into a
+  // sphere: two planes laid flat at the top and bottom of the strip. Without them
+  // pitching down runs out of world and shows the page behind it.
+  var capTop = document.createElement('div');
+  var capBot = document.createElement('div');
+  capTop.className = 'pano-cap cap-top';
+  capBot.className = 'pano-cap cap-bottom';
+  ring.appendChild(capTop); ring.appendChild(capBot);
 
   // sliceW: the resolved pixel width of a slice, which CSS sizes from --slice-w on
   // #pano (default 27vh — 0.27x viewport height, i.e. the strip's 2000px maps to
@@ -66,7 +76,7 @@
   function fitSliceHeight() {
     var P = parseFloat(getComputedStyle(pano).perspective);
     if (!isFinite(P) || P <= 0) return;
-    var shift = P * Math.tan(MAX_PITCH * Math.PI / 180);
+    var shift = P * Math.tan(COVER_PITCH * Math.PI / 180);
     var needScreen = (innerHeight + 2 * shift) * 1.06;      // 6% slack for the ring's own tilt
     var needSlice = needScreen * R / P;
     pano.style.setProperty('--slice-h', Math.max(needSlice, innerHeight * 1.35) + 'px');
@@ -84,6 +94,15 @@
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       t.style.transform = 'rotateY(' + (HALF_SLICE - dy) + 'deg) translateZ(' + (-R + 40) + 'px)';
+    });
+    // caps span the full cylinder and sit at the strip's top and bottom edges
+    var halfH = parseFloat(getComputedStyle(sliceEls[0]).height) / 2;
+    var span = R * 2.4;
+    [[capTop, -1], [capBot, 1]].forEach(function (pair) {
+      var c = pair[0];
+      c.style.width = c.style.height = span + 'px';
+      c.style.marginLeft = c.style.marginTop = (-span / 2) + 'px';
+      c.style.transform = 'translateY(' + (pair[1] * halfH) + 'px) rotateX(90deg)';
     });
   }
   layout();
@@ -127,12 +146,23 @@
       lockStatus.textContent = '';
     }
   });
+  // Putting the boresight on a target acquires it, the same as hovering or tabbing to
+  // it: turn until it sits under the centre reticle and its dossier comes up.
+  var boreTarget = null;
+  function updateBoresight(yaw) {
+    var best = null, bestOff = 7;                 // degrees from dead centre
+    targets.forEach(function (t) {
+      var off = Math.abs(shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0));
+      if (off < bestOff) { bestOff = off; best = t; }
+    });
+    if (best !== boreTarget) { boreTarget = best; refreshLock(); }
+  }
   function refreshLock() {
-    var t = focusTarget || hoverTarget, id = t ? t.id : null;
+    var t = focusTarget || hoverTarget || boreTarget, id = t ? t.id : null;
     if (id === desiredLock) return;
     desiredLock = id;
-    if (t) ARGUS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout });
-    else ARGUS.emit('lock', { id: null, label: null, readout: null });
+    if (t) ARGUS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '' });
+    else ARGUS.emit('lock', { id: null, label: null, readout: null, info: '' });
   }
 
   var firing = false, fireStart = 0;
@@ -261,6 +291,8 @@
     if (!state.booted) {
       applyRing(state.yaw, state.pitch);
       updateBehind(state.yaw);
+    updateBoresight(state.yaw);
+      updateBoresight(state.yaw);
       emitView(state.yaw, state.pitch, 0, 0);
       return;
     }
@@ -278,6 +310,7 @@
 
     applyRing(state.yaw, state.pitch);
     updateBehind(state.yaw);
+    updateBoresight(state.yaw);
     emitView(state.yaw, state.pitch, velYaw, 0);
   }
   requestAnimationFrame(frame);

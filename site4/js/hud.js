@@ -103,7 +103,12 @@
   var radarCone, radarSweep, blips = [];
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
+  var PAD = 16, HEAD = 22;
   function buildRadar() {
+    // housing first, so the scope sits inside a panel rather than floating on the scene
+    var w = RAD * 2 + PAD * 2, h = RAD * 2 + PAD * 2 + HEAD;
+    radar.appendChild(el('rect', { x: -w / 2, y: -RAD - PAD - HEAD, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.82)' }));
+    radar.appendChild(el('line', { x1: -w / 2, y1: -RAD - PAD, x2: w / 2, y2: -RAD - PAD, opacity: .6 }));
     radar.appendChild(el('circle', { r: RAD, fill: 'rgba(6,10,18,.55)' }));
     [RAD, RAD * 0.66, RAD * 0.33].forEach(function (r) {
       radar.appendChild(el('circle', { r: r, opacity: r === RAD ? 1 : 0.4 }));
@@ -123,7 +128,7 @@
     radarSweep = el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: 0.35 });
     radar.appendChild(radarSweep);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
-    var cap = el('text', { x: -RAD, y: -RAD - 10 });
+    var cap = el('text', { x: -RAD - PAD + 8, y: -RAD - PAD - 7 });
     cap.textContent = 'CONTACTS';
     radar.appendChild(cap);
 
@@ -193,6 +198,27 @@
     });
   }
 
+  // ---------------------------------------------------------------- target dossier
+  // Filled whenever a target is acquired -- by hover, by keyboard focus, or by putting
+  // the boresight on it. cockpit.js decides; this only renders.
+  var dossier = el('g', { class: 'dossier', opacity: 0 });
+  var dosLabel = el('text', { x: 0, y: 0 });
+  var dosRead = el('text', { x: 0, y: 20, class: 'dim' });
+  var dosInfo = el('text', { x: 0, y: 38, class: 'dim' });
+  function buildDossier() {
+    dossier.appendChild(el('rect', { x: -14, y: -30, width: 320, height: 84, rx: 3, fill: 'rgba(6,10,18,.82)' }));
+    dossier.appendChild(el('line', { x1: -14, y1: -8, x2: 306, y2: -8, opacity: .5 }));
+    dossier.appendChild(dosLabel); dossier.appendChild(dosRead); dossier.appendChild(dosInfo);
+    svg.appendChild(dossier);
+  }
+  function setDossier(d) {
+    if (!d || !d.id) { dossier.setAttribute('opacity', 0); return; }
+    dosLabel.textContent = d.label || '';
+    dosRead.textContent = d.readout || '';
+    dosInfo.textContent = d.info || '';
+    dossier.setAttribute('opacity', 1);
+  }
+
   // ---------------------------------------------------------------- caution banner
   // Fires at random intervals, holds a few seconds, clears itself. Fictional faults.
   var CAUTIONS = [
@@ -244,7 +270,10 @@
       b.readout.setAttribute('y', barH + 26);
       setBar(b, b.frac);
     });
-    var inset = clamp(W * 0.05, 52, 120);
+    // keep the bars clear of the left instrument column, and mirror them so the
+    // pair stays symmetric about the centre
+    var colRight = 22 + (RAD + PAD) * 2;
+    var inset = isPage ? clamp(W * 0.05, 52, 120) : clamp(colRight + 54, 60, W * 0.28);
     xf(spd.g, inset, cy);
     xf(alt.g, W - inset, cy);
 
@@ -253,8 +282,10 @@
       var room = W > 760 && H > 520;
       radar.setAttribute('opacity', room ? 1 : 0);
       gaugeBox.setAttribute('opacity', room ? 1 : 0);
-      xf(radar, inset + RAD + 20, H - RAD - Math.max(70, H * 0.12));
-      xf(gaugeBox, inset + 12, Math.max(84, H * 0.11));  // above the SPD cap at cy-barH-12
+      var colX = 22 + RAD + PAD;                       // centre of the left instrument column
+      xf(radar, colX, H - RAD - PAD - 26);
+      xf(gaugeBox, 34, Math.max(84, H * 0.11));
+      xf(dossier, W - 340, H - 118);  // above the SPD cap at cy-barH-12
       xf(warn, cx, clamp(H * 0.26, 90, 260));
       if (ladder) xf(ladder, cx, cy, ' rotate(' + lastRoll.toFixed(2) + ')');
       if (fpm) xf(fpm, cx, cy);
@@ -301,7 +332,7 @@
       fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
     });
 
-    buildRadar(); buildGauges(); buildWarn();
+    buildRadar(); buildGauges(); buildWarn(); buildDossier();
     place();
     drawHeading(0); drawLadder(0, 0); drawRadar(0);
 
@@ -314,6 +345,7 @@
     });
     ARGUS.on('lock', function (d) {
       status.textContent = d.id ? 'LOCK: ' + d.label : IDLE_STATUS;
+      setDossier(d);
       drawRadar(ARGUS.state.yaw);
     });
     ARGUS.on('boot-done', function () {

@@ -403,3 +403,24 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   #hud .warn.is-blinking { animation: none; opacity: 1; }
 }
+
+/* ---------- the cylinder's floor and ceiling: close it into a sphere ---------- */
+.pano-cap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  backface-visibility: visible;
+}
+/* sea directly below, darkest under your feet, meeting the strip's colour at the rim */
+.cap-bottom {
+  background:
+    repeating-radial-gradient(circle closest-side, rgba(180, 205, 215, .05) 0 2px, transparent 2px 22px),
+    radial-gradient(circle closest-side, #070D1A 0%, #080F1E 40%, #090F1E 74%, #09101F 100%);
+}
+/* storm deck overhead */
+.cap-top {
+  background: radial-gradient(circle closest-side, #05080E 0%, #060A14 54%, #060A12 100%);
+}
+#hud .dossier text { font-size: 14px; }
+#hud .dossier .dim { font-size: 11px; opacity: .75; }
