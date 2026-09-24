@@ -1,5 +1,14 @@
 const path = require('path');
 const { launch, check } = require('./cdp');
+// Input sent before the deferred scripts have parsed is silently lost, and the suite
+// starts Chrome three times over, so load time varies. Wait for the condition.
+async function ready(pg, ms = 4000) {
+  for (let i = 0; i < ms / 100; i++) {
+    if (await pg.eval('!!window.ARGUS && !!document.querySelector(".pano-slice")')) return true;
+    await pg.sleep(100);
+  }
+  return false;
+}
 (async () => {
   const p = await launch({ width: 1440, height: 900 });
   await p.goto('index.html', 800);

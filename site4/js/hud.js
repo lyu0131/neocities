@@ -235,20 +235,31 @@
   // Filled whenever a target is acquired -- by hover, by keyboard focus, or by putting
   // the boresight on it. cockpit.js decides; this only renders.
   var dossier = el('g', { class: 'dossier', opacity: 0 });
-  var dosLabel = el('text', { x: 0, y: 0 });
-  var dosRead = el('text', { x: 0, y: 20, class: 'dim' });
-  var dosInfo = el('text', { x: 0, y: 38, class: 'dim' });
+  var dosLabel = el('text', { x: 0, y: 0, class: 'dos-title' });
+  var dosRead = el('text', { x: 0, y: 24, class: 'dim' });
+  var dosBrief = [], dosHint = el('text', { x: 0, y: 0, class: 'dos-hint' });
+  var dosBox, dosRule;
   function buildDossier() {
-    dossier.appendChild(el('rect', { x: -14, y: -30, width: 320, height: 84, rx: 3, fill: 'rgba(6,10,18,.82)' }));
-    dossier.appendChild(el('line', { x1: -14, y1: -8, x2: 306, y2: -8, opacity: .5 }));
-    dossier.appendChild(dosLabel); dossier.appendChild(dosRead); dossier.appendChild(dosInfo);
+    dosBox = el('rect', { x: -220, y: -34, width: 440, height: 150, rx: 3, fill: 'rgba(6,10,18,.9)' });
+    dossier.appendChild(dosBox);
+    dossier.appendChild(el('rect', { x: -214, y: -28, width: 428, height: 138, rx: 2, opacity: .45 }));
+    dosRule = el('line', { x1: -200, y1: 36, x2: 200, y2: 36, opacity: .5 });
+    dossier.appendChild(dosLabel); dossier.appendChild(dosRead); dossier.appendChild(dosRule);
+    for (var i = 0; i < 3; i++) {
+      var t = el('text', { x: 0, y: 58 + i * 18, class: 'dim' });
+      dosBrief.push(t); dossier.appendChild(t);
+    }
+    dosHint.setAttribute('y', 128);
+    dossier.appendChild(dosHint);
     svg.appendChild(dossier);
   }
   function setDossier(d) {
     if (!d || !d.id) { dossier.setAttribute('opacity', 0); return; }
     dosLabel.textContent = d.label || '';
     dosRead.textContent = d.readout || '';
-    dosInfo.textContent = d.info || '';
+    var lines = (d.brief || '').split('|');
+    dosBrief.forEach(function (t, i) { t.textContent = lines[i] || ''; });
+    dosHint.textContent = d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED';
     dossier.setAttribute('opacity', 1);
   }
 
@@ -320,7 +331,7 @@
       var colX = 22 + RAD + PAD;                       // centre of the left instrument column
       xf(radar, colX, H - RAD - PAD - 26);
       xf(gaugeBox, 34, Math.max(84, H * 0.11));
-      xf(dossier, W - 340, H - 118);  // above the SPD cap at cy-barH-12
+      xf(dossier, cx, clamp(H * 0.62, 260, H - 190));   // under the reticle: a popup, not a corner panel  // above the SPD cap at cy-barH-12
       xf(warn, cx, clamp(H * 0.26, 90, 260));
       if (ladder) xf(ladder, cx, cy, ' rotate(' + lastRoll.toFixed(2) + ')');
       if (fpm) xf(fpm, cx, cy);

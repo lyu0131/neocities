@@ -211,50 +211,6 @@ for op, pts in hl.items(): dots(pts, SOD, op)
 add('<use href="#blk" x="6620" y="%s" transform="scale(1)"/>' % f(HZ - hills_far(6620) - 60))
 add('<rect x="6618" y="%s" width="4" height="60" fill="%s"/>' % (f(HZ - hills_far(6620) - 60), mix(INDIGO, TEAL, .22)))
 
-# ---------------------------------------------------------------- the enemy: an original visor-slit suit behind the viewer (yaw 180)
-def poly(*pts):
-    # one winding for every subpath: the suit is a single nonzero-filled path, so two
-    # overlapping parts wound the opposite way would cancel and punch a hole.
-    if sum(pts[i - 1][0] * pts[i][1] - pts[i][0] * pts[i - 1][1] for i in range(len(pts))) < 0: pts = pts[::-1]
-    return 'M' + 'L'.join('%s %s' % (f(x), f(y)) for x, y in pts) + 'Z'
-def seg(p0, p1, w0, w1):  # tapered limb between two joints
-    (x0, y0), (x1, y1) = p0, p1
-    L = math.hypot(x1 - x0, y1 - y0); nx, ny = -(y1 - y0) / L, (x1 - x0) / L
-    return poly((x0 + nx * w0 / 2, y0 + ny * w0 / 2), (x1 + nx * w1 / 2, y1 + ny * w1 / 2),
-                (x1 - nx * w1 / 2, y1 - ny * w1 / 2), (x0 - nx * w0 / 2, y0 - ny * w0 / 2))
-def both(*pts): return poly(*pts) + poly(*[(-x, y) for x, y in pts])
-def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
-    return seg(p0, p1, w0, w1) + seg((-p0[0], p0[1]), (-p1[0], p1[1]), w0, w1)
-# The suit is TRACED from the supplied reference by tools/trace_suit.py, which
-# segments the photo into tone bands, walks each region's boundary and simplifies
-# it. suit_trace.py is generated; regenerate it rather than editing it by hand.
-import suit_trace as TR
-D.append('<symbol id="suit" overflow="visible"><path fill-rule="evenodd" d="%s"/></symbol>' % TR.BODY)
-bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
-SX, SY, SS = 4800, 1162, 1.35   # closer to the viewer; head lands near y=230
-add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
-add('<use href="#suit" x="-5" y="-4" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
-add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .18))          # near-black body
-add('<path fill-rule="evenodd" fill="%s" opacity=".85" d="%s"/>' % (mix(NIGHT, TEAL, .30), TR.MID))   # armour catching the sky
-add('<path fill-rule="evenodd" fill="%s" opacity=".7" d="%s"/>' % (mix(TEAL, WHITE, .45), TR.LIT))    # rim highlights
-add('<path fill-rule="evenodd" fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), TR.EYE))                  # mono-eye
-add('</g>')
-rgrad('gF', FOG, ((0, 1), (.45, .88), (.8, .35), (1, 0)))
-# offsets are measured up from the feet so the bank tracks the suit's scale
-for x, dy, rx, ry, op in [(4800, -88, 560, 100, .95), (4690, -72, 780, 70, .85), (4930, -108, 330, 58, .75), (4640, -120, 270, 40, .5)]:
-    y = SY + dy * SS
-    glow(x, y, rx * SS, ry, 'gF', op)                                       # fog bank swallowing the legs at the knee
-EX, EY = SX + SS * TR.EYE_POS[0], SY + SS * TR.EYE_POS[1]
-glow(EX, EY, 110, 42, 'gS', .28)
-glow(EX, EY, 50, 16, 'gS', .85)
-glow(EX, EY, 190, 4, 'gS', .8)                                             # horizontal flare off the visor
-# a lone ship far off the left quarter, and the lighthouse on the headland
-add('<path fill="%s" d="M5880 1150L5872 1136H5990L5996 1128H6020L6030 1150Z M5930 1136V1112H5962V1136Z M5940 1112V1096H5946V1112Z"/>' % mix(NIGHT, INDIGO, .75))
-dots([(5890, 1140), (5905, 1140), (5920, 1140), (5975, 1140), (6000, 1133)], LAMP, .8, 3)
-add('<use href="#blk" x="5943" y="1094" transform="translate(0 0)"/>')
-add('<path fill="%s" d="M5536 1150L5541 1096H5551L5556 1150Z"/>' % mix(NIGHT, INDIGO, .7))
-glow(5546, 1094, 34, 22, 'gW', .5); dots([(5544, 1092)], WHITE, 1, 4)
-
 # ---------------------------------------------------------------- skyline (windows are patterns; each building translates so its grid aligns)
 def win_pattern(pid, cw, ch, ww, wh, cols, rows, plit, strip=False):
     groups = {}
@@ -416,8 +372,6 @@ for x, s in REFL:
     k, op = min(4, int(s * 4.5 * rnd.uniform(.6, 1.1))), min(1, s * rnd.uniform(.6, 1))
     for o in images(x - 60, x + 60):
         add('<use href="#r%d" x="%s" y="%d" opacity="%s"/>' % (k, f(x + o), HZ + 1, f(op, 2)))
-for i in range(2): add('<use href="#r4" x="%s" y="%d" opacity=".8"/>' % (f(EX + i * 3 - 1), HZ + 1))   # the enemy's eye in the water
-glow(EX, HZ, 18, 260, 'gS', .35)
 
 # glints: clusters of short dashes, smaller and denser toward the horizon
 for k in range(6):
@@ -435,6 +389,65 @@ for _ in range(150):
             gid, f(x + o), f(y), f(s, 2), SOD if warm else GLINT, f(op, 2)))
 
 add('</g>')
+
+# ---------------------------------------------------------------- aerial perspective
+# Everything above this point is distance: sky, hills, skyline, bridge, sea. Wash it
+# toward the sky colour so the foreground drawn after it (the suit, the dock cranes)
+# reads as nearer. Rotating a view from a fixed point cannot give parallax, so depth
+# here comes from scale, contrast and haze.
+vgrad('haze', HZ - 430, HZ + 120, [(0, mix(INDIGO, TEAL, .30), .00), (.62, mix(INDIGO, TEAL, .34), .30), (.86, mix(INDIGO, TEAL, .30), .46), (1, mix(INDIGO, TEAL, .22), .30)])
+add('<rect x="-10" y="' + str(HZ - 430) + '" width="' + str(W + 20) + '" height="550" fill="url(#haze)"/>')
+
+# ---------------------------------------------------------------- the enemy: an original visor-slit suit behind the viewer (yaw 180)
+def poly(*pts):
+    # one winding for every subpath: the suit is a single nonzero-filled path, so two
+    # overlapping parts wound the opposite way would cancel and punch a hole.
+    if sum(pts[i - 1][0] * pts[i][1] - pts[i][0] * pts[i - 1][1] for i in range(len(pts))) < 0: pts = pts[::-1]
+    return 'M' + 'L'.join('%s %s' % (f(x), f(y)) for x, y in pts) + 'Z'
+def seg(p0, p1, w0, w1):  # tapered limb between two joints
+    (x0, y0), (x1, y1) = p0, p1
+    L = math.hypot(x1 - x0, y1 - y0); nx, ny = -(y1 - y0) / L, (x1 - x0) / L
+    return poly((x0 + nx * w0 / 2, y0 + ny * w0 / 2), (x1 + nx * w1 / 2, y1 + ny * w1 / 2),
+                (x1 - nx * w1 / 2, y1 - ny * w1 / 2), (x0 - nx * w0 / 2, y0 - ny * w0 / 2))
+def both(*pts): return poly(*pts) + poly(*[(-x, y) for x, y in pts])
+def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
+    return seg(p0, p1, w0, w1) + seg((-p0[0], p0[1]), (-p1[0], p1[1]), w0, w1)
+# The suit is TRACED from the supplied reference by tools/trace_suit.py, which
+# segments the photo into tone bands, walks each region's boundary and simplifies
+# it. suit_trace.py is generated; regenerate it rather than editing it by hand.
+import suit_trace as TR
+D.append('<symbol id="suit" overflow="visible"><path fill-rule="evenodd" d="%s"/></symbol>' % TR.BODY)
+bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
+SX, SY, SS = 4800, 1196, 1.62   # foreground scale; feet stand below the waterline
+add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
+# reflection first, clipped to the water and fading with depth
+add('<g clip-path="url(#kw)" opacity=".26">')
+add('<g transform="translate(0 %s) scale(1 -1)">' % f(2 * (HZ - SY) / SS))
+add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .5))
+add('</g></g>')
+add('<use href="#suit" x="-5" y="-4" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
+add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .18))          # near-black body
+add('<path fill-rule="evenodd" fill="%s" opacity=".85" d="%s"/>' % (mix(NIGHT, TEAL, .30), TR.MID))   # armour catching the sky
+add('<path fill-rule="evenodd" fill="%s" opacity=".7" d="%s"/>' % (mix(TEAL, WHITE, .45), TR.LIT))    # rim highlights
+add('<path fill-rule="evenodd" fill="%s" d="%s"/>' % (mix(SOD, WHITE, .55), TR.EYE))                  # mono-eye
+add('</g>')
+rgrad('gF', FOG, ((0, 1), (.45, .88), (.8, .35), (1, 0)))
+# offsets are measured up from the feet so the bank tracks the suit's scale
+for x, dy, rx, ry, op in [(4800, -30, 620, 52, .55), (4690, -18, 840, 40, .5), (4930, -44, 360, 34, .4), (4640, -52, 300, 26, .3)]:
+    y = SY + dy * SS
+    glow(x, y, rx * SS, ry, 'gF', op)                                       # fog bank swallowing the legs at the knee
+EX, EY = SX + SS * TR.EYE_POS[0], SY + SS * TR.EYE_POS[1]
+glow(EX, EY, 110, 42, 'gS', .28)
+glow(EX, EY, 50, 16, 'gS', .85)
+glow(EX, EY, 190, 4, 'gS', .8)                                             # horizontal flare off the visor
+glow(EX, HZ, 18, 260, 'gS', .35)                                           # its glow column down the water
+for i in range(2): add('<use href="#r4" x="%s" y="%d" opacity=".8"/>' % (f(EX + i * 3 - 1), HZ + 1))   # the eye's reflection in the water
+# a lone ship far off the left quarter, and the lighthouse on the headland
+add('<path fill="%s" d="M5880 1150L5872 1136H5990L5996 1128H6020L6030 1150Z M5930 1136V1112H5962V1136Z M5940 1112V1096H5946V1112Z"/>' % mix(NIGHT, INDIGO, .75))
+dots([(5890, 1140), (5905, 1140), (5920, 1140), (5975, 1140), (6000, 1133)], LAMP, .8, 3)
+add('<use href="#blk" x="5943" y="1094" transform="translate(0 0)"/>')
+add('<path fill="%s" d="M5536 1150L5541 1096H5551L5556 1150Z"/>' % mix(NIGHT, INDIGO, .7))
+glow(5546, 1094, 34, 22, 'gW', .5); dots([(5544, 1092)], WHITE, 1, 4)
 
 # ---------------------------------------------------------------- near container dock with gantry cranes (right quarter, strong foreground silhouette)
 DK0, DK1, DKY = 1900, 3720, 1446
@@ -455,7 +468,7 @@ CRANE = ('M0 0h12v-430h-12Z M150 0h12v-430h-12Z M-8 -448h178v20h-178Z M-8 -262h1
          'M150 -506h110v28h-110Z M-214 -456h40v14h-40Z M-196 -442h4v88h-4Z M-222 -354h56v10h-56Z')
 D.append('<symbol id="crane" overflow="visible"><path d="%s"/></symbol>' % CRANE)
 bgrad('cone', [(0, SOD, .16), (1, SOD, 0)])
-for cx, sc in [(2440, 1.0), (3260, .86)]:
+for cx, sc in [(2440, 1.55), (3260, 1.2)]:
     for fx in (-300, -120, 240):   # floodlight cones under the boom
         lx, ly = cx + fx * sc, DKY - 454 * sc
         add('<path d="M%s %sL%s %s %s %s %s %sZ" fill="url(#cone)"/>' % (f(lx - 4), f(ly), f(lx - 50), DKY, f(lx + 50), DKY, f(lx + 4), f(ly)))

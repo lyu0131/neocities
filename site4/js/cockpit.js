@@ -24,6 +24,19 @@
   function bandTopLat(j) { return (HORIZON_Y - j * BAND_PX) * DEG_PER_PX; }
   function bandMidLat(j) { return bandTopLat(j) - BAND_DEG / 2; }
   var tiles = [];
+  // Bands run from the zenith to the nadir so the world closes into a real sphere.
+  // The image only covers the middle ones (row >= 0); above and below it the bands are
+  // filled with the strip's own edge colour, which is flat sky and flat sea anyway.
+  // Flat caps were what made it still read as a ring: a disc does not converge.
+  var BANDS = [];
+  (function buildBands() {
+    var imgTop = HORIZON_Y * DEG_PER_PX, imgBot = (HORIZON_Y - IMG_H) * DEG_PER_PX;
+    var nTop = 3, nBot = 4;   // polar bands are flat fill, so they need little subdivision
+    var stepTop = (93 - imgTop) / nTop, stepBot = (imgBot + 93) / nBot;
+    for (var k = nTop; k > 0; k--) BANDS.push({ top: imgTop + k * stepTop, bot: imgTop + (k - 1) * stepTop, row: -1 });
+    for (var j = 0; j < LAT_BANDS; j++) BANDS.push({ top: bandTopLat(j), bot: bandTopLat(j + 1), row: j });
+    for (var k = 0; k < nBot; k++) BANDS.push({ top: imgBot - k * stepBot, bot: imgBot - (k + 1) * stepBot, row: -1 });
+  })();
   var sliceW = 0, R = 0;
 
   // .pano-ring sits at z~0 (its children are pushed back via translateZ), so its own flat
@@ -41,25 +54,17 @@
   // and background-position-x.
   (function buildSphere() {
     var frag = document.createDocumentFragment();
-    for (var j = 0; j < LAT_BANDS; j++) {
+    BANDS.forEach(function (b) {
       for (var i = 0; i < SLICES; i++) {
         var el = document.createElement('div');
-        el.className = 'pano-slice';
+        el.className = 'pano-slice' + (b.row < 0 ? (b.top > 0 ? ' pole-top' : ' pole-bot') : '');
         frag.appendChild(el);
-        tiles.push({ el: el, i: i, j: j, lat: bandMidLat(j) });
+        tiles.push({ el: el, i: i, band: b, lat: (b.top + b.bot) / 2, h: b.top - b.bot });
       }
-    }
+    });
     ring.insertBefore(frag, ring.firstChild);
   })();
 
-  // The cylinder is open at both ends, so a floor and a ceiling close it into a
-  // sphere: two planes laid flat at the top and bottom of the strip. Without them
-  // pitching down runs out of world and shows the page behind it.
-  var capTop = document.createElement('div');
-  var capBot = document.createElement('div');
-  capTop.className = 'pano-cap cap-top';
-  capBot.className = 'pano-cap cap-bottom';
-  ring.appendChild(capTop); ring.appendChild(capBot);
 
   // One longitude segment's width on screen. It sets R, and through R the scale of
   // the whole sphere. 0.27 of the viewport height reproduces the framing the cylinder
@@ -83,21 +88,24 @@
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
-    var tileH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
     var OVER = 1.04;               // quads are chords, so overlap slightly or seams show
+    var imgH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
 
     tiles.forEach(function (t) {
       var cos = Math.cos(t.lat * Math.PI / 180);
       var w = sliceW * cos;
+      var tileH = 2 * R * Math.tan(t.h / 2 * Math.PI / 180);
       // texture: this quad shows image cell (i, j), so scale the whole image by the
       // cell count and offset to that cell
       t.el.style.width = (w * OVER) + 'px';
       t.el.style.height = (tileH * OVER) + 'px';
       t.el.style.marginLeft = (-w * OVER / 2) + 'px';
       t.el.style.marginTop = (-tileH * OVER / 2) + 'px';
-      t.el.style.backgroundSize = (w * SLICES) + 'px ' + (tileH * LAT_BANDS) + 'px';
-      t.el.style.backgroundPosition = (-(t.i * w) - w * (OVER - 1) / 2) + 'px '
-                                    + (-(t.j * tileH) - tileH * (OVER - 1) / 2) + 'px';
+      if (t.band.row >= 0) {
+        t.el.style.backgroundSize = (w * SLICES) + 'px ' + (imgH * LAT_BANDS) + 'px';
+        t.el.style.backgroundPosition = (-(t.i * w) - w * (OVER - 1) / 2) + 'px '
+                                      + (-(t.band.row * imgH) - imgH * (OVER - 1) / 2) + 'px';
+      }
       t.el.style.transform = 'rotateY(' + (-t.i * SLICE_DEG) + 'deg) rotateX('
                            + (-t.lat) + 'deg) translateZ(' + (-R) + 'px)';
     });
@@ -105,16 +113,6 @@
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       t.style.transform = 'rotateY(' + (HALF_SLICE - dy) + 'deg) translateZ(' + (-R + 40) + 'px)';
-    });
-
-    // caps close the sphere past the strip's top and bottom latitudes
-    var latT = bandTopLat(0) * Math.PI / 180, latB = bandTopLat(LAT_BANDS) * Math.PI / 180;
-    [[capTop, latT], [capBot, latB]].forEach(function (pair) {
-      var c = pair[0], lat = pair[1];
-      var span = 2 * R * Math.cos(lat) * 1.06;
-      c.style.width = c.style.height = span + 'px';
-      c.style.marginLeft = c.style.marginTop = (-span / 2) + 'px';
-      c.style.transform = 'translateY(' + (-R * Math.sin(lat)) + 'px) rotateX(90deg)';
     });
   }
   layout();
@@ -165,7 +163,8 @@
   // it: turn until it sits under the centre reticle and its dossier comes up.
   var boreTarget = null;
   function updateBoresight(yaw) {
-    var best = null, bestOff = 7;                 // degrees from dead centre
+    var best = null, bestOff = 12;                // degrees from dead centre: wide enough
+                                                  // that aiming roughly at a target latches it
     targets.forEach(function (t) {
       var off = Math.abs(shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0));
       if (off < bestOff) { bestOff = off; best = t; }
@@ -176,8 +175,8 @@
     var t = focusTarget || hoverTarget || boreTarget, id = t ? t.id : null;
     if (id === desiredLock) return;
     desiredLock = id;
-    if (t) ARGUS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '' });
-    else ARGUS.emit('lock', { id: null, label: null, readout: null, info: '' });
+    if (t) ARGUS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '', brief: t.dataset.brief || '', href: t.dataset.href || '' });
+    else ARGUS.emit('lock', { id: null, label: null, readout: null, info: '', brief: '', href: '' });
   }
 
   var firing = false, fireStart = 0;

@@ -512,3 +512,9 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   .screen .panel, .screen a, .strip a, .callouts button,
   .screen .rows dd, .screen p, .screen li { transition: none; }
 }
+
+/* target popup: raised under the reticle when a contact is latched */
+#hud .dossier { transition: opacity .18s ease-out; }
+#hud .dossier text { text-anchor: middle; }
+#hud .dossier .dos-title { font-size: 22px; letter-spacing: .1em; }
+#hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
