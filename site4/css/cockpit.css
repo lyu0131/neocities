@@ -389,3 +389,17 @@ a { color: inherit; }
   .target::after { max-width: 22ch; font-size: 11px; }
   #boot-log { left: 12px; bottom: 12px; font-size: 12px; max-width: calc(100vw - 24px); }
 }
+
+/* ---------- instruments: radar scope, system gauges, caution banner ---------- */
+#hud .radar text { font-size: 11px; opacity: .8; }
+#hud .blip rect { fill: rgba(6, 10, 18, .6); }
+#hud .blip text { font-size: 10px; }
+#hud .blip.is-locked { color: var(--lock); }
+#hud .gauges text { font-size: 11px; }
+#hud .warn { color: var(--amber); }
+#hud .warn text { font-size: 13px; }
+#hud .warn.is-blinking { animation: warn-blink 1s steps(2, end) infinite; }
+@keyframes warn-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  #hud .warn.is-blinking { animation: none; opacity: 1; }
+}
