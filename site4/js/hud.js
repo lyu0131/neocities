@@ -375,7 +375,7 @@
   // overlap in projection -- without reordering an arm paints over the torso). Read
   // w/h/frame count off the data at runtime: the source mesh has already been
   // re-scaled once and will be again. Degrades to nothing if the data never loaded.
-  var DMG_W = 194, DMG_PAD = 10, DMG_MIN_H = 110;
+  var DMG_W = 194, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
   var dmgBox, dmgBg, dmgCorners, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
   // idle | ease (spinning to front-on the short way round) | hold (fronted, flashing)
@@ -414,22 +414,35 @@
     setFrame(0);
   }
   // sizes and positions the housing for the vertical space place() hands it, or
-  // stands it down cleanly (opacity 0, rotation paused) when that space is too tight
+  // stands it down cleanly (opacity 0, rotation paused) when that space is too tight.
+  // The housing shrink-wraps to the art instead of stretching to fill whatever range
+  // place() hands over -- a tall mostly-empty box read as unfinished. Anchored to the
+  // *bottom* of that range (flush above COMBAT SYSTEM) so anything the shrink frees up
+  // opens as blank scene above the map, under the tape, rather than as a gap between
+  // the two panels.
   function layoutDamage(top, bottom, room) {
     var D = window.BUNNYS_DMG;
     if (!D || !dmgBox) return;
-    var h = bottom - top;
-    dmgOn = !!room && h >= DMG_MIN_H;
+    var avail = bottom - top;
+    // The art region is a SQUARE, by request -- a tall box with a small suit adrift in it
+    // read as unfinished. Its side is the housing's inner width, unless the column is too
+    // short for that, in which case it shrinks to whatever height is on offer.
+    var side = Math.min(DMG_W - DMG_PAD * 2, avail - dmgArtTop - DMG_PAD);
+    dmgOn = !!room && avail >= DMG_MIN_H && side >= DMG_MIN_SIDE;
     dmgBox.setAttribute('opacity', dmgOn ? 1 : 0);
     if (!dmgOn) return;
-    xf(dmgBox, 22, top);
-    dmgBg.setAttribute('height', h);
+    // Fit the artwork inside that square on whichever axis constrains it. Do NOT assume
+    // portrait: the source mesh is re-scaled from time to time and the art has already
+    // been both taller and wider than square.
+    var scale = Math.min(side / D.w, side / D.h);
+    var artW = D.w * scale, artH = D.h * scale;
+    var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
+    xf(dmgBox, 22, bottom - h);                  // anchored to the bottom, flush above
+    dmgBg.setAttribute('height', h);             // COMBAT SYSTEM
     updateCorners(dmgCorners, 0, 0, DMG_W, h);
     dmgStencil.setAttribute('y', h - 6);
-    var artW = DMG_W - DMG_PAD * 2, artH = Math.max(1, h - dmgArtTop - DMG_PAD);
-    var scale = Math.min(artW / D.w, artH / D.h);
-    var tx = DMG_PAD + (artW - D.w * scale) / 2, ty = dmgArtTop + (artH - D.h * scale) / 2;
-    xf(dmgArt, tx, ty, ' scale(' + scale.toFixed(4) + ')');
+    xf(dmgArt, (DMG_W - artW) / 2, dmgArtTop + (side - artH) / 2,
+       ' scale(' + scale.toFixed(4) + ')');
   }
   function setFrame(idx) {
     var D = window.BUNNYS_DMG;
@@ -898,10 +911,12 @@
   }
 
   var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
-  // TASK 3 HOOK: the alarm log panel doesn't exist yet. Until it does, borrow
-  // ARMAMENT's own bottom edge as the stand-in; Task 3 should replace this
-  // function body with the alarm log's real bottom edge.
-  function logBottom() { return hxArmsBottom; }
+  // TASK 3 HOOK: the alarm log panel doesn't exist yet, and hxArmsBottom is already
+  // spent above (against radarTop) -- reusing it here would just add a second,
+  // unrelated constraint on the same value, not model the log. 0 can never fail the
+  // `<= cy - 40` check, so this is a true no-op until Task 3 replaces the body with
+  // the alarm log's real bottom edge.
+  function logBottom() { return 0; }
 
   if (!isPage) {
     // -- pitch ladder: rungs regenerated around the current pitch, banks slightly with vx --
