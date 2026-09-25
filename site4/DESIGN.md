@@ -44,6 +44,12 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 ## Tests
 `node tests/run.js` runs all of them, or run `tests/svg.test.js [pano|frame|hud|ms]`, `tests/hub.test.js` or `tests/pages.test.js` separately. Screenshots go to `tests/out/`, which is git-ignored.
 
+## Hub controls
+Drag, wheel, arrow keys **and WASD** (A/D yaw, W/S pitch; held keys turn continuously),
+`Home` faces forward, the slew panel turns onto a contact, and tilt on touch devices.
+Aim magnetism pulls the reticle onto a contact within 9 degrees once the turn has slowed,
+and never while dragging or while a turn key is held.
+
 ## Invariants
 - CSS must never set `transform` or `filter` on `.pano-ring`, `.pano-slice` or `.target` — cockpit.js and boot.js write those inline every frame.
 - `--slice-h` must stay `--slice-w * 5`; the strip is 400x2000 units per slice, and any other ratio distorts the whole scene. The floor and ceiling caps cover the pitch range instead.

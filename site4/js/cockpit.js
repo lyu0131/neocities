@@ -45,6 +45,8 @@
   // (and slices, which inherit) need pointer-events:none.
   ring.style.pointerEvents = 'none';
 
+  var SNAP_DEG = 9;          // magnetism reaches this far from a contact
+  var SNAP_STRENGTH = 0.32;  // fraction of the remaining gap taken per second
   var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
@@ -254,13 +256,36 @@
     markInput();
   }, { passive: false });
 
+  // WASD mirrors the arrows. Held keys turn continuously (the render loop reads `held`),
+  // while a single tap still steps, so both a tap and a hold feel right.
+  var held = {};
+  var STEP = { left: -15, right: 15, up: 4, down: -4 };
+  function keyRole(e) {
+    var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (k === 'ArrowLeft' || k === 'a') return 'left';
+    if (k === 'ArrowRight' || k === 'd') return 'right';
+    if (k === 'ArrowUp' || k === 'w') return 'up';
+    if (k === 'ArrowDown' || k === 's') return 'down';
+    return null;
+  }
+  document.addEventListener('keyup', function (e) { var r = keyRole(e); if (r) held[r] = false; });
+  window.addEventListener('blur', function () { held = {}; });
+
   document.addEventListener('keydown', function (e) {
     if (!state.booted) return;
-    if (e.key === 'ArrowLeft') { targetYaw = wrap360(targetYaw - 15); markInput(); e.preventDefault(); }
-    else if (e.key === 'ArrowRight') { targetYaw = wrap360(targetYaw + 15); markInput(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { targetPitch = clampPitch(targetPitch + 4); markInput(); e.preventDefault(); }
-    else if (e.key === 'ArrowDown') { targetPitch = clampPitch(targetPitch - 4); markInput(); e.preventDefault(); }
-    else if (e.key === 'Home') { targetYaw = 0; targetPitch = 0; markInput(); e.preventDefault(); }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var role = keyRole(e);
+    if (role) {
+      if (!e.repeat) {
+        if (role === 'left' || role === 'right') targetYaw = wrap360(targetYaw + STEP[role]);
+        else targetPitch = clampPitch(targetPitch + STEP[role]);
+      }
+      held[role] = true;
+      markInput();
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Home') { targetYaw = 0; targetPitch = 0; markInput(); e.preventDefault(); }
   });
 
   // phone tilt: ask permission once, then map gamma/beta relative to the enable point
@@ -338,6 +363,31 @@
 
     if (!dragging && Math.abs(velYaw) > 0.001) { targetYaw = wrap360(targetYaw + velYaw); velYaw *= Math.pow(0.92, dt * 60); }
     else if (!dragging) velYaw = 0;
+
+    // held WASD/arrows turn continuously rather than stepping once per repeat
+    var turn = (held.right ? 1 : 0) - (held.left ? 1 : 0);
+    var tilt = (held.up ? 1 : 0) - (held.down ? 1 : 0);
+    if (turn || tilt) {
+      targetYaw = wrap360(targetYaw + turn * 70 * dt);
+      targetPitch = clampPitch(targetPitch + tilt * 26 * dt);
+      markInput();
+    }
+
+    // Magnetism: as the view slows near a contact, pull the aim onto it so the reticle
+    // settles on the target instead of just past it. Only while the turn is already
+    // slow, so it assists the last few degrees and never fights a deliberate sweep.
+    if (!firing) {
+      var near = null, nearOff = SNAP_DEG;
+      targets.forEach(function (t) {
+        var d = shortestDelta(targetYaw, parseFloat(t.dataset.yaw) || 0);
+        if (Math.abs(d) < Math.abs(nearOff)) { nearOff = d; near = t; }
+      });
+      if (near && !dragging && Math.abs(velYaw) < 0.9 && !turn) {
+        var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
+        targetYaw = wrap360(targetYaw + nearOff * pull * SNAP_STRENGTH);
+        if (Math.abs(nearOff) < 0.4) targetPitch += (0 - targetPitch) * pull * 0.25;
+      }
+    }
 
     var idle = !dragging && !firing && !ARGUS.reduce && (now - lastInputTime > 4000);
     var wantYaw = targetYaw, wantPitch = targetPitch;

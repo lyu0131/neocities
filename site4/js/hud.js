@@ -83,13 +83,20 @@
     var readout = el('text', { x: 0, y: barH + 26, 'text-anchor': 'middle' });
     g.appendChild(readout);
     svg.appendChild(g);
-    return { g: g, rule: rule, tick: tick, cap: t, readout: readout, frac: 0 };
+    return { g: g, rule: rule, tick: tick, cap: t, readout: readout, frac: 0, want: 0, cur: null };
   }
+  // SPD and ALT are fed by drag velocity and pitch, both of which jump about. Store the
+  // target and let a frame loop ease the needle onto it, so the bars glide.
   function setBar(b, frac01, text) {
-    b.frac = frac01;
-    var y = (barH - frac01 * barH * 2).toFixed(1);
-    b.tick.setAttribute('y1', y); b.tick.setAttribute('y2', y);
+    b.want = frac01;
     if (text != null) b.readout.textContent = text;
+  }
+  function drawBar(b, dt) {
+    if (b.cur == null) b.cur = b.want;
+    b.cur += (b.want - b.cur) * (1 - Math.pow(0.0006, dt));
+    b.frac = b.cur;
+    var y = (barH - b.cur * barH * 2).toFixed(1);
+    b.tick.setAttribute('y1', y); b.tick.setAttribute('y2', y);
   }
   var spd = bar('SPD'), alt = bar('ALT');
 
@@ -314,7 +321,7 @@
       b.rule.setAttribute('y1', -barH); b.rule.setAttribute('y2', barH);
       b.cap.setAttribute('y', -barH - 12);
       b.readout.setAttribute('y', barH + 26);
-      setBar(b, b.frac);
+      // the needle is redrawn from b.cur each frame, so resizing needs no re-set here
     });
     // keep the bars clear of the left instrument column, and mirror them so the
     // pair stays symmetric about the centre
@@ -400,10 +407,14 @@
     });
 
     // gauges tick on their own clock; cheap, and pauses with the tab
-    (function tick() {
+    (function tick(now) {
       requestAnimationFrame(tick);
       if (document.hidden) return;
-      drawGauges(performance.now());
+      var t = now || performance.now();
+      var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
+      tick.last = t;
+      drawGauges(t);
+      drawBar(spd, dt); drawBar(alt, dt);
     })();
   } else {
     // -- sub-pages: reduced set, driven by scroll --
@@ -423,6 +434,14 @@
     }
     addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+    (function tick(now) {
+      requestAnimationFrame(tick);
+      if (document.hidden) return;
+      var t = now || performance.now();
+      var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
+      tick.last = t;
+      drawBar(spd, dt); drawBar(alt, dt);
+    })();
   }
 
   var resizeTimer = null;
