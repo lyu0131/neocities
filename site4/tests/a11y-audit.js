@@ -93,14 +93,14 @@ const { launch, check, SITE } = require('./cdp');
   await srPage.goto('index.html', 800);
   
   // Check lock-status element setup
-  const lockStatusSetup = await srPage.eval(`{
+  const lockStatusSetup = await srPage.eval(`(() => {
     const el = document.getElementById('lock-status');
     return {
       exists: !!el,
       ariaLive: el?.getAttribute('aria-live'),
       className: el?.className
     };
-  }`);
+  })()`);
   
   results.push({
     type: 'SCREEN READER',

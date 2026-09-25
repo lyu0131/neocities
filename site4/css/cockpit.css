@@ -14,7 +14,16 @@
   --lock: #FF3347;
   --ice: #DDE7EE;
   --panel: rgba(6, 10, 18, .72);
-  --glow: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 8px rgba(140, 255, 193, .35));
+  /* painted machine housing, its lit top edge, and the recessed display glass set into it.
+     These are opaque paint and glass, not frosted panes: no backdrop-filter anywhere. */
+  --housing: #131A24;
+  --housing-lip: #202A37;
+  --glass: #070C15;
+  --edge: rgba(221, 231, 238, .20);    /* machined hairline */
+  --stencil: rgba(221, 231, 238, .55); /* silkscreened part numbers; .40 measured 3.4:1 */
+  /* One tight shadow, not a bloom. Spent only where it carries meaning: the boresight,
+     a lock and a caution. Everything else is a crisp stroke. */
+  --glow: drop-shadow(0 0 1.5px currentColor);
   --z-pano: 1;
   --z-fx: 2;
   --z-frame: 3;
@@ -118,7 +127,6 @@ a { color: inherit; }
   color: var(--hud);
   cursor: pointer;
   pointer-events: auto;
-  filter: var(--glow);
   transition: width .35s steps(3, end), height .35s steps(3, end),
               margin .35s steps(3, end), color .2s ease;
   /* four corner brackets, drawn as background gradients pinned to the box's corners */
@@ -199,7 +207,6 @@ a { color: inherit; }
   height: 100%;
   pointer-events: none;
   color: var(--hud);
-  filter: var(--glow);
 }
 #hud :is(path, line, polyline, polygon, circle, rect):not([fill]) {
   fill: none;
@@ -207,11 +214,16 @@ a { color: inherit; }
   stroke-width: 1.5;
   stroke-linecap: square;
 }
+/* Graticules, brackets and rules are drawn in the machine green; the values read on them
+   are cool pale. Amber and red override per state, so colour always means something. */
 #hud text, #hud .hdg-readout {
   font: 700 13px/1 'B612 Mono', monospace;
   letter-spacing: .08em;
-  fill: currentColor;
+  fill: var(--ice);
 }
+#hud .boresight { filter: var(--glow); }
+#hud .warn text, #hud .is-locked text, #hud .blip.is-locked text { fill: currentColor; }
+#hud .warn, #hud .is-locked { filter: var(--glow); }
 
 /* HUD draw-in during boot: strokes draw in, the reticle drops from 3x with a snap */
 #hud.hud-draw :is(path, line, polyline, circle, rect) {
@@ -251,11 +263,10 @@ a { color: inherit; }
   font: 700 12px/1 'B612 Mono', monospace;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--hud);
-  background: var(--panel);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--hud);
-  border-radius: 2px;
+  color: var(--ice);
+  background: linear-gradient(var(--housing-lip), var(--housing) 2px);
+  border: 1px solid var(--edge);
+  border-radius: 0;
   min-width: 44px;
   min-height: 44px;
   padding: 10px 16px;
@@ -278,10 +289,8 @@ a { color: inherit; }
   clip: auto;
   clip-path: none;
   max-width: calc(100vw - 32px);
-  background: var(--panel);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--hud);
-  border-radius: 2px;
+  background: linear-gradient(var(--housing-lip), var(--housing) 2px);
+  border: 1px solid var(--edge);
   padding: 12px 16px;
 }
 #targets-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -352,7 +361,7 @@ a { color: inherit; }
   transform: scaleX(0);
   transform-origin: 0 50%;
   background: var(--hud);
-  animation: boot-fill 6.2s linear forwards;
+  animation: boot-fill 3.8s linear forwards;
 }
 @keyframes boot-fill { to { transform: scaleX(1); } }
 .boot-cursor { animation: boot-blink 1s steps(2, end) infinite; }
@@ -447,24 +456,6 @@ a { color: inherit; }
   #hud .warn.is-blinking { animation: none; opacity: 1; }
 }
 
-/* ---------- the cylinder's floor and ceiling: close it into a sphere ---------- */
-.pano-cap {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  pointer-events: none;
-  backface-visibility: visible;
-}
-/* sea directly below, darkest under your feet, meeting the strip's colour at the rim */
-.cap-bottom {
-  background:
-    repeating-radial-gradient(circle closest-side, rgba(180, 205, 215, .05) 0 2px, transparent 2px 22px),
-    radial-gradient(circle closest-side, #070D1A 0%, #080F1E 40%, #090F1E 74%, #09101F 100%);
-}
-/* storm deck overhead */
-.cap-top {
-  background: radial-gradient(circle closest-side, #05080E 0%, #060A14 54%, #060A12 100%);
-}
 #hud .dossier text { font-size: 14px; }
 #hud .dossier .dim { font-size: 11px; opacity: .75; }
 
@@ -475,43 +466,93 @@ body.page #frame { opacity: .55; }
 .strip {
   position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
   display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
-  padding: 12px 20px; background: rgba(6, 10, 18, .88);
-  border-bottom: 1px solid rgba(140, 255, 193, .3);
+  padding: 12px 20px;
+  background: linear-gradient(var(--housing-lip), var(--housing) 2px, var(--housing));
+  border-bottom: 1px solid var(--edge);
   font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .1em;
 }
 .strip ul { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; }
-.strip a { color: var(--hud); text-decoration: none; padding: 6px 8px; min-height: 32px; display: inline-flex; align-items: center; }
+.strip a { color: var(--ice); text-decoration: none; padding: 6px 8px; min-height: 32px; display: inline-flex; align-items: center; }
 .strip a:hover { background: var(--hud); color: var(--night); }
 .strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
 .strip .ret { color: var(--amber); }
 
 .screen {
   position: relative; z-index: 6;
-  max-width: 1080px; margin: 0 auto; padding: 96px 20px 80px;
+  max-width: 1080px; margin: 0 auto; padding: 136px 20px 80px;
   color: var(--ice); font: 400 15px/1.6 'B612', system-ui, sans-serif;
 }
+/* A panel is a painted housing: a lit top lip, a machined hairline edge, four bracket
+   corners cut into the face, and a silkscreened part number in the bottom right. */
 .panel {
-  position: relative; background: var(--panel); padding: 22px 24px 26px;
-  border: 1px solid rgba(140, 255, 193, .28); margin: 0 0 26px;
+  position: relative;
+  background: linear-gradient(var(--housing-lip), var(--housing) 3px, var(--housing));
+  padding: 22px 24px 30px;
+  border: 1px solid var(--edge);
+  margin: 0 0 26px;
 }
-.panel::before, .panel::after {
-  content: ""; position: absolute; width: 14px; height: 14px; border: 0 solid var(--hud); opacity: .7;
+.panel::before {
+  content: ""; position: absolute; inset: 5px; pointer-events: none;
+  --b: linear-gradient(var(--hud), var(--hud));
+  background:
+    var(--b) top left / 13px 1px no-repeat,    var(--b) top left / 1px 13px no-repeat,
+    var(--b) top right / 13px 1px no-repeat,   var(--b) top right / 1px 13px no-repeat,
+    var(--b) bottom left / 13px 1px no-repeat, var(--b) bottom left / 1px 13px no-repeat,
+    var(--b) bottom right / 13px 1px no-repeat,var(--b) bottom right / 1px 13px no-repeat;
+  opacity: .55;
 }
-.panel::before { left: -1px; top: -1px; border-width: 1px 0 0 1px; }
-.panel::after { right: -1px; bottom: -1px; border-width: 0 1px 1px 0; }
+.panel[data-ref]::after {
+  content: attr(data-ref);
+  position: absolute; right: 26px; bottom: 7px;
+  font: 400 10px/1 'B612 Mono', monospace; letter-spacing: .16em;
+  color: var(--stencil); pointer-events: none;
+}
+/* the subsystem this panel belongs to, stencilled on the top lip */
+.sub {
+  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .2em;
+  color: var(--hud); margin: 0 0 10px;
+}
+/* a readout set into the housing: recessed glass, not another housing */
+.rows {
+  background: var(--glass);
+  border: 1px solid var(--edge);
+  padding: 14px 16px;
+}
 .bar {
   font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud);
-  padding: 0 0 14px; margin: 0 0 18px; border-bottom: 1px solid rgba(140, 255, 193, .3);
+  padding: 0 0 14px; margin: 0 0 18px; border-bottom: 1px solid var(--edge);
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
+.bar .unit { color: var(--stencil); letter-spacing: .12em; font-weight: 400; }
 .screen h1 { font: 700 clamp(28px, 5vw, 52px)/1.05 'B612 Mono', monospace; letter-spacing: .04em; margin: 0 0 18px; }
-.screen h2 { font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em; color: var(--hud); margin: 0 0 8px; }
+.screen h2 {
+  font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em;
+  color: var(--ice); margin: 0 0 12px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--edge);
+}
 .screen p { margin: 0 0 14px; max-width: 68ch; }
 .screen a { color: var(--amber); }
 .meta { font: 400 12px/1.5 'B612 Mono', monospace; letter-spacing: .08em; color: var(--hud); opacity: .85; }
 .rows { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0; font-size: 14px; }
 .rows dt { font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
+.rows dt::after { content: ""; }
 .rows dd { margin: 0; }
 .tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
+.tag.is-caution { border-color: var(--amber); color: var(--amber); }
+.tag.is-lock { border-color: var(--lock); color: var(--lock); }
+
+/* a rail of subsystem readouts: glass cells on a machined grid, hairline dividers made
+   by letting the housing edge show through a 1px gap rather than by drawing borders */
+.rail {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 1px; list-style: none; margin: 0 0 26px; padding: 0;
+  background: var(--edge); border: 1px solid var(--edge);
+}
+.rail li { background: var(--glass); padding: 11px 13px; display: grid; gap: 5px; }
+.rail b { font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .14em; color: var(--hud); }
+.rail span { font: 700 15px/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--ice); }
+.rail .is-caution span { color: var(--amber); }
+.rail .is-lock span { color: var(--lock); }
 
 /* mission entries slide in as they scroll into view */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }
@@ -538,7 +579,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
 @media (max-width: 700px) {
-  .screen { padding: 110px 14px 60px; }
+  .screen { padding: 124px 14px 60px; }
   .views svg { width: min(46%, 200px); }
   .rows { grid-template-columns: 1fr; gap: 2px 0; }
   .rows dd { margin: 0 0 10px; }
@@ -582,10 +623,10 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   top: 50%;
   transform: translateY(-50%);
   z-index: var(--z-nav);
-  background: rgba(6, 10, 18, .85);
-  border: 1px solid rgba(140, 255, 193, .35);
+  background: linear-gradient(var(--housing-lip), var(--housing) 2px);
+  border: 1px solid var(--edge);
   padding: 10px 10px 12px;
-  color: var(--hud);
+  color: var(--ice);
   font: 700 11px/1 'B612 Mono', monospace;
   letter-spacing: .12em;
 }

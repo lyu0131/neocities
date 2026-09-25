@@ -29,7 +29,7 @@
 
   function onSkip() { finish(true); }
 
-  // t=6200 (or immediately): hand the page over to cockpit.js/fx.js
+  // t=3800 (or immediately): hand the page over to cockpit.js/fx.js
   function finish(instant) {
     if (done) return;
     done = true;
@@ -75,7 +75,7 @@
     cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
     overlay.appendChild(cursor);
 
-    // t=300-1900: boot log, one line every ~180ms; the reactor % counts up in place
+    // t=200-1050: boot log, one line every ~95ms; the reactor % counts up in place
     var LOG = [
       'BUNNyS OS 2.6.1 // COLD START',
       'MEMORY CHECK ....... 8192K OK',
@@ -87,16 +87,16 @@
       'CALLSIGN ............ SYLAS LYU'
     ];
     LOG.forEach(function (line, i) {
-      at(300 + i * 180, function () {
+      at(200 + i * 95, function () {
         var idx = lines.length;
         lines.push(line.indexOf('{P}') > -1 ? line.replace('{P}', '12') : line);
         render();
-        if (line.indexOf('{P}') > -1) countReactor(idx, line, 300 + i * 180);
+        if (line.indexOf('{P}') > -1) countReactor(idx, line, 200 + i * 95);
       });
     });
     function countReactor(idx, template, startAt) {
       var t0 = performance.now();
-      var dur = Math.max(1900 - startAt, 200);
+      var dur = Math.max(1050 - startAt, 200);
       (function step() {
         if (done) return;
         var p = Math.min(1, (performance.now() - t0) / dur);
@@ -106,8 +106,8 @@
       })();
     }
 
-    // t=1900-3100: 24 monitor slices flicker on in scattered order
-    at(1900, function () {
+    // t=1050-1750: monitor panels flicker on in scattered order
+    at(1050, function () {
       // the frame seams glow green as the panels light, then settle (css owns the look)
       var frameEl = document.getElementById('frame');
       if (frameEl) frameEl.classList.add('seam-glow');
@@ -122,7 +122,7 @@
         var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
       }
       order = order.slice(0, 56);
-      var span = 1200, n = order.length;
+      var span = 700, n = order.length;
       order.forEach(function (idx, k) {
         at(Math.floor(k * span / n), function () {
           var el = slices[idx];
@@ -133,13 +133,13 @@
       });
     });
 
-    // t=3100-4300: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it while
-    // booted is false); the ring's blur filter is ours to drive here since it tracks the tween.
-    at(3100, function () {
+    // t=1750-2550: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it while
+    // booted is false).
+    at(1750, function () {
       // No motion blur: blur() on .pano-ring re-rasterises the whole 360-tile sphere every
       // frame of the spin, and it was the single worst stall in the sequence. A 300deg/s
       // whip already reads as fast without it.
-      var t0 = performance.now(), dur = 1200;
+      var t0 = performance.now(), dur = 800;
       function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
       function step(now) {
         var p = Math.min(1, (now - t0) / dur);
@@ -150,19 +150,19 @@
       raf = requestAnimationFrame(step);
     });
 
-    // t=4300-5400: HUD draw-in
-    at(4300, function () {
+    // t=2550-3050: HUD draw-in
+    at(2550, function () {
       var hud = document.getElementById('hud');
       drawHudOnce();
     });
 
-    // t=5400-6200: lock ping on MISSIONS, callsign flash, then fade
-    at(5400, function () {
+    // t=3050-3800: lock ping on MISSIONS, callsign flash, then fade
+    at(3050, function () {
       BUNNYS.emit('face', { yaw: 0 });
       var t = document.getElementById('t-missions');
       BUNNYS.emit('lock', { id: 't-missions', label: t ? t.dataset.label : 'MISSIONS', readout: t ? t.dataset.readout : '' });
     });
-    at(5750, function () {
+    at(3300, function () {
       BUNNYS.emit('lock', { id: null, label: '', readout: '' });
       var cs = document.createElement('p');
       cs.className = 'boot-callsign';
@@ -175,6 +175,6 @@
         setTimeout(function () { cs.style.opacity = '0'; }, 260);
       });
     });
-    at(6200, function () { finish(false); });
+    at(3800, function () { finish(false); });
   }
 })();
