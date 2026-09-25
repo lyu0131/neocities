@@ -3,8 +3,14 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os');
 function chromePath() {
   if (process.env.CHROME) return process.env.CHROME;
-  const win = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'];
-  for (const p of win) if (fs.existsSync(p)) return p;
+  const known = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'];
+  for (const p of known) if (fs.existsSync(p)) return p;
+  // Playwright's bundled Chromium (this repo's cloud container ships one)
+  const pw = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
+  try { for (const d of fs.readdirSync(pw).filter(d => d.startsWith('chromium'))) {
+    for (const rel of ['chrome-linux/chrome', 'chrome-linux/headless_shell']) {
+      const c = path.join(pw, d, rel); if (fs.existsSync(c)) return c;
+    } } } catch {}
   for (const b of ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable'])
     try { return execSync('command -v ' + b, { shell: '/bin/sh' }).toString().trim(); } catch {}
   throw new Error('No Chrome found; set CHROME=/path/to/chrome');
