@@ -334,16 +334,18 @@
   function markInput() {
     hadInput = true; lastInputTime = performance.now(); }
 
-  var dragging = false, lastDragX = 0, lastDragY = 0, velYaw = 0;
+  var dragging = false, lastDragX = 0, lastDragY = 0, velYaw = 0, dragDist = 0;
+  var DRAG_SLOP = 6;   // px of travel past which a release is a drag, not a click
   document.addEventListener('mousedown', function (e) {
     if (!state.booted || e.button !== 0) return;
     if (e.target.closest && e.target.closest('#targets-nav, .hud-btn')) return;
-    dragging = true; velYaw = 0; lastDragX = e.clientX; lastDragY = e.clientY;
+    dragging = true; velYaw = 0; dragDist = 0; lastDragX = e.clientX; lastDragY = e.clientY;
     markInput();
   });
   document.addEventListener('mousemove', function (e) {
     if (!dragging) return;
     var dx = e.clientX - lastDragX, dy = e.clientY - lastDragY;
+    dragDist += Math.abs(dx) + Math.abs(dy);
     targetYaw = wrap360(targetYaw - dx * 0.25);
     targetPitch = clampPitch(targetPitch - dy * 0.12);
     velYaw = -dx * 0.25;
@@ -351,6 +353,14 @@
     markInput();
   });
   addEventListener('mouseup', function () { dragging = false; });
+  // A target label is a link, so a drag that starts AND ends on one still fires a click and
+  // navigates away mid-turn. Swallow that click -- capture phase, so it lands before the
+  // link's own handler. A real click never travels this far, and Enter is untouched.
+  document.addEventListener('click', function (e) {
+    if (dragDist <= DRAG_SLOP) return;
+    dragDist = 0;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
 
   addEventListener('wheel', function (e) {
     if (!state.booted) return;
