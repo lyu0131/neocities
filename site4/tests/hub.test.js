@@ -49,7 +49,7 @@ async function ready(pg, ms = 4000) {
   // T5: focus a target link, view faces it, lock readout shows, Enter navigates
   await p.eval("document.querySelector('#targets-nav a[data-target=t-hangar]').focus()"); await p.sleep(1200);
   check('focus turns to hangar', Math.abs(((await p.eval('window.BUNNYS ? BUNNYS.state.yaw : 0') - 52 + 540) % 360) - 180) < 8);
-  check('lock readout shown', /SL-01/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('lock readout shown', /RX-124/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.key('Enter', 'Enter', 13); await p.sleep(1500);
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
   // T5: unknown target locks but does not navigate

@@ -70,7 +70,7 @@
   }
   // fictional identifiers, invented once and reused everywhere so they stay
   // consistent across redraws instead of drifting per frame
-  var UNIT_SERIAL = 'SL-01', BLOCK_REV = 'BLOCK 04C';
+  var UNIT_SERIAL = 'RX-124', BLOCK_REV = 'BLOCK 04C';
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
@@ -170,7 +170,7 @@
     // housing first, so the scope sits inside a panel rather than floating on the scene
     var w = RAD * 2 + PAD * 2, h = RAD * 2 + PAD * 2 + HEAD;
     var bx = -w / 2, by = -RAD - PAD - HEAD, headRuleY = -RAD - PAD;
-    radar.appendChild(el('rect', { x: bx, y: by, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.82)' }));
+    radar.appendChild(el('rect', { x: bx, y: by, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' }));
     radar.appendChild(corners(bx, by, w, h));
     radar.appendChild(el('line', { x1: bx, y1: headRuleY, x2: bx + w, y2: headRuleY, opacity: .6 }));
     tickScale(radar, bx + 4, bx + w - 4, headRuleY, 10);
@@ -297,7 +297,7 @@
     // housing first, sized from the content above rather than a fixed guess
     var bx = -G_PAD, by = -G_PAD, bw = contentW + G_PAD * 2, bh = contentBottom + G_PAD * 2;
     gaugeH = bh; gaugeW = bw;
-    gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.85)' }));
+    gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.97)' }));
     gaugeBox.appendChild(corners(bx, by, bw, bh));
     var hdr = el('text', { x: 0, y: headerY });
     hdr.textContent = 'COMBAT SYSTEM';
@@ -390,7 +390,7 @@
     var headerY = 9, ruleY = headerY + 9;
     dmgArtTop = ruleY + 9;
     dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
-    dmgBg = el('rect', { x: 0, y: 0, width: DMG_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.85)' });
+    dmgBg = el('rect', { x: 0, y: 0, width: DMG_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.97)' });
     dmgBox.appendChild(dmgBg);
     dmgCorners = corners(0, 0, DMG_W, 10);
     dmgBox.appendChild(dmgCorners);
@@ -517,7 +517,7 @@
     var hintY = briefY0 + 2 * briefStep + 32;
     var boxTop = -36, boxBottom = hintY + 26, padX = 220; // extra room below the hint for the stencil line
     dosCap.textContent = 'TARGET ACQUISITION';
-    dosBox = el('rect', { x: -padX, y: boxTop, width: padX * 2, height: boxBottom - boxTop, rx: 3, fill: 'rgba(6,10,18,.9)' });
+    dosBox = el('rect', { x: -padX, y: boxTop, width: padX * 2, height: boxBottom - boxTop, rx: 3, fill: 'rgba(6,10,18,.97)' });
     dossier.appendChild(dosBox);
     dossier.appendChild(corners(-padX, boxTop, padX * 2, boxBottom - boxTop));
     dossier.appendChild(el('rect', { x: -padX + 6, y: boxTop + 6, width: padX * 2 - 12, height: boxBottom - boxTop - 12, rx: 2, opacity: .45 }));
@@ -702,7 +702,7 @@
   function hxBox(title, w, stamp, cls) {
     var g = el('g', { class: 'hostile' + (cls ? ' ' + cls : ''), opacity: 0 });
     g.body = el('rect', { x: -HX_PAD, y: -HX_PAD, width: w + HX_PAD * 2, height: 10,
-                          fill: 'rgba(6,10,18,.88)' });
+                          fill: 'rgba(6,10,18,.97)' });
     g.appendChild(g.body);
     g.frame = corners(-HX_PAD, -HX_PAD, w + HX_PAD * 2, 10, 9);
     g.appendChild(g.frame);
@@ -835,13 +835,14 @@
       HX_LOG_WAIT_MIN = 2200, HX_LOG_WAIT_MAX = 4800, HX_LOG_FIRST = 600;
   var hxLogH = HX_LOG_ROWS * HX_LOG_ROW_H; // static geometry: 3 fixed-height rows, stacked flush
   var hxLog, hxLogRow = [], hxLogW = 0, hxLogQueue = [], hxLogTimer = null, hxLogBottom = 0;
+  var hxLogLife = [];   // pending per-alarm expiry timers, so a re-lock cannot be pruned by the last lock's
   (function buildHxLog() {
     hxLogW = hx.id.w;
     hxLog = el('g', { class: 'hostile hx-log', opacity: 0 });
     for (var i = 0; i < HX_LOG_ROWS; i++) {
       var g = el('g', { class: 'hx-log-row' }), y = i * HX_LOG_ROW_H;
       var rect = el('rect', { x: -HX_PAD, y: y, width: hxLogW + HX_PAD * 2, height: HX_LOG_ROW_H,
-                              fill: 'rgba(6,10,18,.88)' });
+                              fill: 'rgba(6,10,18,.97)' });
       g.appendChild(rect);
       var text = el('text', { x: 0, y: y + HX_LOG_ROW_H - 5,
                               style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
@@ -878,22 +879,37 @@
     hxLogQueue.length = Math.min(hxLogQueue.length, HX_LOG_ROWS);
     hxLogPaint();
     if (alarm[1]) setZone(alarm[1], 'hit');
-    setTimeout(function () {
+    // HOSTILE_ALARMS entries are shared by reference, so an untracked expiry from an earlier
+    // lock would find and splice an identical fresh alarm. Track it; hxLogReset() clears it.
+    hxLogLife.push(setTimeout(function () {
       var idx = hxLogQueue.indexOf(alarm);
       if (idx !== -1) { hxLogQueue.splice(idx, 1); hxLogPaint(); }
-    }, HX_LOG_LIFE);
+    }, HX_LOG_LIFE));
     if (hxOn) hxLogTimer = setTimeout(hxLogFire, HX_LOG_WAIT_MIN + Math.random() * (HX_LOG_WAIT_MAX - HX_LOG_WAIT_MIN));
   }
-  function hxLogStart() {
+  function hxLogReset() {
     clearTimeout(hxLogTimer);
+    hxLogLife.forEach(clearTimeout);
+    hxLogLife.length = 0;
     hxLogQueue.length = 0;
     hxLogPaint();
+  }
+  function hxLogStart() {
+    hxLogReset();
     hxLogTimer = setTimeout(hxLogFire, HX_LOG_FIRST);
   }
-  function hxLogStop() {
-    clearTimeout(hxLogTimer);
-    hxLogQueue.length = 0;
-    hxLogPaint();
+  function hxLogStop() { hxLogReset(); }
+
+  // Inverse-video alarm flash, driven from tick() rather than from CSS. The box and the ink
+  // used to be two separate CSS animations, and each starts its own clock when its element
+  // is attached -- re-appending a rect left them up to ~1.9s apart, so the pair spent much
+  // of the cycle red-on-red or dark-on-dark, invisible exactly when it matters most.
+  // One clock cannot drift against itself.
+  var ALARM_HALF = 400;
+  function drawAlarmFlash(now) {
+    var inv = !BUNNYS.reduce && Math.floor(now / ALARM_HALF) % 2 === 1;
+    var on = document.querySelectorAll('#hud .hx-alarm');
+    for (var i = 0; i < on.length; i++) on[i].classList.toggle('is-inv', inv);
   }
 
   var hxOn = false, hxSince = 0;
@@ -920,6 +936,79 @@
       hxLock.textContent = Math.round(p * 100) + '%';
       hxLock.style.fill = p < 1 ? 'var(--amber)' : 'var(--lock)';
     }
+  }
+
+
+  // ---------------------------------------------------------------- foot bars
+  // A row of live readouts across the foot of the canopy. img/frame.svg used to carry a
+  // single painted gauge here, but painted art cannot move -- so the whole row lives in
+  // the HUD instead and is driven from the same tick() loop as the gauges.
+  // label, base level, drift amount, period ms
+  var FOOT = [
+    ['PROP', 0.78, 0.07, 3100],
+    ['COOL', 0.62, 0.11, 2300],
+    ['PWR',  0.90, 0.05, 4100],
+    ['O2',   0.71, 0.06, 2700],
+    ['HYD',  0.55, 0.13, 1900],
+    ['AUX',  0.83, 0.08, 3500]
+  ];
+  var FOOT_H = 9, FOOT_SEGS = 8;
+  var footWrap = el('g', { class: 'foot' }), footBars = [], footOn = false;
+  function buildFoot() {
+    FOOT.forEach(function (f) {
+      var g = el('g');
+      var cap = el('text', { x: 0, y: -4, style: 'font-size:8px;letter-spacing:.16em;fill:var(--hud);text-anchor:start' });
+      cap.textContent = f[0];
+      g.appendChild(cap);
+      var track = el('rect', { x: 0, y: 0, height: FOOT_H, rx: 1,
+                               fill: 'rgba(221,231,238,.10)', stroke: 'rgba(221,231,238,.42)', 'stroke-width': 1 });
+      g.appendChild(track);
+      var fill = el('rect', { x: 0.8, y: 1, height: FOOT_H - 2, stroke: 'none', fill: 'var(--hud)', opacity: .62 });
+      g.appendChild(fill);
+      var segs = [];
+      for (var i = 1; i < FOOT_SEGS; i++) {
+        var ln = el('line', { y1: 0, y2: FOOT_H, stroke: 'rgba(221,231,238,.30)', 'stroke-width': 1 });
+        g.appendChild(ln);
+        segs.push(ln);
+      }
+      var val = el('text', { y: -4, style: 'font-size:8px;letter-spacing:.06em;fill:var(--ice);text-anchor:end' });
+      g.appendChild(val);
+      footWrap.appendChild(g);
+      footBars.push({ g: g, track: track, fill: fill, segs: segs, val: val, spec: f, w: 0 });
+    });
+    svg.appendChild(footWrap);
+  }
+  // Spread across the foot, but only across the span the corner instruments leave free --
+  // the radar occupies the bottom left and the slew panel the bottom right.
+  function layoutFoot(left, right, y) {
+    var span = right - left;
+    footOn = span > 340;
+    footWrap.setAttribute('opacity', footOn ? 1 : 0);
+    if (!footOn) return;
+    var gap = 16, n = footBars.length;
+    var w = (span - gap * (n - 1)) / n;
+    footBars.forEach(function (b, i) {
+      var x = left + i * (w + gap);
+      b.w = w;
+      xf(b.g, x, y);
+      b.track.setAttribute('width', w);
+      b.val.setAttribute('x', w);
+      b.segs.forEach(function (ln, k) {
+        var sx = w * (k + 1) / FOOT_SEGS;
+        ln.setAttribute('x1', sx.toFixed(1));
+        ln.setAttribute('x2', sx.toFixed(1));
+      });
+    });
+  }
+  function drawFoot(now) {
+    if (!footOn) return;
+    footBars.forEach(function (b) {
+      var s = b.spec;
+      var v = clamp(s[1] + Math.sin(now / s[3]) * s[2] + Math.sin(now / (s[3] * 0.37)) * s[2] * 0.4, 0.04, 1);
+      b.fill.setAttribute('width', Math.max(1, (b.w - 1.6) * v).toFixed(1));
+      b.fill.setAttribute('fill', v < 0.25 ? 'var(--lock)' : v < 0.4 ? 'var(--amber)' : 'var(--hud)');
+      b.val.textContent = Math.round(v * 100) + '%';
+    });
   }
 
   // ---------------------------------------------------------------- responsive placement
@@ -977,6 +1066,9 @@
       radar.setAttribute('opacity', room ? 1 : 0);
       var radarColX = 22 + RAD + PAD;
       var radarTy = H - RAD - PAD - 26;
+      // the foot row runs between the two bottom-corner instruments
+      var slewLeft = slewVisible ? slewR.left : (W - 22);
+      layoutFoot(22 + (RAD + PAD) * 2 + 26, slewLeft - 26, statusY + 16);
       xf(radar, radarColX, radarTy);
       var radarTop = radarTy - RAD - PAD - HEAD;
 
@@ -1068,7 +1160,7 @@
       fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
     });
 
-    buildRadar(); buildGauges(); buildDamage(); buildWarn(); buildDossier();
+    buildRadar(); buildGauges(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
     place();
     drawHeading(0); drawLadder(0, 0); drawRadar(0);
 
@@ -1103,8 +1195,10 @@
       var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
       tick.last = t;
       drawGauges(t);
+      drawFoot(t);
       drawSweep(t);
       drawHostile(t);
+      drawAlarmFlash(t);
       drawDamage(t, dt);
       drawBar(spd, dt); drawBar(alt, dt);
     })();

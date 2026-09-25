@@ -464,12 +464,15 @@ a { color: inherit; }
    steps(1, end), not steps(2): the timing function runs per keyframe segment, so two
    steps put a blended half-colour between the two states and softened the flash into a
    pulse. One step holds each state flat for its whole segment -- a square wave. */
-#hud .hx-alarm rect { animation: hx-alarm-box .8s steps(1, end) infinite; }
-#hud .hx-alarm text { animation: hx-alarm-ink .8s steps(1, end) infinite; }
-#hud .hx-alarm line { animation: hx-alarm-edge .8s steps(1, end) infinite; }
-@keyframes hx-alarm-box  { 50% { fill: var(--lock); } }
-@keyframes hx-alarm-ink  { 50% { fill: var(--night); } }
-@keyframes hx-alarm-edge { 50% { stroke: var(--night); } }
+/* Two static states, flipped together by drawAlarmFlash() in hud.js. These were three
+   separate CSS animations; each kept its own clock from whenever its element was last
+   attached, so box and ink drifted apart and the alarm went red-on-red or dark-on-dark.
+   Driving the flip from the one tick() clock keeps the inversion exact by construction. */
+/* !important because hud.js writes fill into each element's inline style: the animations
+   these rules replaced outranked it for free, a plain rule does not. */
+#hud .hx-alarm.is-inv rect { fill: var(--lock) !important; }
+#hud .hx-alarm.is-inv text { fill: var(--night) !important; }
+#hud .hx-alarm.is-inv line { stroke: var(--night) !important; }
 
 /* damage map: zones sit at a permanent state colour (set below) and amber/red ones
    flash to it from a dim "off" tone -- steps(1, end), same hard square-wave as the
@@ -479,7 +482,8 @@ a { color: inherit; }
 @keyframes dmg-zone-flash { 50% { fill: rgba(140, 255, 193, .16); } }
 @media (prefers-reduced-motion: reduce) {
   #hud .warn.is-blinking { animation: none; opacity: 1; }
-  #hud .hx-alarm rect, #hud .hx-alarm text, #hud .hx-alarm line { animation: none; }
+  /* the flash is JS-driven now; drawAlarmFlash() never sets .is-inv under reduced motion,
+     which leaves the legible base state (dark box, red ink) showing */
   #hud .dmg-zone.is-caution, #hud .dmg-zone.is-hit { animation: none; }
 }
 
@@ -623,7 +627,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 .screen .panel:hover, .screen .panel:focus-within {
   font-size: 1.12em;
   border-color: rgba(140, 255, 193, .6);
-  background: rgba(6, 10, 18, .88);
+  background: rgba(6, 10, 18, .97);
 }
 .screen .rows dd, .screen p, .screen li { transition: font-size .18s ease-out; }
 .screen a { transition: font-size .15s ease-out, background-color .15s ease-out; display: inline-block; }
@@ -657,7 +661,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   transform: none;
   width: 194px;
   z-index: var(--z-nav);
-  background: rgba(6, 10, 18, .88);
+  background: rgba(6, 10, 18, .97);
   border: none;
   padding: 16px 18px 20px;
   color: var(--ice);
@@ -678,7 +682,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
     var(--b) bottom right / 10px 1px no-repeat, var(--b) bottom right / 1px 10px no-repeat;
 }
 .slew::after {
-  content: 'SL-01 · BNS-NAV-118A';
+  content: 'RX-124 · BNS-NAV-118A';
   position: absolute;
   right: 18px; bottom: 6px;
   font: 400 7px/1 'B612 Mono', monospace;
