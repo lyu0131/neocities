@@ -496,14 +496,20 @@
       // reduced strength so it guides the aim instead of fighting it, and keep the full
       // strength (plus the outright click-on) for a released flick settling.
       var settling = !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90;
+      // While dragging, only assist a drag already heading TOWARD the contact. Assisting
+      // unconditionally meant a drag starting on a target got pulled straight back onto it
+      // and never moved -- you could not drag away from a contact at all.
       var strength = dragging ? SNAP_DRAG : (settling ? SNAP_STRENGTH : 0);
-      if (near && strength > 0) {
+      // `near` has to be tested FIRST: nearOff is null when nothing is in range, and
+      // reading it unguarded threw on every frame with no contact nearby.
+      if (near && strength > 0 && (!dragging || velYaw * nearOff.yaw >= 0)) {
         var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
         targetYaw = wrap360(targetYaw + nearOff.yaw * pull * strength);
-        // Elevation too: contacts sit on the horizon, so going a little high or low used
-        // to leave the reticle off the target with no correction at all. Held up/down keys
-        // still win outright -- an earlier build let this fight them and Up reached 2deg.
-        if (!tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
+        // Elevation is corrected on the settle only. Pulling it mid-drag fights a
+        // deliberate vertical drag the same way the yaw pull fought a horizontal one.
+        // Held up/down keys win outright too -- an earlier build let this fight them and
+        // holding Up only ever reached 2 degrees.
+        if (!dragging && !tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
         if (!dragging) {
           velYaw *= Math.pow(0.55, dt * 60);
           if (nearDist < SNAP_CLICK) {
