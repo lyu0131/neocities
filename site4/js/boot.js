@@ -58,7 +58,11 @@
   }
 
   var already = false;
-  try { already = sessionStorage.getItem('argus-booted') === '1'; } catch (e) {}
+  // Only skip when arriving back from one of our own pages. Gating on the session key
+  // alone meant the sequence played once per tab and never again on reload, which reads
+  // as "the boot does not work".
+  var fromInside = /\/(pilot|missions|hangar|index)\.html/.test(document.referrer || '');
+  try { already = fromInside && sessionStorage.getItem('argus-booted') === '1'; } catch (e) {}
   if (ARGUS.reduce || already) { finish(true); return; }
 
   try { run(); } catch (e) { finish(true); }

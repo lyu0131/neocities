@@ -95,15 +95,22 @@
       var cos = Math.cos(t.lat * Math.PI / 180);
       var w = sliceW * cos;
       var tileH = 2 * R * Math.tan(t.h / 2 * Math.PI / 180);
+      // A quad is one fixed width, but the sphere's circumference shrinks across the
+      // band, so its edge nearer the equator needs more width than its centre does.
+      // Sizing every quad off its centre latitude left wedge-shaped gaps between bands,
+      // widening toward the poles. Widen each quad to cover its widest edge; the texture
+      // scale stays tied to w, so this only bleeds into the neighbour, never stretches.
+      var edge = Math.min(Math.abs(t.band.top), Math.abs(t.band.bot));
+      var over = Math.max(OVER, Math.cos(edge * Math.PI / 180) / cos * 1.03);
       // texture: this quad shows image cell (i, j), so scale the whole image by the
       // cell count and offset to that cell
-      t.el.style.width = (w * OVER) + 'px';
+      t.el.style.width = (w * over) + 'px';
       t.el.style.height = (tileH * OVER) + 'px';
-      t.el.style.marginLeft = (-w * OVER / 2) + 'px';
+      t.el.style.marginLeft = (-w * over / 2) + 'px';
       t.el.style.marginTop = (-tileH * OVER / 2) + 'px';
       if (t.band.row >= 0) {
         t.el.style.backgroundSize = (w * SLICES) + 'px ' + (imgH * LAT_BANDS) + 'px';
-        t.el.style.backgroundPosition = (-(t.i * w) - w * (OVER - 1) / 2) + 'px '
+        t.el.style.backgroundPosition = (-(t.i * w) - w * (over - 1) / 2) + 'px '
                                       + (-(t.band.row * imgH) - imgH * (OVER - 1) / 2) + 'px';
       }
       t.el.style.transform = 'rotateY(' + (-t.i * SLICE_DEG) + 'deg) rotateX('
@@ -280,6 +287,17 @@
   // boot.js sets state.booted true and only THEN emits boot-done, so a keypress can land
   // in between: input is accepted, and this handler would then discard it by snapping the
   // target back. Only re-sync when the user has not already steered.
+  // slew panel: turn the view onto a contact without dragging for it
+  Array.prototype.forEach.call(document.querySelectorAll('#slew button[data-slew]'), function (b) {
+    b.addEventListener('click', function () {
+      var t = document.getElementById(b.dataset.slew);
+      if (!t || !state.booted) return;
+      targetYaw = wrap360(parseFloat(t.dataset.yaw) || 0);
+      targetPitch = 0;
+      markInput();
+    });
+  });
+
   ARGUS.on('boot-done', function () {
     if (hadInput) return;
     targetYaw = state.yaw;

@@ -40,6 +40,10 @@ async function ready(pg, ms = 4000) {
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
   // T5: unknown target locks but does not navigate
   await p.goto('index.html', 800);
+  // the boot now replays on a plain reload, so skip it before driving the view
+  await ready(p);
+  await p.eval("document.getElementById('skip') && document.getElementById('skip').click()");
+  for (let i = 0; i < 20 && !(await p.eval('ARGUS.state.booted === true')); i++) await p.sleep(100);
   await p.eval("window.ARGUS && ARGUS.emit('face', {yaw:180})"); await p.sleep(1500);
   const u = await p.eval("(()=>{const r=document.getElementById('t-unknown').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
   await p.mouse('mouseMoved', u.x, u.y); await p.sleep(600);

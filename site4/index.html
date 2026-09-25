@@ -31,6 +31,16 @@
       <li><a href="hangar.html" data-target="t-hangar">Hangar: SL-01 ARGUS</a></li>
     </ul>
   </nav>
+  <div id="slew" class="slew">
+    <p class="slew-head">SLEW TO</p>
+    <ul>
+      <li><button type="button" data-slew="t-pilot">PILOT</button></li>
+      <li><button type="button" data-slew="t-missions">MISSIONS</button></li>
+      <li><button type="button" data-slew="t-hangar">HANGAR</button></li>
+      <li><button type="button" data-slew="t-unknown">UNKNOWN</button></li>
+    </ul>
+  </div>
+
   <p id="lock-status" class="sr-only" aria-live="polite"></p>
   <button id="tilt" class="hud-btn" type="button" hidden>Enable tilt</button>
 </main>
