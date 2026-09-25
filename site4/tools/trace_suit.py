@@ -10,6 +10,9 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tracelib import trace_components, rdp   # noqa: E402  (shared with gen_dmgmap.py)
+
 REF = os.environ.get('REF', r'C:\Users\thirt\AppData\Local\Temp\claude\c--Users-thirt-Desktop-testing-neocities\9e76d4e0-fd71-4f49-a6af-827c6977e850\images\5.png')
 OUT = os.path.join(os.path.dirname(__file__), 'suit_trace.py')
 
@@ -48,66 +51,6 @@ if '--preview' in sys.argv:
     print('wrote tests/out/trace-mask.png')
 
 # ---------------------------------------------------------------- contour tracing
-def trace_components(mask, min_area=140):
-    """Moore-neighbour boundary walk over every connected component."""
-    lab, n = ndimage.label(mask)
-    out = []
-    for i in range(1, n + 1):
-        comp = lab == i
-        if comp.sum() < min_area:
-            continue
-        m = np.pad(comp, 1)
-        pts = np.argwhere(m)
-        sy, sx = pts[0]
-        # 8-neighbourhood, clockwise from west
-        nb = [(0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1)]
-        contour = [(sx, sy)]
-        cy, cx = sy, sx
-        bdir = 0
-        start = (sx, sy)
-        guard = 0
-        while True:
-            guard += 1
-            if guard > 400000:
-                break
-            found = False
-            for k in range(8):
-                d = (bdir + k) % 8
-                ny, nx = cy + nb[d][0], cx + nb[d][1]
-                if 0 <= ny < m.shape[0] and 0 <= nx < m.shape[1] and m[ny, nx]:
-                    bdir = (d + 5) % 8          # back up to just behind the step
-                    cy, cx = ny, nx
-                    contour.append((cx, cy))
-                    found = True
-                    break
-            if not found or (cx, cy) == start and len(contour) > 3:
-                break
-        out.append(np.array(contour, float) - 1.0)   # undo the pad
-    return out
-
-
-def rdp(pts, eps):
-    """Douglas-Peucker, iterative so long contours can't blow the stack."""
-    keep = np.zeros(len(pts), bool)
-    keep[0] = keep[-1] = True
-    stack = [(0, len(pts) - 1)]
-    while stack:
-        i, j = stack.pop()
-        if j <= i + 1:
-            continue
-        seg = pts[j] - pts[i]
-        L = np.hypot(*seg)
-        if L == 0:
-            d = np.hypot(*(pts[i + 1:j] - pts[i]).T)
-        else:
-            d = np.abs(np.cross(seg, pts[i + 1:j] - pts[i])) / L
-        k = int(np.argmax(d))
-        if d[k] > eps:
-            k += i + 1
-            keep[k] = True
-            stack.append((i, k)); stack.append((k, j))
-    return pts[keep]
-
 # ---------------------------------------------------------------- tone bands -> paths
 # Three layers read as a lit mechanical shape at small size: the silhouette, the
 # mid-tone armour that catches the sky, and the bright rim highlights.

@@ -7,7 +7,9 @@ const specs = {
   ms:    [['img/ms/sl01-front.svg', '0 0 800 1400', 120, ['head','chest','binder-l','binder-r','leg-l','leg-r']],
           ['img/ms/sl01-side.svg', '0 0 800 1400', 120, ['head','chest','backpack','rifle']],
           ['img/ms/sl01-back.svg', '0 0 800 1400', 120, ['head','backpack','binder-l','binder-r']],
-          ['img/ms/decals.svg', null, 120, ['unit-mark','serial','caution-chevron','no-step']]]
+          ['img/ms/decals.svg', null, 120, ['unit-mark','serial','caution-chevron','no-step']]],
+  dmgmap: [['img/dmgmap.svg', null, 120,
+            ['dz-head','dz-chest','dz-body','dz-arm-r','dz-arm-l','dz-leg-r','dz-leg-l','dz-weapon']]]
 };
 (async () => {
   for (const [group, files] of Object.entries(specs)) {
@@ -22,6 +24,27 @@ const specs = {
       check(`${f} no Gundam/Minovsky text`, !/gundam|minovsky|newtype/i.test(s));
     }
   }
+  // js/dmgmap.js drives the HUD panel; every frame must carry all 8 zones or a zone
+  // would vanish mid-rotation
+  if (!only || only === 'dmgmap') {
+    const dj = path.join(SITE, 'js/dmgmap.js');
+    const ok = fs.existsSync(dj);
+    check('js/dmgmap.js exists', ok);
+    if (ok) {
+      const src = fs.readFileSync(dj, 'utf8');
+      const sandbox = { window: {} };
+      new Function('window', src)(sandbox.window);
+      const D = sandbox.window.BUNNYS_DMG;
+      check('dmgmap has 8 zones', !!D && D.zones.length === 8, D ? D.zones.length + ' zones' : 'missing');
+      check('dmgmap has frames', !!D && D.frames.length >= 8, D ? D.frames.length + ' frames' : '');
+      const bad = !D ? ['no data'] : D.frames.map((f, i) =>
+        (f.d.length === 8 && f.d.every(Boolean) && f.order.slice().sort((a, b) => a - b).join() === '0,1,2,3,4,5,6,7')
+          ? null : 'frame ' + i).filter(Boolean);
+      check('dmgmap every frame has all 8 zones + a full draw order', bad.length === 0, bad.slice(0, 3).join(' '));
+      check('dmgmap no Gundam/Minovsky text', !/gundam|minovsky|newtype/i.test(src));
+    }
+  }
+
   const pano = path.join(SITE, 'img/pano.svg');
   if ((!only || only === 'pano') && fs.existsSync(pano)) {  // seam render: the wrap from x=9200..9600 then 0..400 must look continuous
     const page = await launch({ width: 800, height: 400 });

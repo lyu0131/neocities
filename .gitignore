@@ -8,7 +8,12 @@ Thumbs.db
 .DS_Store
 *.log
 node_modules/
+__pycache__/
+*.pyc
 .vscode/
+
+# source meshes/art for the generators: the derived trace ships, the source stays local
+site4/img/ref/
 
 # test screenshots and SDD scratch
 site4/tests/out/
