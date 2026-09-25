@@ -79,7 +79,9 @@
 
   var SNAP_DEG = 14;         // magnetism reaches this far from a contact
   var SNAP_STRENGTH = 0.85;  // fraction of the remaining gap taken per pull step
+  var SNAP_DRAG = 0.30;      // gentler while the mouse is down: guide the drag, don't fight it
   var SNAP_CLICK = 1.2;      // inside this, close the gap outright so the aim clicks on
+  var BORE_DEG = 14;         // acquire radius, measured in BOTH axes
   var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
@@ -264,12 +266,20 @@
   // Putting the boresight on a target acquires it, the same as hovering or tabbing to
   // it: turn until it sits under the centre reticle and its dossier comes up.
   var boreTarget = null;
-  function updateBoresight(yaw) {
-    var best = null, bestOff = 12;                // degrees from dead centre: wide enough
-                                                  // that aiming roughly at a target latches it
+  // Angular offset of a contact from the boresight, in BOTH axes. Every target sits on
+  // the horizon, so its elevation offset is simply the current pitch.
+  function boreOffset(t, yaw, pitch) {
+    return { yaw: shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0), pitch: -pitch };
+  }
+  function boreDist(o) { return Math.sqrt(o.yaw * o.yaw + o.pitch * o.pitch); }
+  // Acquire on true angular distance. Measuring yaw alone meant a contact stayed "locked"
+  // while the reticle sat well above or below it -- the lock read as unreliable because
+  // the bracket was nowhere near the thing it claimed to be holding.
+  function updateBoresight(yaw, pitch) {
+    var best = null, bestOff = BORE_DEG;
     targets.forEach(function (t) {
-      var off = Math.abs(shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0));
-      if (off < bestOff) { bestOff = off; best = t; }
+      var d = boreDist(boreOffset(t, yaw, pitch));
+      if (d < bestOff) { bestOff = d; best = t; }
     });
     if (best !== boreTarget) { boreTarget = best; refreshLock(); }
   }
@@ -452,7 +462,7 @@
     if (!state.booted) {
       applyRing(state.yaw, state.pitch);
       updateBehind(state.yaw);
-      updateBoresight(state.yaw);
+      updateBoresight(state.yaw, state.pitch);
       emitView(state.yaw, state.pitch, 0, 0);
       return;
     }
@@ -475,18 +485,32 @@
     // coasting, bleeds that coast off, and closes the last degree outright -- asymptoting
     // in from a weaker pull read as drifting rather than snapping.
     if (!firing) {
-      var near = null, nearOff = SNAP_DEG;
+      var near = null, nearOff = null, nearDist = SNAP_DEG;
       targets.forEach(function (t) {
-        var d = shortestDelta(targetYaw, parseFloat(t.dataset.yaw) || 0);
-        if (Math.abs(d) < Math.abs(nearOff)) { nearOff = d; near = t; }
+        var o = boreOffset(t, targetYaw, targetPitch);
+        var d = boreDist(o);
+        if (d < nearDist) { nearDist = d; nearOff = o; near = t; }
       });
-      if (near && !dragging && !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90) {
+      // A mouse drag is exactly when the assist should help, and the old `!dragging` gate
+      // meant it never did -- dragging got no magnetism at all. Assist through the drag at
+      // reduced strength so it guides the aim instead of fighting it, and keep the full
+      // strength (plus the outright click-on) for a released flick settling.
+      var settling = !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90;
+      var strength = dragging ? SNAP_DRAG : (settling ? SNAP_STRENGTH : 0);
+      if (near && strength > 0) {
         var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
-        targetYaw = wrap360(targetYaw + nearOff * pull * SNAP_STRENGTH);
-        velYaw *= Math.pow(0.55, dt * 60);
-        if (Math.abs(nearOff) < SNAP_CLICK) {
-          targetYaw = wrap360(parseFloat(near.dataset.yaw) || 0);
-          velYaw = 0;
+        targetYaw = wrap360(targetYaw + nearOff.yaw * pull * strength);
+        // Elevation too: contacts sit on the horizon, so going a little high or low used
+        // to leave the reticle off the target with no correction at all. Held up/down keys
+        // still win outright -- an earlier build let this fight them and Up reached 2deg.
+        if (!tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
+        if (!dragging) {
+          velYaw *= Math.pow(0.55, dt * 60);
+          if (nearDist < SNAP_CLICK) {
+            targetYaw = wrap360(parseFloat(near.dataset.yaw) || 0);
+            targetPitch = 0;
+            velYaw = 0;
+          }
         }
       }
     }
@@ -501,7 +525,7 @@
 
     applyRing(state.yaw, state.pitch);
     updateBehind(state.yaw);
-    updateBoresight(state.yaw);
+    updateBoresight(state.yaw, state.pitch);
     emitView(state.yaw, state.pitch, velYaw, 0);
   }
   requestAnimationFrame(frame);
