@@ -561,18 +561,20 @@
 
   // ---------------------------------------------------------------- caution banner
   // Fires at random intervals, holds a few seconds, clears itself. Fictional faults.
+  // [text, zoneId|null] -- a caution that names a zone flashes it amber on the damage
+  // map (setZone(zone,'caution')); the rest are just banner text, same as before.
   var CAUTIONS = [
-    'PARTICLE INTERFERENCE RISING',
-    'COOLANT LOOP 2 OFF NOMINAL',
-    'FRAME INTEGRITY: SECTOR 7 STRESS',
-    'SENSOR ARRAY: GHOST CONTACT, BEARING 214',
-    'PROPELLANT RESERVE LOW',
-    'IFF STATUS: HANDSHAKE TIMEOUT',
-    'WEAPON LINK DEGRADED',
-    'AUXILIARY BUS OVERLOAD',
-    'HARDPOINT STATUS: UNSECURED',
-    'SENSOR ARRAY CALIBRATION REQUIRED',
-    'SYSTEM OVERRIDE ENGAGED'
+    ['PARTICLE INTERFERENCE RISING', null],
+    ['COOLANT LOOP 2 OFF NOMINAL', null],
+    ['FRAME INTEGRITY: SECTOR 7 STRESS', 'body'],
+    ['SENSOR ARRAY: GHOST CONTACT, BEARING 214', null],
+    ['PROPELLANT RESERVE LOW', null],
+    ['IFF STATUS: HANDSHAKE TIMEOUT', null],
+    ['WEAPON LINK DEGRADED', 'weapon'],
+    ['AUXILIARY BUS OVERLOAD', null],
+    ['HARDPOINT STATUS: UNSECURED', null],
+    ['SENSOR ARRAY CALIBRATION REQUIRED', 'head'],
+    ['SYSTEM OVERRIDE ENGAGED', null]
   ];
   var warn = el('g', { class: 'warn', opacity: 0 });
   var warnText = el('text', { y: 8, 'text-anchor': 'middle', class: 'warn-text' });
@@ -634,19 +636,34 @@
       warnText.setAttribute('lengthAdjust', 'spacingAndGlyphs');
     }
   }
+  // One scheduler, two modes, keyed off hxOn (not hxLockId): in general mode this runs
+  // its own 9-25s cadence same as before; in hostile mode showHostile() below simply
+  // never lets it fire, because the alarm log owns alerts while a lock is up. cautionTimer
+  // is reused for both the "waiting" and "holding" phases so a mode switch can always
+  // cancel whichever is pending with one clearTimeout.
+  var cautionTimer = null;
   function scheduleCaution() {
-    var wait = 9000 + Math.random() * 16000;
-    setTimeout(function () {
-      warnText.textContent = CAUTIONS[Math.floor(Math.random() * CAUTIONS.length)];
+    cautionTimer = setTimeout(function () {
+      var pick = CAUTIONS[Math.floor(Math.random() * CAUTIONS.length)];
+      warnText.textContent = pick[0];
       fitWarn();
       warn.setAttribute('opacity', 1);
       warn.classList.toggle('is-blinking', !BUNNYS.reduce);
-      setTimeout(function () {
+      if (pick[1]) setZone(pick[1], 'caution');
+      cautionTimer = setTimeout(function () {
         warn.setAttribute('opacity', 0);
         warn.classList.remove('is-blinking');
         scheduleCaution();
       }, 4200);
-    }, wait);
+    }, 9000 + Math.random() * 16000);
+  }
+  // hides the banner and drops whatever phase of scheduleCaution was pending -- called
+  // on every hostile mode switch, since the 4.2s hold means one can already be on
+  // screen (and about to overprint TARGET ID, see showHostile) when a lock lands.
+  function hideCaution() {
+    clearTimeout(cautionTimer);
+    warn.setAttribute('opacity', 0);
+    warn.classList.remove('is-blinking');
   }
 
 
@@ -795,12 +812,99 @@
   hxFitAll();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { hxFitAll(); place(); });
 
+  // ---------------------------------------------------------------- hostile alarm log
+  // A 3-slot log under TARGET ID. Built once, per the house rule -- hxLogFire() below
+  // only ever rewrites a row's text/classes/opacity, never creates new elements. Each
+  // row is its own <g> with its own background <rect> so the .hx-alarm flash (which
+  // animates rect/text inside that class) has something to invert; without a per-row
+  // rect only the text would flash and the row would read as broken.
+  var HOSTILE_ALARMS = [
+    ['HEAT ROD CONTACT // L ARM', 'arm-l'],
+    ['75MM GATLING FIRE // R LEG', 'leg-r'],
+    ['35MM GATLING GRAZE // HEAD', 'head'],
+    ['HEAT ROD DISCHARGE // FRAME', 'body'],
+    ['GATLING ROUNDS // CHEST', 'chest'],
+    ['IMPACT // WEAPON ARM', 'weapon'],
+    ['HOSTILE LOCK-ON DETECTED', null]
+  ];
+  var HX_LOG_ROWS = 3, HX_LOG_ROW_H = 18, HX_LOG_GAP = 12, HX_LOG_LIFE = 6000,
+      HX_LOG_WAIT_MIN = 2200, HX_LOG_WAIT_MAX = 4800, HX_LOG_FIRST = 600;
+  var hxLogH = HX_LOG_ROWS * HX_LOG_ROW_H; // static geometry: 3 fixed-height rows, stacked flush
+  var hxLog, hxLogRow = [], hxLogW = 0, hxLogQueue = [], hxLogTimer = null, hxLogBottom = 0;
+  (function buildHxLog() {
+    hxLogW = hx.id.w;
+    hxLog = el('g', { class: 'hostile hx-log', opacity: 0 });
+    for (var i = 0; i < HX_LOG_ROWS; i++) {
+      var g = el('g', { class: 'hx-log-row' }), y = i * HX_LOG_ROW_H;
+      var rect = el('rect', { x: -HX_PAD, y: y, width: hxLogW + HX_PAD * 2, height: HX_LOG_ROW_H,
+                              fill: 'rgba(6,10,18,.88)' });
+      g.appendChild(rect);
+      var text = el('text', { x: 0, y: y + HX_LOG_ROW_H - 5,
+                              style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
+      g.appendChild(text);
+      hxLog.appendChild(g);
+      hxLogRow.push({ g: g, rect: rect, text: text });
+    }
+    svg.appendChild(hxLog);
+  })();
+  // re-syncs the row backgrounds to TARGET ID's current width -- called from place(),
+  // not per frame, the same way hxFit only ever runs at build and again once fonts land
+  function hxLogSetWidth(w) {
+    hxLogW = w;
+    hxLogRow.forEach(function (r) { r.rect.setAttribute('width', w + HX_PAD * 2); });
+  }
+  // repaints the 3 fixed rows from hxLogQueue (newest first); the log itself is only
+  // visible while hostile *and* holding at least one live alarm -- otherwise it would
+  // show as an empty flashing box in the ~0.6s before the first alarm arrives
+  function hxLogPaint() {
+    hxLog.setAttribute('opacity', hxOn && hxLogQueue.length ? 1 : 0);
+    hxLogRow.forEach(function (r, i) {
+      var entry = hxLogQueue[i];
+      if (!entry) { r.g.setAttribute('opacity', 0); r.g.classList.remove('hx-alarm'); r.text.textContent = ''; return; }
+      var newest = i === 0, flash = newest && !BUNNYS.reduce;
+      // reduced motion: no flash, so the newest row gets a static marker instead
+      r.text.textContent = (newest && BUNNYS.reduce ? '▶ ' : '') + entry[0];
+      r.g.classList.toggle('hx-alarm', flash);
+      r.g.setAttribute('opacity', newest ? 1 : .55); // older rows dim
+    });
+  }
+  function hxLogFire() {
+    var alarm = HOSTILE_ALARMS[Math.floor(Math.random() * HOSTILE_ALARMS.length)];
+    hxLogQueue.unshift(alarm);
+    hxLogQueue.length = Math.min(hxLogQueue.length, HX_LOG_ROWS);
+    hxLogPaint();
+    if (alarm[1]) setZone(alarm[1], 'hit');
+    setTimeout(function () {
+      var idx = hxLogQueue.indexOf(alarm);
+      if (idx !== -1) { hxLogQueue.splice(idx, 1); hxLogPaint(); }
+    }, HX_LOG_LIFE);
+    if (hxOn) hxLogTimer = setTimeout(hxLogFire, HX_LOG_WAIT_MIN + Math.random() * (HX_LOG_WAIT_MAX - HX_LOG_WAIT_MIN));
+  }
+  function hxLogStart() {
+    clearTimeout(hxLogTimer);
+    hxLogQueue.length = 0;
+    hxLogPaint();
+    hxLogTimer = setTimeout(hxLogFire, HX_LOG_FIRST);
+  }
+  function hxLogStop() {
+    clearTimeout(hxLogTimer);
+    hxLogQueue.length = 0;
+    hxLogPaint();
+  }
+
   var hxOn = false, hxSince = 0;
   function showHostile(on) {
     if (on === hxOn) return;
     hxOn = on;
     if (on) hxSince = performance.now();
     hxAll.forEach(function (g) { g.setAttribute('opacity', on ? 1 : 0); });
+    // Every mode switch hides the general banner and drops its pending timer outright
+    // (Part B): a hostile lock hands alerts to the log instead, and the banner's own
+    // 4.2s hold means one can already be on screen, wide enough to overprint TARGET ID,
+    // when a lock lands.
+    hideCaution();
+    if (on) hxLogStart();
+    else { hxLogStop(); scheduleCaution(); }
   }
   // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than
   // sitting at a fixed number next to a status line that already says LOCKED.
@@ -891,15 +995,24 @@
       var specY = Math.max(96, H * 0.115, tapeBottom + 10);
       var armsY = specY + hx.spec.h + 16;
       hxArmsBottom = armsY - HX_PAD + hx.arms.h;
+      // TARGET ID's own top and bottom, and the alarm log flush beneath it -- computed
+      // here (not inside logBottom()) so the hxRoom check below and the xf() calls
+      // further down share one set of numbers and can't drift apart.
+      var idY = Math.max(112, H * 0.135);
+      var idBottom = idY - HX_PAD + hx.id.h;
+      var logY = idBottom + HX_LOG_GAP;
+      hxLogBottom = logY + hxLogH;
       hxRoom = room && W > 1100
             && hxArmsBottom + 14 <= radarTop     // clear of the radar, now bottom-right
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
-      xf(hx.id, cx - hx.id.w / 2, Math.max(112, H * 0.135));
+      xf(hx.id, cx - hx.id.w / 2, idY);
       xf(hx.spec, W - 26 - hx.spec.w, specY);
       xf(hx.arms, W - 26 - hx.arms.w, armsY);
       xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
       xf(hx.left, cx - 92, cy - 17);
       xf(hx.right, cx + 92, cy - 17);
+      if (hxLogW !== hx.id.w) hxLogSetWidth(hx.id.w);
+      xf(hxLog, cx - hx.id.w / 2, logY);
       var hostileNow = hxRoom && hxLockId === 't-unknown';
       showHostile(hostileNow);
       if (hostileNow) dossier.setAttribute('opacity', 0);
@@ -911,12 +1024,9 @@
   }
 
   var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
-  // TASK 3 HOOK: the alarm log panel doesn't exist yet, and hxArmsBottom is already
-  // spent above (against radarTop) -- reusing it here would just add a second,
-  // unrelated constraint on the same value, not model the log. 0 can never fail the
-  // `<= cy - 40` check, so this is a true no-op until Task 3 replaces the body with
-  // the alarm log's real bottom edge.
-  function logBottom() { return 0; }
+  // the alarm log's real measured bottom edge, set alongside idY/logY above; checked
+  // against cy - 40 so the log always clears the reticle readouts (hx.left/hx.right).
+  function logBottom() { return hxLogBottom; }
 
   if (!isPage) {
     // -- pitch ladder: rungs regenerated around the current pitch, banks slightly with vx --
