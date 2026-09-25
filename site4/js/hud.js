@@ -87,10 +87,15 @@
   function drawHeading(yaw) {
     clear(hdgTicks);
     var span = 60, step = 5, px = 6.2;
-    for (var d = -span; d <= span; d += step) {
-      var heading = wrap360(Math.round(yaw) + d);
+    // Ticks belong to absolute headings and the tape slides past them. Generating them at
+    // offsets from the rounded heading made a tick's value round(yaw) + d, so the 15-degree
+    // labels only existed when round(yaw) was itself a multiple of 5: the numbers vanished
+    // from the tape completely for four headings out of every five while turning.
+    var first = Math.ceil((yaw - span) / step) * step;
+    for (var a = first; a <= yaw + span; a += step) {
+      var heading = wrap360(a);
       var major = heading % 15 === 0;
-      var x = d * px;
+      var x = (a - yaw) * px;
       hdgTicks.appendChild(el('line', { x1: x, y1: 0, x2: x, y2: major ? 16 : 8 }));
       if (major) {
         var t = el('text', { x: x, y: -6, 'text-anchor': 'middle' });
@@ -338,8 +343,21 @@
       g.txt.textContent = g.fmt ? g.fmt(v) : Math.round(v * 100) + '%';
       g.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
     });
-    sparkPts.push(Math.sin(now / 900) * 0.4 + Math.sin(now / 340) * 0.3 + (Math.random() - 0.5) * 0.25);
-    if (sparkPts.length > 58) sparkPts.shift();
+    // A live interference trace, not a clean waveform: a slow drift, three beating
+    // harmonics that never line up, and a noise floor that occasionally bursts. The
+    // spikes clip against the clamp below, which is what interference should look like.
+    // Sample on a fixed 30ms clock, not once per frame. Per frame the 58-point buffer held
+    // under a second of signal, so the slow components just slid the whole trace up and
+    // down instead of shaping it -- and the trace scrolled at whatever frame rate the
+    // machine happened to run at. At 30ms the window is 1.7s, so every band below shows.
+    if (now >= (drawGauges.nextPt || 0)) {
+      drawGauges.nextPt = now + 30;
+      var burst = Math.sin(now / 3100) > 0.55 ? 1.25 : 0.32;
+      sparkPts.push(Math.sin(now / 900) * 0.3 + Math.sin(now / 430) * 0.3
+                  + Math.sin(now / 173) * 0.22 + Math.sin(now / 67) * 0.13
+                  + (Math.random() - 0.5) * burst);
+      if (sparkPts.length > 58) sparkPts.shift();
+    }
     spark.setAttribute('points', sparkPts.map(function (v, i) {
       return (3 + i * 3) + ',' + (sparkY + 15 - clamp(v, -1, 1) * 12).toFixed(1);
     }).join(' '));
@@ -534,8 +552,8 @@
   var HX_INK = ['rgba(221,231,238,.45)', 'var(--ice)', 'var(--lock)'];
   var HX_PAD = 11, HX_ROW = 15, HX_HEAD = 15;
 
-  function hxBox(title, w, stamp) {
-    var g = el('g', { class: 'hostile', opacity: 0 });
+  function hxBox(title, w, stamp, cls) {
+    var g = el('g', { class: 'hostile' + (cls ? ' ' + cls : ''), opacity: 0 });
     g.body = el('rect', { x: -HX_PAD, y: -HX_PAD, width: w + HX_PAD * 2, height: 10,
                           fill: 'rgba(6,10,18,.88)' });
     g.appendChild(g.body);
@@ -621,7 +639,7 @@
     d.arms.forEach(function (r) { hxRow(ar, r[0], r[1], r[2], true); });
     hxSeal(ar);
 
-    var wn = hxBox('⚠ ANCHOR SYSTEM DETECTED', 268, 'BNS-TAQ-0712');
+    var wn = hxBox('⚠ ANCHOR SYSTEM DETECTED', 268, 'BNS-TAQ-0712', 'hx-alarm');
     d.warn.forEach(function (line) {
       var t = el('text', { x: 0, y: wn.y, style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
       t.textContent = line;

@@ -454,8 +454,23 @@ a { color: inherit; }
 #hud .warn text { font-size: 13px; }
 #hud .warn.is-blinking { animation: warn-blink 1s steps(2, end) infinite; }
 @keyframes warn-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
+
+/* The hostile contact's alarm inverts its whole housing rather than glowing: a hard
+   two-frame flash catches the eye at the edge of vision without any bloom, which is the
+   look this HUD is after. Animations outrank the inline fills hud.js writes, so the text
+   and brackets invert with the box.
+   steps(1, end), not steps(2): the timing function runs per keyframe segment, so two
+   steps put a blended half-colour between the two states and softened the flash into a
+   pulse. One step holds each state flat for its whole segment -- a square wave. */
+#hud .hx-alarm rect { animation: hx-alarm-box .8s steps(1, end) infinite; }
+#hud .hx-alarm text { animation: hx-alarm-ink .8s steps(1, end) infinite; }
+#hud .hx-alarm line { animation: hx-alarm-edge .8s steps(1, end) infinite; }
+@keyframes hx-alarm-box  { 50% { fill: var(--lock); } }
+@keyframes hx-alarm-ink  { 50% { fill: var(--night); } }
+@keyframes hx-alarm-edge { 50% { stroke: var(--night); } }
 @media (prefers-reduced-motion: reduce) {
   #hud .warn.is-blinking { animation: none; opacity: 1; }
+  #hud .hx-alarm rect, #hud .hx-alarm text, #hud .hx-alarm line { animation: none; }
 }
 
 #hud .dossier text { font-size: 14px; }
