@@ -3,7 +3,8 @@
 **Read the full spec first:** `docs/2026-09-24-bunnys-cockpit-design.md`. This page is only the short list of names every file must agree on. The plan and progress are in `docs/plan.md`.
 
 ## Rules
-- The suit is the original SL-01 "BUNNyS". No Gundam logos, names or official suits, and no franchise terms ("Minovsky", "Newtype").
+- The suit is the original SL-01 "BUNNyS". No Gundam logos, names or official suits, and no franchise terms ("Minovsky", "Newtype") — **in the artwork**. Every SVG stays original and `tests/svg.test.js` enforces it.
+- **One deliberate exception.** The hostile contact at bearing 180 is identified in the HUD by its real designation, and its spec and armament text is the owner's own, supplied verbatim. That is their decision for their own site, taken after the trademark position was put to them. It lives only in `HX_DATA` in `js/hud.js`; do not let it spread into the artwork or the site's own unit.
 - No orange-and-black hazard stripes. Cautions are amber text or outline chevrons.
 - Use only the content in spec section 9. Plain static site: no build, no dependencies, relative paths.
 - JS is `'use strict'` IIFEs; the only global is `window.BUNNYS`.

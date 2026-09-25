@@ -270,7 +270,7 @@
   var sparkPts = [], spark = null, lamps = [];
   // panel metrics: buildGauges (layout) and drawGauges (per-frame values) share these
   // instead of each hardcoding its own copy, so the two can't drift out of sync
-  var G_PAD = 12, rowH = 20, barX = 46, barW = 72, sparkY = 0;
+  var G_PAD = 12, rowH = 20, barX = 46, barW = 72, sparkY = 0, gaugeH = 0;
   function buildGauges() {
     var pctX = barX + barW + 10, pctW = 52; // wide enough for "STANDBY", not just "100%"
     var contentW = pctX + pctW; // widest row (label..bar..readout) sets the panel width
@@ -289,6 +289,7 @@
 
     // housing first, sized from the content above rather than a fixed guess
     var bx = -G_PAD, by = -G_PAD, bw = contentW + G_PAD * 2, bh = contentBottom + G_PAD * 2;
+    gaugeH = bh;
     gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.85)' }));
     gaugeBox.appendChild(corners(bx, by, bw, bh));
     var hdr = el('text', { x: 0, y: headerY });
@@ -504,6 +505,171 @@
     }, wait);
   }
 
+
+  // ---------------------------------------------------------------- hostile contact
+  // A hostile contact does not get the single dossier card the friendly ones do. It gets
+  // its own set of framed boxes: who it is, readouts flanking the reticle, a spec block,
+  // what it is carrying, and a warning about the one system that can reach you. Content
+  // is fixed, so it is built once; only BEARING and LOCK are live.
+  var HX_YAW = 180;
+  var HX_DATA = {
+    mark: ['TARGET // MS-07B-3', 'GOUF CUSTOM'],
+    idRows: [['TYPE', 'LIMITED-PRODUCTION GROUND MS', 1],
+             ['AFFILIATION', 'PRINCIPALITY OF ZEON', 1],
+             ['IFF', 'HOSTILE', 2]],
+    spec: [['HEIGHT', '18.7 M', 1], ['EMPTY MASS', '58.5 T', 1], ['MAX MASS', '77.6 T', 1],
+           ['REACTOR', 'MINOVSKY ULTRACOMPACT FUSION', 1, true], ['OUTPUT', '1034 KW', 1],
+           ['MAX ACCEL', '0.53 G', 1], ['THRUST', '40,700 KG', 1],
+           ['SENSOR RANGE', '3,600 M', 1], ['ARMOR', 'SUPER-HARD STEEL ALLOY', 1]],
+    arms: [['75MM GATLING GUN', 'READY', 1], ['35MM TRIPLE GATLING', 'READY', 1],
+           ['HEAT ROD / ANCHOR', 'ARMED', 2], ['HEAT SABER TYPE-DIII', 'STORED', 0],
+           ['GOUF SHIELD', 'EQUIPPED', 1]],
+    warn: ['HEAT ROD // ELECTRO-MAGNETIC', 'GRAPPLER RANGE: EXTENDED',
+           'ELECTRICAL DISABLE CAPABILITY', '⚠ CLOSE-COMBAT THREAT'],
+    ret: [['RNG', '01.42 KM', 1], ['REL VEL', '-032 M/S', 1], ['BEARING', null, 1],
+          ['ALT', '041 M', 1], ['LOCK', null, 2], ['IFF', 'HOSTILE', 2]]
+  };
+  // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style:
+  // the stylesheet's own `#hud text { fill: var(--ice) }` beats a presentation attribute.
+  var HX_INK = ['rgba(221,231,238,.45)', 'var(--ice)', 'var(--lock)'];
+  var HX_PAD = 11, HX_ROW = 15, HX_HEAD = 15;
+
+  function hxBox(title, w, stamp) {
+    var g = el('g', { class: 'hostile', opacity: 0 });
+    g.body = el('rect', { x: -HX_PAD, y: -HX_PAD, width: w + HX_PAD * 2, height: 10,
+                          fill: 'rgba(6,10,18,.88)' });
+    g.appendChild(g.body);
+    g.frame = corners(-HX_PAD, -HX_PAD, w + HX_PAD * 2, 10, 9);
+    g.appendChild(g.frame);
+    var cap = el('text', { x: 0, y: 0, style: 'font-size:10px;letter-spacing:.18em;fill:var(--lock);text-anchor:start' });
+    cap.textContent = title;
+    g.appendChild(cap);
+    g.rule = el('line', { x1: 0, y1: 6, x2: w, y2: 6, opacity: .45 });
+    g.appendChild(g.rule);
+    g.w = w; g.stamp = stamp; g.y = HX_HEAD + 6; g.pairs = [];
+    svg.appendChild(g);
+    return g;
+  }
+  // a label/value row; dot draws the armament state pip the owner's mock asks for
+  function hxRow(g, label, value, state, dot, wrap) {
+    var y = g.y;
+    var l = el('text', { x: dot ? 13 : 0, y: y, style: 'font-size:10px;letter-spacing:.1em;fill:var(--hud);text-anchor:start' });
+    l.textContent = label;
+    g.appendChild(l);
+    var v = el('text', { x: g.w, y: wrap ? y + HX_ROW : y, style: 'font-size:10px;letter-spacing:.06em;text-anchor:end;fill:' + HX_INK[state] });
+    v.textContent = value == null ? '' : value;
+    g.appendChild(v);
+    if (dot) {
+      g.appendChild(el('circle', { cx: 4, cy: y - 3.5, r: 3.2,
+        style: 'fill:' + (state ? HX_INK[state] : 'none') + ';stroke:' + HX_INK[state || 1] + ';stroke-width:1' }));
+    }
+    g.pairs.push({ l: l, v: v, dot: !!dot, wrap: !!wrap });
+    g.y += wrap ? HX_ROW * 2 : HX_ROW;
+    return v;
+  }
+  function hxSeal(g) {                       // close the housing round whatever it holds
+    var h = g.y - HX_ROW + HX_PAD * 2 + 4;
+    g.body.setAttribute('height', h);
+    updateCorners(g.frame, -HX_PAD, -HX_PAD, g.w + HX_PAD * 2, h, 9);
+    g.h = h;
+    if (g.stamp && !g.stampEl) g.stampEl = stencil(g, g.w, g.y - HX_ROW + 13, 'end', g.stamp);
+    else if (g.stampEl) g.stampEl.setAttribute('x', g.w);
+  }
+  // Grow a housing to whatever its widest label/value pair actually measures. Guessing the
+  // width by eye put REACTOR straight through MINOVSKY ULTRACOMPACT FUSION, and the same
+  // for two of the armament rows. Re-run once the webfont lands, since the fallback
+  // metrics differ from B612 Mono's.
+  var HX_GAP = 16;
+  function hxFit(g) {
+    var need = g.w;
+    g.pairs.forEach(function (p) {
+      var lw = 0, vw = 0;
+      try { lw = p.l.getComputedTextLength(); vw = p.v.getComputedTextLength(); } catch (e) { return; }
+      // a wrapped row puts its value on its own line, so it only has to be as wide as
+      // the longer of the two rather than both plus a gap
+      need = Math.max(need, p.wrap ? Math.max(lw, vw) : (p.dot ? 13 : 0) + lw + HX_GAP + vw);
+    });
+    need = Math.ceil(need);
+    if (need === g.w) return;
+    g.w = need;
+    g.pairs.forEach(function (p) { p.v.setAttribute('x', need); });
+    g.rule.setAttribute('x2', need);
+    g.body.setAttribute('width', need + HX_PAD * 2);
+    updateCorners(g.frame, -HX_PAD, -HX_PAD, need + HX_PAD * 2, g.h, 9);
+    if (g.stampEl) g.stampEl.setAttribute('x', need);
+  }
+
+  var hxAll = [], hxBearing = null, hxLock = null;
+  var hx = (function buildHostile() {
+    var d = HX_DATA;
+    var idb = hxBox('TARGET ID', 268, 'BNS-TAQ-0701');
+    var mark = el('text', { x: 0, y: idb.y + 8, style: 'font-size:19px;letter-spacing:.06em;fill:var(--lock);text-anchor:start' });
+    mark.textContent = d.mark[1];
+    idb.appendChild(mark);
+    var sub = el('text', { x: 0, y: idb.y + 24, style: 'font-size:9px;letter-spacing:.14em;fill:rgba(221,231,238,.6);text-anchor:start' });
+    sub.textContent = d.mark[0];
+    idb.appendChild(sub);
+    idb.y += 38;
+    d.idRows.forEach(function (r) { hxRow(idb, r[0], r[1], r[2]); });
+    hxSeal(idb);
+
+    var sp = hxBox('UNIT DATA', 196, 'BNS-TAQ-0704');
+    d.spec.forEach(function (r) { hxRow(sp, r[0], r[1], r[2], false, r[3]); });
+    hxSeal(sp);
+
+    var ar = hxBox('ARMAMENT DETECTED', 190, 'BNS-TAQ-0708');
+    d.arms.forEach(function (r) { hxRow(ar, r[0], r[1], r[2], true); });
+    hxSeal(ar);
+
+    var wn = hxBox('⚠ ANCHOR SYSTEM DETECTED', 268, 'BNS-TAQ-0712');
+    d.warn.forEach(function (line) {
+      var t = el('text', { x: 0, y: wn.y, style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
+      t.textContent = line;
+      wn.appendChild(t); wn.y += HX_ROW;
+    });
+    hxSeal(wn);
+
+    // the six readouts that flank the reticle, three a side
+    var left = el('g', { class: 'hostile', opacity: 0 }), right = el('g', { class: 'hostile', opacity: 0 });
+    d.ret.forEach(function (r, i) {
+      var g = i < 3 ? left : right, y = (i % 3) * 18, end = i < 3;
+      var lab = el('text', { x: 0, y: y, style: 'font-size:9px;letter-spacing:.14em;fill:var(--hud);text-anchor:' + (end ? 'end' : 'start') });
+      lab.textContent = r[0];
+      g.appendChild(lab);
+      var val = el('text', { x: end ? -70 : 70, y: y, style: 'font-size:11px;letter-spacing:.04em;text-anchor:' + (end ? 'end' : 'start') + ';fill:' + HX_INK[r[2]] });
+      val.textContent = r[1] || '';
+      g.appendChild(val);
+      if (r[0] === 'BEARING') hxBearing = val;
+      if (r[0] === 'LOCK') hxLock = val;
+    });
+    svg.appendChild(left); svg.appendChild(right);
+    hxAll = [idb, sp, ar, wn, left, right];
+    return { id: idb, spec: sp, arms: ar, warn: wn, left: left, right: right };
+  })();
+
+  function hxFitAll() { [hx.id, hx.spec, hx.arms, hx.warn].forEach(hxFit); }
+  hxFitAll();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { hxFitAll(); place(); });
+
+  var hxOn = false, hxSince = 0;
+  function showHostile(on) {
+    if (on === hxOn) return;
+    hxOn = on;
+    if (on) hxSince = performance.now();
+    hxAll.forEach(function (g) { g.setAttribute('opacity', on ? 1 : 0); });
+  }
+  // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than
+  // sitting at a fixed number next to a status line that already says LOCKED.
+  function drawHostile(now) {
+    if (!hxOn) return;
+    if (hxBearing) hxBearing.textContent = pad3(HX_YAW);
+    if (hxLock) {
+      var p = BUNNYS.reduce ? 1 : Math.min(1, (now - hxSince) / 900);
+      hxLock.textContent = Math.round(p * 100) + '%';
+      hxLock.style.fill = p < 1 ? 'var(--amber)' : 'var(--lock)';
+    }
+  }
+
   // ---------------------------------------------------------------- responsive placement
   function place() {
     W = Math.max(1, innerWidth); H = Math.max(1, innerHeight);
@@ -545,7 +711,31 @@
       // sit. A fixed fraction put it over the enemy suit's head at tall sizes and through
       // the status line at short ones. Sit it low, but never closer than 18px to the line.
       var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
-      xf(dossier, cx, clamp(H * 0.74, 200, statusY - 18 - dosBot));
+      var dosY = clamp(H * 0.74, 200, statusY - 18 - dosBot);
+      xf(dossier, cx, dosY);
+
+      // The hostile set fills the whole frame, so it has to be placed round the two things
+      // already living on the right: the slew panel above the middle, and the status line
+      // at the foot. UNIT DATA goes above the slew, ARMAMENT below it -- the left column
+      // has no gap between the gauges and the radar to put it in. If either will not fit,
+      // the set stands down and the plain dossier card covers the contact instead.
+      var sl = document.getElementById('slew'), slR = sl && sl.getBoundingClientRect();
+      var slTop = slR && slR.height ? slR.top : cy - 95;
+      var slBot = slR && slR.height ? slR.bottom : cy + 95;
+      var specY = Math.min(Math.max(96, H * 0.115), slTop - 10 + HX_PAD - hx.spec.h);
+      var armsY = slBot + 16 + HX_PAD;
+      hxRoom = room && W > 1100
+            && specY - HX_PAD >= 78                                   // clear of the heading tape
+            && armsY - HX_PAD + hx.arms.h <= statusY - 16;            // clear of the status line
+      xf(hx.id, cx - hx.id.w / 2, Math.max(112, H * 0.135));
+      xf(hx.spec, W - 26 - hx.spec.w, specY);
+      xf(hx.arms, W - 26 - hx.arms.w, armsY);
+      xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
+      xf(hx.left, cx - 92, cy - 17);
+      xf(hx.right, cx + 92, cy - 17);
+      var hostileNow = hxRoom && hxLockId === 't-unknown';
+      showHostile(hostileNow);
+      if (hostileNow) dossier.setAttribute('opacity', 0);
       xf(warn, cx, clamp(H * 0.26, 90, 260));
       fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
       if (ladder) xf(ladder, cx, cy, ' rotate(' + lastRoll.toFixed(2) + ')');
@@ -553,7 +743,7 @@
     }
   }
 
-  var ladder = null, fpm = null, lastRoll = 0;
+  var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null;
 
   if (!isPage) {
     // -- pitch ladder: rungs regenerated around the current pitch, banks slightly with vx --
@@ -607,6 +797,12 @@
     BUNNYS.on('lock', function (d) {
       status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
       setDossier(d);
+      // A hostile contact gets its own boxes instead of the generic card, so the two never
+      // stack. setDossier() has just raised the card, so this has to lower it again after.
+      hxLockId = d.id || null;
+      var hostile = hxRoom && hxLockId === 't-unknown';
+      showHostile(hostile);
+      if (hostile) dossier.setAttribute('opacity', 0);
       drawRadar(BUNNYS.state.yaw);
     });
     BUNNYS.on('boot-done', function () {
@@ -623,6 +819,7 @@
       tick.last = t;
       drawGauges(t);
       drawSweep(t);
+      drawHostile(t);
       drawBar(spd, dt); drawBar(alt, dt);
     })();
   } else {
