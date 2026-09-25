@@ -1,6 +1,6 @@
 /* hud.js: everything inside svg#hud — heading tape, pitch ladder, FPM, boresight,
    SPD/ALT bars, radar scope, system gauges, caution banner and status line.
-   Hub: driven by argus:view/argus:lock. Sub-pages (body.page): a reduced set
+   Hub: driven by bunnys:view/bunnys:lock. Sub-pages (body.page): a reduced set
    driven by scroll.
 
    Layout is responsive: the viewBox tracks the real viewport and every group is
@@ -9,8 +9,8 @@
    and the bottoms of both bars off screen on a wide, short window. */
 (function () {
   'use strict';
-  var ARGUS = window.ARGUS;
-  var wrap360 = ARGUS.wrap360, shortestDelta = ARGUS.shortestDelta, clamp = ARGUS.clamp;
+  var BUNNYS = window.BUNNYS;
+  var wrap360 = BUNNYS.wrap360, shortestDelta = BUNNYS.shortestDelta, clamp = BUNNYS.clamp;
   var svg = document.getElementById('hud');
   var isPage = document.body.classList.contains('page');
   var NS = 'http://www.w3.org/2000/svg';
@@ -64,7 +64,7 @@
   svg.appendChild(bore);
 
   // -- status line, bottom centre --
-  var IDLE_STATUS = 'ARGUS SL-01 / SYS NOMINAL';
+  var IDLE_STATUS = 'BUNNyS SL-01 / SYS NOMINAL';
   var status = el('text', { 'text-anchor': 'middle' });
   status.textContent = IDLE_STATUS;
   svg.appendChild(status);
@@ -109,6 +109,12 @@
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
   var PAD = 16, HEAD = 22;
+  // the scanning sweep: a rotating arm with a decaying phosphor trail behind it,
+  // and blips that brighten as the arm passes their bearing then fade back down
+  var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;
+  var SWEEP_TRAIL = 6, SWEEP_STEP = 10; // SWEEP_TRAIL * SWEEP_STEP deg of decay behind the arm
+  var SWEEP_BEAM = 4, SWEEP_DECAY = 900; // deg either side that "lights" a blip; ms to fade
+  var sweepGroup;
   function buildRadar() {
     // housing first, so the scope sits inside a panel rather than floating on the scene
     var w = RAD * 2 + PAD * 2, h = RAD * 2 + PAD * 2 + HEAD;
@@ -130,6 +136,19 @@
     // the field of view you can actually see, as a wedge at the top
     radarCone = el('path', { fill: 'rgba(140,255,193,.14)', stroke: 'none' });
     radar.appendChild(radarCone);
+    // sweep: sits under the own-ship marker and the blips, so it never swamps them
+    sweepGroup = el('g', { class: 'sweep' });
+    for (var si = 0; si < SWEEP_TRAIL; si++) {
+      var a1 = -si * SWEEP_STEP, a0 = -(si + 1) * SWEEP_STEP;
+      var x1 = (Math.sin(a1 * Math.PI / 180) * RAD).toFixed(1), y1 = (-Math.cos(a1 * Math.PI / 180) * RAD).toFixed(1);
+      var x0 = (Math.sin(a0 * Math.PI / 180) * RAD).toFixed(1), y0 = (-Math.cos(a0 * Math.PI / 180) * RAD).toFixed(1);
+      sweepGroup.appendChild(el('path', {
+        d: 'M0,0 L' + x1 + ',' + y1 + ' A' + RAD + ',' + RAD + ' 0 0 0 ' + x0 + ',' + y0 + ' Z',
+        fill: 'rgba(140,255,193,' + (0.18 * (1 - si / SWEEP_TRAIL)).toFixed(2) + ')', stroke: 'none'
+      }));
+    }
+    sweepGroup.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: .9 }));
+    radar.appendChild(sweepGroup);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
     var cap = el('text', { x: -RAD - PAD + 8, y: -RAD - PAD - 7 });
     cap.textContent = 'CONTACTS';
@@ -137,12 +156,14 @@
 
     targets.forEach(function (t) {
       var g = el('g', { class: 'blip' });
+      var glow = el('rect', { x: -7, y: -7, width: 14, height: 14, fill: 'currentColor', stroke: 'none', opacity: 0 });
+      g.appendChild(glow);
       g.appendChild(el('rect', { x: -4, y: -4, width: 8, height: 8 }));
       var lbl = el('text', { x: 8, y: 4 });
       lbl.textContent = (t.dataset.label || '').slice(0, 3);
       g.appendChild(lbl);
       radar.appendChild(g);
-      blips.push({ g: g, el: t, yaw: parseFloat(t.dataset.yaw) || 0 });
+      blips.push({ g: g, el: t, yaw: parseFloat(t.dataset.yaw) || 0, glow: glow, dispAngle: 0, litAt: null });
     });
     svg.appendChild(radar);
   }
@@ -160,10 +181,22 @@
       'M0,0 L' + (Math.sin(a0) * RAD).toFixed(1) + ',' + (-Math.cos(a0) * RAD).toFixed(1) +
       ' A' + RAD + ',' + RAD + ' 0 0 1 ' + (Math.sin(a1) * RAD).toFixed(1) + ',' + (-Math.cos(a1) * RAD).toFixed(1) + ' Z');
     blips.forEach(function (b) {
-      var rel = shortestDelta(yaw, b.yaw) * Math.PI / 180;
+      b.dispAngle = shortestDelta(yaw, b.yaw); // remembered for drawSweep's beam check
+      var rel = b.dispAngle * Math.PI / 180;
       var r = RAD * 0.72;
       xf(b.g, Math.sin(rel) * r, -Math.cos(rel) * r);
       b.g.classList.toggle('is-locked', b.el.classList.contains('is-locked'));
+    });
+  }
+
+  function drawSweep(now) {
+    var angle = BUNNYS.reduce ? SWEEP_PARK : (now * SWEEP_RATE) % 360;
+    sweepGroup.setAttribute('transform', 'rotate(' + angle.toFixed(1) + ')');
+    if (BUNNYS.reduce) return; // reduced motion: parked arm, blips left at their steady brightness
+    blips.forEach(function (b) {
+      if (Math.abs(shortestDelta(angle, b.dispAngle)) < SWEEP_BEAM) b.litAt = now;
+      var bright = b.litAt == null ? 0 : clamp(1 - (now - b.litAt) / SWEEP_DECAY, 0, 1);
+      b.glow.style.opacity = bright;
     });
   }
 
@@ -180,38 +213,59 @@
   var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM'];
   var gaugeBox = el('g', { class: 'gauges' });
   var sparkPts = [], spark = null, lamps = [];
+  // panel metrics: buildGauges (layout) and drawGauges (per-frame values) share these
+  // instead of each hardcoding its own copy, so the two can't drift out of sync
+  var G_PAD = 12, rowH = 20, barX = 46, barW = 72, sparkY = 0;
   function buildGauges() {
-    var w = 118, rowH = 20, top = -30, h = rowH * GAUGES.length + 130;
-    gaugeBox.appendChild(el('rect', { x: -10, y: top, width: w + 76, height: h, rx: 3, fill: 'rgba(6,10,18,.85)' }));
-    var hdr = el('text', { x: -2, y: top + 14 });
+    var pctX = barX + barW + 10, pctW = 34;
+    var contentW = pctX + pctW; // widest row (label..bar..percentage) sets the panel width
+
+    var headerY = 9;                              // header baseline
+    var ruleY = headerY + 9;
+    var rowsY = ruleY + 16;                        // first gauge row baseline
+    var rowsBottom = rowsY + GAUGES.length * rowH;
+    var sparkLabelY = rowsBottom + 16;
+    sparkY = sparkLabelY + 8;                      // sparkline frame top, shared with drawGauges
+    var sparkH = 30;
+    var lampsTop = sparkY + sparkH + 16;
+    var lampH = 11;
+    var lampLabelY = lampsTop + lampH + 11;
+    var contentBottom = lampLabelY + 3;            // headroom below the lamp labels' baseline
+
+    // housing first, sized from the content above rather than a fixed guess
+    gaugeBox.appendChild(el('rect', {
+      x: -G_PAD, y: -G_PAD, width: contentW + G_PAD * 2, height: contentBottom + G_PAD * 2,
+      rx: 3, fill: 'rgba(6,10,18,.85)'
+    }));
+    var hdr = el('text', { x: 0, y: headerY });
     hdr.textContent = 'SYS / SL-01';
     gaugeBox.appendChild(hdr);
-    gaugeBox.appendChild(el('line', { x1: -10, y1: top + 22, x2: w + 66, y2: top + 22, opacity: .55 }));
+    gaugeBox.appendChild(el('line', { x1: 0, y1: ruleY, x2: contentW, y2: ruleY, opacity: .55 }));
     GAUGES.forEach(function (g, i) {
-      var y = i * rowH + 12;
+      var y = rowsY + i * rowH;
       var lbl = el('text', { x: 0, y: y + 4 });
       lbl.textContent = g.key;
       gaugeBox.appendChild(lbl);
-      gaugeBox.appendChild(el('rect', { x: 46, y: y - 6, width: w - 46, height: 9 }));
-      g.fill = el('rect', { x: 47, y: y - 5, width: 1, height: 7, fill: 'currentColor', stroke: 'none' });
+      gaugeBox.appendChild(el('rect', { x: barX, y: y - 6, width: barW, height: 9 }));
+      g.fill = el('rect', { x: barX + 1, y: y - 5, width: 1, height: 7, fill: 'currentColor', stroke: 'none' });
       gaugeBox.appendChild(g.fill);
-      g.txt = el('text', { x: w + 10, y: y + 4 });
+      g.txt = el('text', { x: pctX, y: y + 4 });
       gaugeBox.appendChild(g.txt);
     });
     // particle-density trace, so the panel has something moving that is not a bar
-    var sy = GAUGES.length * rowH + 30;
-    var sl = el('text', { x: 0, y: sy - 8 });
+    var sl = el('text', { x: 0, y: sparkLabelY });
     sl.textContent = 'P-DENSITY';
     gaugeBox.appendChild(sl);
-    gaugeBox.appendChild(el('rect', { x: 0, y: sy, width: w + 66, height: 30, opacity: .45 }));
+    gaugeBox.appendChild(el('rect', { x: 0, y: sparkY, width: contentW, height: sparkH, opacity: .45 }));
     spark = el('polyline', { points: '', opacity: .9 });
     gaugeBox.appendChild(spark);
-    // status lamps
+    // status lamps -- box+pip+label, all measured down from lampsTop so the labels
+    // land inside the housing instead of on its bottom edge
     LAMPS.forEach(function (name, i) {
-      var lx = i * 26, ly = sy + 56;
-      var box = el('rect', { x: lx, y: ly - 8, width: 18, height: 11, opacity: .8 });
-      var pip = el('rect', { x: lx + 2, y: ly - 6, width: 14, height: 7, fill: 'currentColor', stroke: 'none' });
-      var t = el('text', { x: lx + 9, y: ly + 14, 'text-anchor': 'middle', style: 'font-size:8px' });
+      var lx = i * 26;
+      var box = el('rect', { x: lx, y: lampsTop, width: 18, height: lampH, opacity: .8 });
+      var pip = el('rect', { x: lx + 2, y: lampsTop + 2, width: 14, height: lampH - 4, fill: 'currentColor', stroke: 'none' });
+      var t = el('text', { x: lx + 9, y: lampLabelY, 'text-anchor': 'middle', style: 'font-size:8px' });
       t.textContent = name;
       gaugeBox.appendChild(box); gaugeBox.appendChild(pip); gaugeBox.appendChild(t);
       lamps.push(pip);
@@ -222,15 +276,14 @@
   function drawGauges(now) {
     GAUGES.forEach(function (g, i) {
       var v = clamp(g.base + Math.sin(now / (3100 + i * 900) + i) * g.drift, 0.02, 1);
-      g.fill.setAttribute('width', (1 + v * 70).toFixed(1));
+      g.fill.setAttribute('width', (1 + v * (barW - 2)).toFixed(1));
       g.txt.textContent = Math.round(v * 100) + '%';
       g.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
     });
-    var sy = GAUGES.length * 20 + 30;
     sparkPts.push(Math.sin(now / 900) * 0.4 + Math.sin(now / 340) * 0.3 + (Math.random() - 0.5) * 0.25);
     if (sparkPts.length > 58) sparkPts.shift();
     spark.setAttribute('points', sparkPts.map(function (v, i) {
-      return (3 + i * 3) + ',' + (sy + 15 - clamp(v, -1, 1) * 12).toFixed(1);
+      return (3 + i * 3) + ',' + (sparkY + 15 - clamp(v, -1, 1) * 12).toFixed(1);
     }).join(' '));
     lamps.forEach(function (pip, i) {
       var on = Math.sin(now / (1700 + i * 600) + i * 2) > -0.75;
@@ -296,7 +349,7 @@
     setTimeout(function () {
       warnText.textContent = CAUTIONS[Math.floor(Math.random() * CAUTIONS.length)];
       warn.setAttribute('opacity', 1);
-      warn.classList.toggle('is-blinking', !ARGUS.reduce);
+      warn.classList.toggle('is-blinking', !BUNNYS.reduce);
       setTimeout(function () {
         warn.setAttribute('opacity', 0);
         warn.classList.remove('is-blinking');
@@ -389,19 +442,19 @@
     place();
     drawHeading(0); drawLadder(0, 0); drawRadar(0);
 
-    ARGUS.on('view', function (d) {
+    BUNNYS.on('view', function (d) {
       drawHeading(d.yaw);
       drawLadder(d.pitch, clamp((d.vx || 0) * 1.2, -6, 6));
       drawRadar(d.yaw);
       setBar(spd, clamp(Math.abs(d.vx || 0) / 6, 0, 1));
       setBar(alt, clamp((d.pitch + 12) / 24, 0, 1), (d.pitch >= 0 ? '+' : '') + Math.round(d.pitch));
     });
-    ARGUS.on('lock', function (d) {
+    BUNNYS.on('lock', function (d) {
       status.textContent = d.id ? 'LOCK: ' + d.label : IDLE_STATUS;
       setDossier(d);
-      drawRadar(ARGUS.state.yaw);
+      drawRadar(BUNNYS.state.yaw);
     });
-    ARGUS.on('boot-done', function () {
+    BUNNYS.on('boot-done', function () {
       status.textContent = 'ALL SYSTEMS NOMINAL';
       scheduleCaution();
     });
@@ -414,6 +467,7 @@
       var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
       tick.last = t;
       drawGauges(t);
+      drawSweep(t);
       drawBar(spd, dt); drawBar(alt, dt);
     })();
   } else {

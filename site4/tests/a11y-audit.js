@@ -38,7 +38,7 @@ const { launch, check, SITE } = require('./cdp');
   // Simple test: can we reach the heading at different yaws
   const testYaws = [0, 52, -52, 180];
   for (const yaw of testYaws) {
-    await contrastPage.eval(`window.ARGUS && ARGUS.emit('face', {yaw: ${yaw}})`);
+    await contrastPage.eval(`window.BUNNYS && BUNNYS.emit('face', {yaw: ${yaw}})`);
     await contrastPage.sleep(600);
     results.push({
       type: 'CONTRAST',
@@ -72,10 +72,10 @@ const { launch, check, SITE } = require('./cdp');
   });
   
   // Test arrow key navigation
-  const yawBefore = await kbdPage.eval('window.ARGUS ? ARGUS.state.yaw : 0');
+  const yawBefore = await kbdPage.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
   await kbdPage.key('ArrowRight', 'ArrowRight', 39);
   await kbdPage.sleep(300);
-  const yawAfter = await kbdPage.eval('window.ARGUS ? ARGUS.state.yaw : 0');
+  const yawAfter = await kbdPage.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
   
   results.push({
     type: 'KEYBOARD',
@@ -125,7 +125,7 @@ const { launch, check, SITE } = require('./cdp');
   await reducedPage.goto('index.html', 1200);
   
   // With reduce: true, boot should be instant
-  const booted = await reducedPage.eval('!!window.ARGUS && ARGUS.state.booted === true');
+  const booted = await reducedPage.eval('!!window.BUNNYS && BUNNYS.state.booted === true');
   results.push({
     type: 'REDUCED MOTION',
     finding: 'Boot is instant',

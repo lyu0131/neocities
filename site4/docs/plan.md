@@ -1,4 +1,4 @@
-# Site4 "ARGUS" Implementation Plan
+# Site4 "BUNNyS" Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to carry out this plan task by task. Steps use checkbox (`- [x]`) syntax for tracking. **Resuming?** Find the first unticked box, check the files on disk (an earlier session may have partly done that task), and continue. Tick boxes and commit and push after every task.
 
@@ -8,12 +8,12 @@
 
 **Architecture:**
 - **Hub layers:** a CSS-3D cylinder of 24 SVG-backed slices for the panorama, a fixed SVG cockpit frame, an SVG HUD overlay driven by a small view-state engine, and a canvas effects layer.
-- **Files:** each concern lives in its own file and talks through `document` custom events (`argus:view`, `argus:boot-done`, `argus:lock`), so agents can build them in parallel against one DOM skeleton.
+- **Files:** each concern lives in its own file and talks through `document` custom events (`bunnys:view`, `bunnys:boot-done`, `bunnys:lock`), so agents can build them in parallel against one DOM skeleton.
 - **Art:** all AI-drawn SVG from agents.
 
 **Tech stack:** static HTML, CSS and vanilla JS (no build, no dependencies), plus Google Fonts B612 and B612 Mono. Tests use Node 22 and headless Chrome via CDP, with no npm packages.
 
-**Spec:** `site4/docs/2026-09-24-argus-cockpit-design.md`. Read it before any task; it holds every colour, timing and size.
+**Spec:** `site4/docs/2026-09-24-bunnys-cockpit-design.md`. Read it before any task; it holds every colour, timing and size.
 
 **Repo:** `github.com/lyu0131/neocities` (private), branch `main`. Every task ends with a commit and a push, so cloud sessions stay in sync.
 
@@ -31,7 +31,7 @@ The work must carry on after their credits reset, so the plan lives in the repo 
 - CSS 3D plus SVG, with no libraries.
 
 ## Global constraints (from the spec; every task includes these)
-- **Original IP only:** no "Gundam" wordmark, logos, official suits or franchise terms ("Minovsky", "Newtype"). The suit is SL-01 "ARGUS".
+- **Original IP only:** no "Gundam" wordmark, logos, official suits or franchise terms ("Minovsky", "Newtype"). The suit is SL-01 "BUNNyS".
 - **No orange-and-black hazard stripes.** Cautions use amber text or outline chevrons.
 - **Content:** only the facts in spec section 9. No invented facts, and no grades, location or email.
 - **Tokens:**
@@ -45,7 +45,7 @@ The work must carry on after their credits reset, so the plan lives in the repo 
   - loops pause when the tab is hidden.
 - **Accessibility:** text contrast of at least 4.5:1, visible focus, full keyboard use, and `prefers-reduced-motion` gives instant static states. Canvases are `aria-hidden`, touch targets are at least 44px, and `lang="en"` is set.
 - **Test widths:** 375, 768, 1024, 1366×600, 1440×900 and 1920×1080, with no horizontal scroll at 375px.
-- **Code style:** plain `'use strict'` IIFEs with no globals except `window.ARGUS` (defined in Task 0). Short comments per feature, no commented-out code.
+- **Code style:** plain `'use strict'` IIFEs with no globals except `window.BUNNYS` (defined in Task 0). Short comments per feature, no commented-out code.
 
 ## File map
 ```
@@ -53,7 +53,7 @@ site4/
   index.html  pilot.html  missions.html  hangar.html
   DESIGN.md                      short agent contract (Task 0)
   css/cockpit.css                all styles (Task 5; pages append a section in Task 8)
-  js/argus.js                    shared state + event helpers (Task 0)
+  js/bunnys.js                    shared state + event helpers (Task 0)
   js/cockpit.js                  360 engine: view state, input, cylinder, targets, lock-on (Task 5)
   js/hud.js                      HUD tapes/ladder/FPM/side bars/status (Task 5)
   js/boot.js                     boot timeline (Task 6)
@@ -66,13 +66,13 @@ site4/
   tests/hub.test.js              hub behaviour (Task 0; run by Tasks 5–7)
   tests/pages.test.js            sub-pages + screenshots (Task 0; run by Tasks 8–9)
   tests/run.js                   runs all tests
-  docs/2026-09-24-argus-cockpit-design.md   docs/plan.md (this file)
+  docs/2026-09-24-bunnys-cockpit-design.md   docs/plan.md (this file)
 ```
 
 ## Agent roster and waves
 | wave | task | agent (`subagent_type`) | writes | parallel with |
 |---|---|---|---|---|
-| 0 | T0 scaffold, contract, tests | coordinator (main session) | DESIGN.md, index.html skeleton, js/argus.js, tests/* | nothing |
+| 0 | T0 scaffold, contract, tests | coordinator (main session) | DESIGN.md, index.html skeleton, js/bunnys.js, tests/* | nothing |
 | 1 | T1 panorama art | `general-purpose` + skill `example-skills:algorithmic-art` for technique only | img/pano.svg | T2, T3 |
 | 1 | T2 cockpit frame + HUD sprite | `ui-designer` | img/frame.svg, img/hud.svg | T1, T3 |
 | 1 | T3 SL-01 mobile suit + decals | `general-purpose` | img/ms/* | T1, T2 |
@@ -95,31 +95,31 @@ site4/
 
 ### Task 0: Scaffold, contract and test harness (coordinator)
 **Files:**
-- Create: `site4/DESIGN.md`, `site4/index.html`, `site4/js/argus.js`, `site4/tests/{cdp.js,svg.test.js,hub.test.js,pages.test.js,run.js}`, `site4/docs/plan.md`.
+- Create: `site4/DESIGN.md`, `site4/index.html`, `site4/js/bunnys.js`, `site4/tests/{cdp.js,svg.test.js,hub.test.js,pages.test.js,run.js}`, `site4/docs/plan.md`.
 
 **Produces:**
 - the DOM ids and classes below;
-- `window.ARGUS` = `{ state:{yaw,pitch,booted}, on(type, fn), emit(type, detail), reduce:Boolean, fine:Boolean }`;
+- `window.BUNNYS` = `{ state:{yaw,pitch,booted}, on(type, fn), emit(type, detail), reduce:Boolean, fine:Boolean }`;
 - events:
-  - `argus:view` `{yaw, pitch, vx, vy}`
-  - `argus:boot-done` `{}`
-  - `argus:lock` `{id|null, label, readout}`
-  - `argus:fire` `{id, href}`
+  - `bunnys:view` `{yaw, pitch, vx, vy}`
+  - `bunnys:boot-done` `{}`
+  - `bunnys:lock` `{id|null, label, readout}`
+  - `bunnys:fire` `{id, href}`
 - the test commands.
 
 - [x] **Step 1: Copy this plan to `site4/docs/plan.md`** and write `site4/DESIGN.md`. DESIGN.md is a one-page summary of the tokens, the class and id list below, the event list above, and the rule "read the spec first".
-- [x] **Step 2: Write `js/argus.js`:**
+- [x] **Step 2: Write `js/bunnys.js`:**
 ```js
-/* argus.js: shared state and a tiny event bus for the ARGUS cockpit */
+/* bunnys.js: shared state and a tiny event bus for the BUNNyS cockpit */
 (function () {
   'use strict';
   var mq = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
-  window.ARGUS = {
+  window.BUNNYS = {
     state: { yaw: 0, pitch: 0, booted: false },
     reduce: mq('(prefers-reduced-motion: reduce)'),
     fine: mq('(pointer: fine)'),
-    on: function (type, fn) { document.addEventListener('argus:' + type, function (e) { fn(e.detail || {}); }); },
-    emit: function (type, detail) { document.dispatchEvent(new CustomEvent('argus:' + type, { detail: detail || {} })); }
+    on: function (type, fn) { document.addEventListener('bunnys:' + type, function (e) { fn(e.detail || {}); }); },
+    emit: function (type, detail) { document.dispatchEvent(new CustomEvent('bunnys:' + type, { detail: detail || {} })); }
   };
 })();
 ```
@@ -130,7 +130,7 @@ site4/
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ARGUS, Sylas Lyu</title>
+<title>BUNNyS, Sylas Lyu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -143,7 +143,7 @@ site4/
       <!-- 24 .pano-slice elements are generated by cockpit.js -->
       <div class="target" id="t-pilot" data-yaw="-52" data-href="pilot.html" data-label="PILOT" data-readout="ID SYLAS LYU / RNG 0.4 KM"></div>
       <div class="target" id="t-missions" data-yaw="0" data-href="missions.html" data-label="MISSIONS" data-readout="2 ACTIVE / RNG 1.2 KM"></div>
-      <div class="target" id="t-hangar" data-yaw="52" data-href="hangar.html" data-label="HANGAR" data-readout="SL-01 ARGUS / RNG 0.1 KM"></div>
+      <div class="target" id="t-hangar" data-yaw="52" data-href="hangar.html" data-label="HANGAR" data-readout="SL-01 BUNNyS / RNG 0.1 KM"></div>
       <div class="target" id="t-unknown" data-yaw="180" data-label="UNKNOWN" data-readout="UNIDENTIFIED MS / NO IFF"></div>
     </div>
   </div>
@@ -154,7 +154,7 @@ site4/
     <ul>
       <li><a href="pilot.html" data-target="t-pilot">Pilot: Sylas Lyu</a></li>
       <li><a href="missions.html" data-target="t-missions">Missions: research</a></li>
-      <li><a href="hangar.html" data-target="t-hangar">Hangar: SL-01 ARGUS</a></li>
+      <li><a href="hangar.html" data-target="t-hangar">Hangar: SL-01 BUNNyS</a></li>
     </ul>
   </nav>
   <p id="lock-status" class="sr-only" aria-live="polite"></p>
@@ -164,7 +164,7 @@ site4/
   <pre id="boot-log" aria-hidden="true"></pre>
   <button id="skip" class="hud-btn" type="button">Skip boot</button>
 </div>
-<script src="js/argus.js" defer></script>
+<script src="js/bunnys.js" defer></script>
 <script src="js/hud.js" defer></script>
 <script src="js/cockpit.js" defer></script>
 <script src="js/fx.js" defer></script>
@@ -189,7 +189,7 @@ const SITE = path.resolve(__dirname, '..');
 const url = p => 'file://' + (process.platform === 'win32' ? '/' : '') + path.join(SITE, p).replace(/\\/g, '/');
 async function launch({ width = 1440, height = 900, reduce = false } = {}) {
   const port = 9300 + Math.floor(Math.random() * 600);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bunnys-'));
   const proc = spawn(chromePath(), ['--headless=new', '--no-sandbox', '--hide-scrollbars', '--allow-file-access-from-files',
     '--remote-debugging-port=' + port, '--user-data-dir=' + dir, 'about:blank'], { stdio: 'ignore' });
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -268,30 +268,30 @@ const { launch, check } = require('./cdp');
   // T6: boot runs, finishes and can be skipped
   check('boot overlay present', await p.eval("!!document.getElementById('boot')"));
   await p.sleep(6800);
-  check('boot done fires', await p.eval('ARGUS.state.booted === true'));
+  check('boot done fires', await p.eval('BUNNYS.state.booted === true'));
   check('boot overlay gone', await p.eval("!document.getElementById('boot') || getComputedStyle(document.getElementById('boot')).display === 'none'"));
   await p.eval("sessionStorage.clear()"); await p.goto('index.html', 600);
   await p.key(' ', 'Space', 32); await p.sleep(700);
-  check('skip boot works', await p.eval('ARGUS.state.booted === true'));
+  check('skip boot works', await p.eval('BUNNYS.state.booted === true'));
   // T5: 24 slices, drag turns yaw, heading tape follows, arrows turn
   check('24 pano slices', await p.eval("document.querySelectorAll('.pano-slice').length === 24"));
-  const y0 = await p.eval('ARGUS.state.yaw');
+  const y0 = await p.eval('BUNNYS.state.yaw');
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 10; k++) await p.mouse('mouseMoved', 700 - 30 * k, 450, 1); await p.mouse('mouseReleased', 400, 450);
   await p.sleep(900);
-  const y1 = await p.eval('ARGUS.state.yaw');
+  const y1 = await p.eval('BUNNYS.state.yaw');
   check('drag changes yaw', Math.abs(((y1 - y0 + 540) % 360) - 180) > 20, `${y0} -> ${y1}`);
-  check('heading readout follows yaw', await p.eval("(()=>{const t=document.querySelector('#hud .hdg-readout');return !!t && Math.abs(((+t.textContent - ((ARGUS.state.yaw%360)+360)%360)+540)%360-180) < 3})()"));
+  check('heading readout follows yaw', await p.eval("(()=>{const t=document.querySelector('#hud .hdg-readout');return !!t && Math.abs(((+t.textContent - ((BUNNYS.state.yaw%360)+360)%360)+540)%360-180) < 3})()"));
   await p.key('ArrowRight', 'ArrowRight', 39); await p.sleep(900);
-  check('arrow key turns', Math.abs(await p.eval('ARGUS.state.yaw') - y1) > 5);
+  check('arrow key turns', Math.abs(await p.eval('BUNNYS.state.yaw') - y1) > 5);
   // T5: focus a target link, view faces it, lock readout shows, Enter navigates
   await p.eval("document.querySelector('#targets-nav a[data-target=t-hangar]').focus()"); await p.sleep(1200);
-  check('focus turns to hangar', Math.abs(((await p.eval('ARGUS.state.yaw') - 52 + 540) % 360) - 180) < 8);
+  check('focus turns to hangar', Math.abs(((await p.eval('BUNNYS.state.yaw') - 52 + 540) % 360) - 180) < 8);
   check('lock readout shown', /SL-01/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.key('Enter', 'Enter', 13); await p.sleep(1500);
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
   // T5: unknown target locks but does not navigate
   await p.goto('index.html', 800);
-  await p.eval("ARGUS.emit('face', {yaw:180})"); await p.sleep(1500);
+  await p.eval("BUNNYS.emit('face', {yaw:180})"); await p.sleep(1500);
   const u = await p.eval("(()=>{const r=document.getElementById('t-unknown').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
   await p.mouse('mouseMoved', u.x, u.y); await p.sleep(600);
   check('unknown locks', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
@@ -304,13 +304,13 @@ const { launch, check } = require('./cdp');
   // reduced motion: no boot animation, still interactive
   const r = await launch({ width: 1440, height: 900, reduce: true });
   await r.goto('index.html', 900);
-  check('reduced motion: booted at once', await r.eval('ARGUS.state.booted === true'));
+  check('reduced motion: booted at once', await r.eval('BUNNYS.state.booted === true'));
   await r.key('ArrowLeft', 'ArrowLeft', 37); await r.sleep(400);
-  check('reduced motion: arrows still turn', Math.abs(await r.eval('ARGUS.state.yaw')) > 5);
+  check('reduced motion: arrows still turn', Math.abs(await r.eval('BUNNYS.state.yaw')) > 5);
   r.close();
 })();
 ```
-Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view to that yaw. Add it to DESIGN.md.
+Note: this uses one extra event, `bunnys:face` `{yaw}`. cockpit.js turns the view to that yaw. Add it to DESIGN.md.
 - [x] **Step 7: Write `tests/pages.test.js`.** For each of the three sub-pages it checks there's no overflow at the six test widths, one `h1`, a working return link, and `aria-current`. For hangar, focusing a callout adds `.is-hot` to its part in the SVG. It saves screenshots to `tests/out/`. Also write `tests/run.js`, which runs the three test files in sequence (`node tests/run.js`), and add `site4/tests/out/` to `.gitignore`.
 - [x] **Step 8: Run `node site4/tests/run.js`.** Expected: every art, hub and page check FAILs (nothing is built yet), and the harness itself runs without crashing.
 - [x] **Step 9: Commit and push:** `git add site4 .gitignore && git commit -m "site4: plan, contract, skeleton and test harness" && git push`
@@ -342,7 +342,7 @@ Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view
 - [x] **Step 4: Render a check page** that places `frame.svg` at 1440×900 and 375×740 over a mid-grey background, plus every sprite symbol at 4×. Look at it and confirm the centre stays clear and nothing smears at the edges. Rerun the tests: PASS.
 - [x] **Step 5: Commit and push.**
 
-### Task 3: SL-01 ARGUS three-view and decals (art agent C, wave 1)
+### Task 3: SL-01 BUNNyS three-view and decals (art agent C, wave 1)
 **Files:** create `site4/img/ms/sl01-front.svg`, `sl01-side.svg`, `sl01-back.svg` and `decals.svg`.
 **Produces:** part ids for the hangar callouts (see the test), and the same viewBox `0 0 800 1400` with feet on y = 1340 in all three views.
 - [x] **Step 1: Run** `node site4/tests/svg.test.js ms`. Expected: FAIL.
@@ -364,20 +364,20 @@ Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view
 - `javascript-pro` creates `site4/js/cockpit.js` and `site4/js/hud.js`;
 - `ui-designer` creates `site4/css/cockpit.css`.
 
-**Consumes:** `ARGUS` from argus.js, the Task 0 skeleton, the Task 1–3 art, the spec's sections 3 and 5, and `argus:boot-done` (input is held until it fires).
+**Consumes:** `BUNNYS` from bunnys.js, the Task 0 skeleton, the Task 1–3 art, the spec's sections 3 and 5, and `bunnys:boot-done` (input is held until it fires).
 **Produces:**
-- `ARGUS.state.yaw/pitch`;
-- the events `argus:view`, `argus:lock` and `argus:fire`;
-- a listener for `argus:face {yaw}`;
+- `BUNNYS.state.yaw/pitch`;
+- the events `bunnys:view`, `bunnys:lock` and `bunnys:fire`;
+- a listener for `bunnys:face {yaw}`;
 - `#hud .hdg-readout` (the heading tape's number, 000–359).
 
 **The cylinder:** radius `R = sliceW / (2·tan(7.5°))`. Slice `i` gets `transform: rotateY(i·15deg) translateZ(-R)` and `background-position-x: -(i·sliceW)px`. The ring gets `transform: translateZ(R·k) rotateX(pitch) rotateY(-yaw)`. `sliceW` comes from the viewport height so the strip's 2000px maps to about 1.35× the viewport height. `perspective` is tuned to about 100° horizontal field of view on landscape screens and about 70° on portrait.
 
 **Motion:** view easing is `yaw += (target − yaw)·(1 − 0.88^(dt·60))` (frame-rate independent). Inertia decays at 0.92 per frame. Idle sway follows spec section 5.2.
 
-**Targets:** on hover or focus, lock (3-step bracket close-in, readout typed, colour `--lock`, and `argus:lock`, and set the text of `#lock-status`). Click or Enter emits `argus:fire`, plays the flash-and-zoom (280ms, skipped under reduced motion), then sets `location.href`. The unknown target never fires.
+**Targets:** on hover or focus, lock (3-step bracket close-in, readout typed, colour `--lock`, and `bunnys:lock`, and set the text of `#lock-status`). Click or Enter emits `bunnys:fire`, plays the flash-and-zoom (280ms, skipped under reduced motion), then sets `location.href`. The unknown target never fires.
 
-**HUD (hud.js):** it builds inline SVG inside `#hud`: the heading tape (5° ticks, labels every 15°, N/E/S/W), the pitch ladder (−10 to +10), the flight-path marker following the pointer, the boresight, SPD/ALT side bars, the status line, and rear chevrons for targets more than 60° off-centre. It listens to `argus:view` and `argus:lock`. With `body.page` (sub-pages) it builds the reduced HUD driven by scroll.
+**HUD (hud.js):** it builds inline SVG inside `#hud`: the heading tape (5° ticks, labels every 15°, N/E/S/W), the pitch ladder (−10 to +10), the flight-path marker following the pointer, the boresight, SPD/ALT side bars, the status line, and rear chevrons for targets more than 60° off-centre. It listens to `bunnys:view` and `bunnys:lock`. With `body.page` (sub-pages) it builds the reduced HUD driven by scroll.
 
 **CSS:** implement spec sections 3, 5 and 6 for the hub:
 - the layer stack and z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, boot 10;
@@ -394,16 +394,16 @@ Note: this uses one extra event, `argus:face` `{yaw}`. cockpit.js turns the view
 
 ### Task 6: Boot sequence and canvas effects (wave 2, parallel with T5)
 **Files:** `javascript-pro` creates `site4/js/boot.js` and `site4/js/fx.js`.
-**Consumes:** `ARGUS`, `#boot`, `#boot-log`, `#skip`, `.pano-slice` (generated by cockpit.js; wait for `DOMContentLoaded` plus one frame), `#hud`, and `#frame`.
+**Consumes:** `BUNNYS`, `#boot`, `#boot-log`, `#skip`, `.pano-slice` (generated by cockpit.js; wait for `DOMContentLoaded` plus one frame), `#hud`, and `#frame`.
 
-**Produces:** it sets `ARGUS.state.booted = true` and fires `argus:boot-done` at the end. It uses the `sessionStorage` key `argus-booted`, and supports skip by key, click or the button.
+**Produces:** it sets `BUNNYS.state.booted = true` and fires `bunnys:boot-done` at the end. It uses the `sessionStorage` key `bunnys-booted`, and supports skip by key, click or the button.
 
 **boot.js:** the exact timeline in spec section 6:
 - the log lines are typed out, and the reactor number counts up to 100%;
 - the 24 slices flicker on in a shuffled order (add `.boot-flicker`, then remove it);
-- the 360 whip is a `requestAnimationFrame` tween of `ARGUS.state.yaw` from 0 to 360 with ease-in-out, with the ring's CSS `filter: blur()` peaking mid-spin;
+- the 360 whip is a `requestAnimationFrame` tween of `BUNNYS.state.yaw` from 0 to 360 with ease-in-out, with the ring's CSS `filter: blur()` peaking mid-spin;
 - the HUD draws in with `.hud-draw` (the CSS supplies the dashoffset);
-- a lock ping on MISSIONS via `ARGUS.emit('face',{yaw:0})` plus the lock;
+- a lock ping on MISSIONS via `BUNNYS.emit('face',{yaw:0})` plus the lock;
 - the callsign flash;
 - the overlay fades and is then removed.
 
@@ -413,7 +413,7 @@ With reduced motion, or the session key already set, it jumps straight to the en
 - rain streaks and a few drops sliding on the canopy;
 - a distant beam flash every 6–12s at a random yaw, visible only when that yaw is on screen;
 - a faint scanline flicker;
-- DPR capped at 1.5, paused when the tab is hidden, starting on `argus:boot-done`, half intensity on `body.page`, off under reduced motion (one static frame).
+- DPR capped at 1.5, paused when the tab is hidden, starting on `bunnys:boot-done`, half intensity on `body.page`, off under reduced motion (one static frame).
 
 - [x] **Step 1:** hub.test.js: the boot checks FAIL.
 - [x] **Step 2:** Dispatch. The agent records a frame sequence (screenshots at 0.3, 1.2, 2.4, 3.6, 4.8 and 6.0s) to `tests/out/boot-*.png` and reviews it.
@@ -426,7 +426,7 @@ With reduced motion, or the session key already set, it jumps straight to the en
 ### Task 8: Sub-pages (wave 3, `frontend-developer`)
 **Files:** create `site4/pilot.html`, `missions.html` and `hangar.html`. Modify `site4/css/cockpit.css` by appending one `/* pages */` section.
 
-**Consumes:** the fonts link; `argus.js`, `hud.js` and `fx.js` (with `body.page`, but not cockpit.js or boot.js); the art from Tasks 2 and 3; and the spec's sections 7 and 9 (content verbatim).
+**Consumes:** the fonts link; `bunnys.js`, `hud.js` and `fx.js` (with `body.page`, but not cockpit.js or boot.js); the art from Tasks 2 and 3; and the spec's sections 7 and 9 (content verbatim).
 
 **Each page:**
 - the display frame, title bar and compact nav strip (all four pages, with `aria-current`);

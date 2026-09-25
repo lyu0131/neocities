@@ -1,10 +1,10 @@
-/* boot.js: the index-only boot sequence. Drives ARGUS.state.yaw/booted and #boot's own
-   contents while state.booted is false; cockpit.js takes over once argus:boot-done fires. */
+/* boot.js: the index-only boot sequence. Drives BUNNYS.state.yaw/booted and #boot's own
+   contents while state.booted is false; cockpit.js takes over once bunnys:boot-done fires. */
 (function () {
   'use strict';
-  var ARGUS = window.ARGUS;
+  var BUNNYS = window.BUNNYS;
   var overlay = document.getElementById('boot');
-  if (!ARGUS || !overlay) { if (ARGUS) ARGUS.state.booted = true; return; }
+  if (!BUNNYS || !overlay) { if (BUNNYS) BUNNYS.state.booted = true; return; }
   var logEl = document.getElementById('boot-log');
   var lines = [];
   var timers = [];
@@ -20,7 +20,7 @@
     var hud = document.getElementById('hud');
     if (!hud) return;
     hud.classList.add('hud-draw');
-    if (ARGUS.reduce) { hud.classList.remove('hud-draw'); return; }
+    if (BUNNYS.reduce) { hud.classList.remove('hud-draw'); return; }
     setTimeout(function () { hud.classList.remove('hud-draw'); }, 1400);
   }
 
@@ -47,12 +47,12 @@
     for (var i = 0; i < flickering.length; i++) flickering[i].classList.remove('boot-flicker');
     var hud = document.getElementById('hud');
     drawHudOnce();
-    ARGUS.state.yaw = 0;
-    ARGUS.state.booted = true;
-    try { sessionStorage.setItem('argus-booted', '1'); } catch (e) {}
-    ARGUS.emit('boot-done', {});
+    BUNNYS.state.yaw = 0;
+    BUNNYS.state.booted = true;
+    try { sessionStorage.setItem('bunnys-booted', '1'); } catch (e) {}
+    BUNNYS.emit('boot-done', {});
     if (overlay.parentNode) {
-      if (instant || ARGUS.reduce) overlay.remove();
+      if (instant || BUNNYS.reduce) overlay.remove();
       else { overlay.classList.add('boot-out'); setTimeout(function () { if (overlay.parentNode) overlay.remove(); }, 350); }
     }
   }
@@ -62,8 +62,8 @@
   // alone meant the sequence played once per tab and never again on reload, which reads
   // as "the boot does not work".
   var fromInside = /\/(pilot|missions|hangar|index)\.html/.test(document.referrer || '');
-  try { already = fromInside && sessionStorage.getItem('argus-booted') === '1'; } catch (e) {}
-  if (ARGUS.reduce || already) { finish(true); return; }
+  try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
+  if (BUNNYS.reduce || already) { finish(true); return; }
 
   try { run(); } catch (e) { finish(true); }
 
@@ -81,7 +81,8 @@
 
     // t=300-1900: boot log, one line every ~180ms; the reactor % counts up in place
     var LOG = [
-      'ARGUS SL-01 // COLD START',
+      'BUNNyS OS 2.6.1 // COLD START',
+      'MEMORY CHECK ....... 8192K OK',
       'LINEAR SEAT ........ LOCKED',
       'REACTOR ............ {P}% ▲',
       'PARTICLE INTERFERENCE ... 0.2%',
@@ -131,7 +132,7 @@
       });
     });
 
-    // t=3100-4300: 360 whip. Drive ARGUS.state.yaw directly (cockpit.js renders it while
+    // t=3100-4300: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it while
     // booted is false); the ring's blur filter is ours to drive here since it tracks the tween.
     at(3100, function () {
       var ring = document.querySelector('.pano-ring');
@@ -139,10 +140,10 @@
       function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
       function step(now) {
         var p = Math.min(1, (now - t0) / dur);
-        ARGUS.state.yaw = ease(p) * 360;
+        BUNNYS.state.yaw = ease(p) * 360;
         if (ring) ring.style.filter = 'blur(' + (Math.sin(p * Math.PI) * 10).toFixed(1) + 'px)';
         if (p < 1) raf = requestAnimationFrame(step);
-        else { ARGUS.state.yaw = 0; if (ring) ring.style.filter = ''; raf = null; }
+        else { BUNNYS.state.yaw = 0; if (ring) ring.style.filter = ''; raf = null; }
       }
       raf = requestAnimationFrame(step);
     });
@@ -155,12 +156,12 @@
 
     // t=5400-6200: lock ping on MISSIONS, callsign flash, then fade
     at(5400, function () {
-      ARGUS.emit('face', { yaw: 0 });
+      BUNNYS.emit('face', { yaw: 0 });
       var t = document.getElementById('t-missions');
-      ARGUS.emit('lock', { id: 't-missions', label: t ? t.dataset.label : 'MISSIONS', readout: t ? t.dataset.readout : '' });
+      BUNNYS.emit('lock', { id: 't-missions', label: t ? t.dataset.label : 'MISSIONS', readout: t ? t.dataset.readout : '' });
     });
     at(5750, function () {
-      ARGUS.emit('lock', { id: null, label: '', readout: '' });
+      BUNNYS.emit('lock', { id: null, label: '', readout: '' });
       var cs = document.createElement('p');
       cs.className = 'boot-callsign';
       cs.textContent = 'SYLAS LYU';

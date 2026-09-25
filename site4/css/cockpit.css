@@ -1,4 +1,4 @@
-/* ARGUS cockpit: tokens, hub layer stack, HUD look, boot sequence.
+/* BUNNyS cockpit: tokens, hub layer stack, HUD look, boot sequence.
    Owner: css/cockpit.css (see DESIGN.md "File ownership").
    Hard rule: never set `transform` on .pano-ring, .pano-slice or .target —
    js/cockpit.js writes those inline every frame. */
@@ -311,6 +311,53 @@ a { color: inherit; }
 }
 #boot.boot-out { opacity: 0; pointer-events: none; }
 
+/* the splash: a firmware screen, brand first, while the log types itself in below */
+.boot-splash {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 48px));
+  text-align: center;
+}
+.boot-mark {
+  margin: 0;
+  font: 700 clamp(44px, 9vw, 92px)/1 'B612', sans-serif;
+  letter-spacing: .14em;
+  text-indent: .14em;   /* letter-spacing pads the right only; pull the block back to centre */
+  color: var(--hud);
+  filter: var(--glow);
+}
+.boot-sub {
+  margin: 14px 0 0;
+  font: 700 13px/1 'B612 Mono', monospace;
+  letter-spacing: .42em;
+  text-indent: .42em;
+  color: var(--ice);
+  opacity: .72;
+}
+.boot-bar {
+  height: 3px;
+  margin: 22px auto 0;
+  background: rgba(140, 255, 193, .16);
+  overflow: hidden;
+}
+.boot-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--hud);
+  box-shadow: 0 0 8px var(--hud);
+  animation: boot-fill 6.2s linear forwards;
+}
+@keyframes boot-fill { to { width: 100%; } }
+.boot-ver {
+  margin: 12px 0 0;
+  font: 11px/1 'B612 Mono', monospace;
+  letter-spacing: .12em;
+  color: var(--ice);
+  opacity: .4;
+}
+
 #boot-log {
   position: absolute;
   left: 24px;
@@ -362,6 +409,7 @@ a { color: inherit; }
   #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
   .target { transition: none; }
   #boot { transition: none; }
+  .boot-bar i { animation: none; width: 100%; }
   #frame.seam-glow { animation: none; filter: none; }
 }
 

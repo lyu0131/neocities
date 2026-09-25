@@ -1,9 +1,9 @@
 /* cockpit.js: the 360 view engine — cylinder, input, targets, lock-on */
 (function () {
   'use strict';
-  var ARGUS = window.ARGUS;
-  var wrap360 = ARGUS.wrap360, shortestDelta = ARGUS.shortestDelta, clamp = ARGUS.clamp;
-  var state = ARGUS.state;
+  var BUNNYS = window.BUNNYS;
+  var wrap360 = BUNNYS.wrap360, shortestDelta = BUNNYS.shortestDelta, clamp = BUNNYS.clamp;
+  var state = BUNNYS.state;
   var root = document.documentElement;
   var pano = document.getElementById('pano');
   var ring = pano.querySelector('.pano-ring');
@@ -25,19 +25,51 @@
   function bandMidLat(j) { return bandTopLat(j) - BAND_DEG / 2; }
   var tiles = [];
   // Bands run from the zenith to the nadir so the world closes into a real sphere.
-  // The image only covers the middle ones (row >= 0); above and below it the bands are
-  // filled with the strip's own edge colour, which is flat sky and flat sea anyway.
+  // The image only covers the middle ones (row >= 0); paintCap() fills the rest.
   // Flat caps were what made it still read as a ring: a disc does not converge.
   var BANDS = [];
   (function buildBands() {
     var imgTop = HORIZON_Y * DEG_PER_PX, imgBot = (HORIZON_Y - IMG_H) * DEG_PER_PX;
     var nTop = 3, nBot = 4;   // polar bands are flat fill, so they need little subdivision
     var stepTop = (93 - imgTop) / nTop, stepBot = (imgBot + 93) / nBot;
-    for (var k = nTop; k > 0; k--) BANDS.push({ top: imgTop + k * stepTop, bot: imgTop + (k - 1) * stepTop, row: -1 });
-    for (var j = 0; j < LAT_BANDS; j++) BANDS.push({ top: bandTopLat(j), bot: bandTopLat(j + 1), row: j });
-    for (var k = 0; k < nBot; k++) BANDS.push({ top: imgBot - k * stepBot, bot: imgBot - (k + 1) * stepBot, row: -1 });
+    for (var k = nTop; k > 0; k--) BANDS.push({ top: imgTop + k * stepTop, bot: imgTop + (k - 1) * stepTop, row: -1, cap: k - 1 });
+    for (var j = 0; j < LAT_BANDS; j++) BANDS.push({ top: bandTopLat(j), bot: bandTopLat(j + 1), row: j, cap: 0 });
+    for (var k = 0; k < nBot; k++) BANDS.push({ top: imgBot - k * stepBot, bot: imgBot - (k + 1) * stepBot, row: -1, cap: k });
   })();
   var sliceW = 0, R = 0;
+  var OVER = 1.04;   // quads are chords, so overlap slightly or the seams show
+
+  // The strip spans 43.1deg up and 31.9deg down; cap tiles close the sphere past that.
+  // They used to fall through to the CSS background at its natural size, so every cap
+  // band redrew the image's own top-left corner -- concentric rings of city glow
+  // overhead, and sky pixels on the floor. paintCap() paints them instead: one ramp
+  // evaluated at each tile's true top and bottom latitude, so neighbouring bands agree
+  // exactly at the seam and the 4% overlap matches whichever quad wins.
+  var CAP_TOP = HORIZON_Y * DEG_PER_PX, CAP_BOT = (HORIZON_Y - IMG_H) * DEG_PER_PX;
+  // sampled off the rendered strip's first and last row, averaged across all 9600px
+  var SKY_EDGE = [7, 12, 22], ZENITH = [3, 5, 11];
+  var SEA_EDGE = [9, 16, 31], NADIR = [4, 7, 14];
+  var CLOUD_LOW = [86, 63, 52];     // sodium bounce off the city, caught on the underside
+  var CLOUD_HIGH = [84, 96, 115];   // starlight only, up near the zenith
+  // x, y, rx, ry as % of the whole 360deg cap strip, then peak alpha. Masses are defined
+  // in strip space and sliced per tile exactly as the panorama is, so one cloud spans
+  // several quads with no seam through it. x stays clear of 0 and 100: background-repeat
+  // puts the neighbouring copy there, so a mass crossing the edge is cut, not wrapped.
+  var CLOUDS = [[11, 50, 10, 40, .30], [24, 42, 6, 34, .20], [37, 56, 10, 42, .34],
+                [50, 46, 7, 36, .24], [63, 54, 11, 44, .31], [77, 44, 6, 32, .19],
+                [90, 52, 9, 40, .26]];
+  function capT(lat) {   // 0 at the strip's edge, 1 at the pole
+    var t = lat >= 0 ? (lat - CAP_TOP) / (90 - CAP_TOP) : (CAP_BOT - lat) / (90 + CAP_BOT);
+    return Math.max(0, Math.min(1, t));
+  }
+  function lerpRGB(a, b, t) {
+    return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t),
+            Math.round(a[2] + (b[2] - a[2]) * t)];
+  }
+  function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+  function capRGB(lat) {
+    return lat >= 0 ? lerpRGB(SKY_EDGE, ZENITH, capT(lat)) : lerpRGB(SEA_EDGE, NADIR, capT(lat));
+  }
 
   // .pano-ring sits at z~0 (its children are pushed back via translateZ), so its own flat
   // box is nearer the camera than everything inside it and swallows hover/click before they
@@ -45,8 +77,9 @@
   // (and slices, which inherit) need pointer-events:none.
   ring.style.pointerEvents = 'none';
 
-  var SNAP_DEG = 9;          // magnetism reaches this far from a contact
-  var SNAP_STRENGTH = 0.32;  // fraction of the remaining gap taken per second
+  var SNAP_DEG = 14;         // magnetism reaches this far from a contact
+  var SNAP_STRENGTH = 0.85;  // fraction of the remaining gap taken per pull step
+  var SNAP_CLICK = 1.2;      // inside this, close the gap outright so the aim clicks on
   var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
@@ -90,7 +123,6 @@
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
-    var OVER = 1.04;               // quads are chords, so overlap slightly or seams show
     var imgH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
 
     tiles.forEach(function (t) {
@@ -110,18 +142,65 @@
       t.el.style.height = (tileH * OVER) + 'px';
       t.el.style.marginLeft = (-w * over / 2) + 'px';
       t.el.style.marginTop = (-tileH * OVER / 2) + 'px';
+      var xOff = -(t.i * w) - w * (over - 1) / 2;
       if (t.band.row >= 0) {
         t.el.style.backgroundSize = (w * SLICES) + 'px ' + (imgH * LAT_BANDS) + 'px';
-        t.el.style.backgroundPosition = (-(t.i * w) - w * (over - 1) / 2) + 'px '
+        t.el.style.backgroundPosition = xOff + 'px '
                                       + (-(t.band.row * imgH) - imgH * (OVER - 1) / 2) + 'px';
+      } else {
+        paintCap(t, w, xOff);
       }
       t.el.style.transform = 'rotateY(' + (-t.i * SLICE_DEG) + 'deg) rotateX('
                            + (-t.lat) + 'deg) translateZ(' + (-R) + 'px)';
     });
 
+    placeTargets(state.yaw, state.pitch);
+  }
+
+  // Cap tiles carry no image: a latitude ramp continuing the strip's own edge colour and,
+  // overhead, cloud masses laid out across the full 360deg and sliced per tile.
+  function paintCap(t, w, xOff) {
+    var half = t.h * OVER / 2;
+    var img = [], size = [], pos = [];
+    if (t.band.top > 0) {
+      var stripW = w * SLICES;
+      var tint = lerpRGB(CLOUD_LOW, CLOUD_HIGH, capT(t.lat)), fade = 1 - capT(t.lat);
+      // de-phase each band so the stacked cap rings never line up into a bullseye
+      var at = (xOff - t.band.cap * stripW * 0.31).toFixed(1) + 'px 0';
+      CLOUDS.forEach(function (c) {
+        img.push('radial-gradient(ellipse ' + c[2] + '% ' + c[3] + '% at ' + c[0] + '% ' + c[1] + '%, '
+               + rgba(tint, (c[4] * fade).toFixed(3)) + ', ' + rgba(tint, 0) + ')');
+        size.push(stripW.toFixed(1) + 'px 100%');
+        pos.push(at);
+      });
+    }
+    img.push('linear-gradient(' + rgba(capRGB(t.lat + half), 1) + ',' + rgba(capRGB(t.lat - half), 1) + ')');
+    size.push('100% 100%'); pos.push('0 0');
+    t.el.style.backgroundImage = img.join(',');
+    t.el.style.backgroundSize = size.join(',');
+    t.el.style.backgroundPosition = pos.join(',');
+  }
+
+  // Targets are billboards: they sit at their true bearing but always face the camera.
+  // Tangent to the sphere they turned away the moment you were not dead on them, and the
+  // ring's own rotateX(pitch) tipped them further, so a contact you were looking straight
+  // at still pointed off somewhere else. Undoing the ring's rotation AFTER the translate
+  // leaves the box square to the screen while the translate still fixes where it sits.
+  // A billboard is square to the screen, so its far end swings back toward the sphere by
+  // half its width times the sine of the off-axis angle -- and the readout label under the
+  // box is about 240px wide. At the old 40px standoff that end punched through the
+  // panorama and the scene painted over it, cutting the readout off on a diagonal. Stand
+  // each contact far enough forward to clear the surface, then scale it back down so the
+  // boxes still read the size the 40px standoff gave them.
+  var STANDOFF = 150;
+  function placeTargets(yaw, pitch) {
+    var off = Math.min(STANDOFF, R * 0.22);   // a short window shrinks R; never crowd the camera
+    var k = (R - off) / (R - 40);
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
-      t.style.transform = 'rotateY(' + (HALF_SLICE - dy) + 'deg) translateZ(' + (-R + 40) + 'px)';
+      t.style.transform = 'rotateY(' + (HALF_SLICE - dy).toFixed(2) + 'deg) translateZ('
+                        + (-R + off).toFixed(1) + 'px) rotateY(' + (dy - yaw).toFixed(2)
+                        + 'deg) rotateX(' + (-pitch).toFixed(2) + 'deg) scale(' + k.toFixed(4) + ')';
     });
   }
   layout();
@@ -136,6 +215,7 @@
       t += ' scale(' + (1 + p * 0.5).toFixed(3) + ')'; // boot.js owns filter on .pano-ring; we only scale
     }
     ring.style.transform = t;
+    placeTargets(yaw, pitch);
   }
 
   var lastEmit = null;
@@ -144,14 +224,14 @@
     root.style.setProperty('--pitch', pitch.toFixed(2) + 'deg');
     if (!lastEmit || Math.abs(lastEmit.yaw - yaw) > 0.01 || Math.abs(lastEmit.pitch - pitch) > 0.01) {
       lastEmit = { yaw: yaw, pitch: pitch };
-      ARGUS.emit('view', { yaw: yaw, pitch: pitch, vx: vx || 0, vy: vy || 0 });
+      BUNNYS.emit('view', { yaw: yaw, pitch: pitch, vx: vx || 0, vy: vy || 0 });
     }
   }
 
-  // -- lock-on: a single event-driven source of truth so boot.js's own argus:lock
+  // -- lock-on: a single event-driven source of truth so boot.js's own bunnys:lock
   // (the MISSIONS lock ping) drives the same bracket close-in as hover/focus does --
   var lockedId = null, hoverTarget = null, focusTarget = null, desiredLock = null;
-  ARGUS.on('lock', function (d) {
+  BUNNYS.on('lock', function (d) {
     if (lockedId && lockedId !== d.id) {
       var prev = document.getElementById(lockedId);
       if (prev) prev.classList.remove('is-locked');
@@ -184,8 +264,8 @@
     var t = focusTarget || hoverTarget || boreTarget, id = t ? t.id : null;
     if (id === desiredLock) return;
     desiredLock = id;
-    if (t) ARGUS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '', brief: t.dataset.brief || '', href: t.dataset.href || '' });
-    else ARGUS.emit('lock', { id: null, label: null, readout: null, info: '', brief: '', href: '' });
+    if (t) BUNNYS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '', brief: t.dataset.brief || '', href: t.dataset.href || '' });
+    else BUNNYS.emit('lock', { id: null, label: null, readout: null, info: '', brief: '', href: '' });
   }
 
   var firing = false, fireStart = 0;
@@ -194,8 +274,8 @@
     var href = t.dataset.href;
     if (!href) return; // t-unknown locks but never fires
     markInput();
-    ARGUS.emit('fire', { id: t.id, href: href });
-    if (ARGUS.reduce) { location.href = href; return; }
+    BUNNYS.emit('fire', { id: t.id, href: href });
+    if (BUNNYS.reduce) { location.href = href; return; }
     firing = true; fireStart = performance.now();
     setTimeout(function () { location.href = href; }, 280);
   }
@@ -208,7 +288,7 @@
 
   // turn to face a target by yaw, in degrees
   function turnTo(yawDeg) { targetYaw = wrap360(yawDeg); markInput(); }
-  ARGUS.on('face', function (d) { turnTo(d.yaw); });
+  BUNNYS.on('face', function (d) { turnTo(d.yaw); });
 
   navLinks.forEach(function (link) {
     link.addEventListener('focus', function () {
@@ -289,7 +369,7 @@
   });
 
   // phone tilt: ask permission once, then map gamma/beta relative to the enable point
-  if (!ARGUS.fine && typeof DeviceOrientationEvent !== 'undefined') {
+  if (!BUNNYS.fine && typeof DeviceOrientationEvent !== 'undefined') {
     tiltBtn.hidden = false;
     var tiltBase = null, tiltBaseYaw = 0;
     tiltBtn.addEventListener('click', function () {
@@ -323,7 +403,7 @@
     });
   });
 
-  ARGUS.on('boot-done', function () {
+  BUNNYS.on('boot-done', function () {
     if (hadInput) return;
     targetYaw = state.yaw;
     targetPitch = state.pitch;
@@ -374,22 +454,28 @@
     }
 
     // Magnetism: as the view slows near a contact, pull the aim onto it so the reticle
-    // settles on the target instead of just past it. Only while the turn is already
-    // slow, so it assists the last few degrees and never fights a deliberate sweep.
+    // settles on the target instead of just past it. It waits out live input (so a wheel
+    // nudge or a held key is never fought) but engages while a released flick is still
+    // coasting, bleeds that coast off, and closes the last degree outright -- asymptoting
+    // in from a weaker pull read as drifting rather than snapping.
     if (!firing) {
       var near = null, nearOff = SNAP_DEG;
       targets.forEach(function (t) {
         var d = shortestDelta(targetYaw, parseFloat(t.dataset.yaw) || 0);
         if (Math.abs(d) < Math.abs(nearOff)) { nearOff = d; near = t; }
       });
-      if (near && !dragging && Math.abs(velYaw) < 0.9 && !turn) {
+      if (near && !dragging && !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90) {
         var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
         targetYaw = wrap360(targetYaw + nearOff * pull * SNAP_STRENGTH);
-        if (Math.abs(nearOff) < 0.4) targetPitch += (0 - targetPitch) * pull * 0.25;
+        velYaw *= Math.pow(0.55, dt * 60);
+        if (Math.abs(nearOff) < SNAP_CLICK) {
+          targetYaw = wrap360(parseFloat(near.dataset.yaw) || 0);
+          velYaw = 0;
+        }
       }
     }
 
-    var idle = !dragging && !firing && !ARGUS.reduce && (now - lastInputTime > 4000);
+    var idle = !dragging && !firing && !BUNNYS.reduce && (now - lastInputTime > 4000);
     var wantYaw = targetYaw, wantPitch = targetPitch;
     if (idle) { wantYaw = wrap360(wantYaw + 0.6 * Math.sin(now / 2200)); wantPitch = clampPitch(wantPitch + 0.3 * Math.sin(now / 2900 + 1)); }
 

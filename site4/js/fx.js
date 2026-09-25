@@ -1,9 +1,9 @@
 /* fx.js: the canvas#fx bitmap only - rain, a beam flash, scanline flicker, fire cue. */
 (function () {
   'use strict';
-  var ARGUS = window.ARGUS;
+  var BUNNYS = window.BUNNYS;
   var canvas = document.getElementById('fx');
-  if (!ARGUS || !canvas) return;
+  if (!BUNNYS || !canvas) return;
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -28,7 +28,7 @@
 
   // distant beam flash every 6-12s at a random yaw, drawn only when that yaw is on screen
   var lastYaw = 0;
-  ARGUS.on('view', function (detail) { lastYaw = detail.yaw || 0; });
+  BUNNYS.on('view', function (detail) { lastYaw = detail.yaw || 0; });
   var beam = null;
   function scheduleBeam() {
     setTimeout(function () { beam = { yaw: Math.random() * 360, t0: performance.now() }; scheduleBeam(); }, 6000 + Math.random() * 6000);
@@ -36,7 +36,7 @@
 
   // fire cue: a quick flash
   var fireT = -1;
-  ARGUS.on('fire', function () { fireT = performance.now(); });
+  BUNNYS.on('fire', function () { fireT = performance.now(); });
 
   function draw(now) {
     ctx.clearRect(0, 0, w, h);
@@ -91,16 +91,16 @@
   function begin() {
     if (started) return;
     started = true;
-    if (ARGUS.reduce) { draw(performance.now()); return; } // one static frame, then stop
+    if (BUNNYS.reduce) { draw(performance.now()); return; } // one static frame, then stop
     scheduleBeam();
     raf = requestAnimationFrame(loop);
   }
   document.addEventListener('visibilitychange', function () {
-    if (!started || ARGUS.reduce) return;
+    if (!started || BUNNYS.reduce) return;
     if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = null; }
     else if (!raf) raf = requestAnimationFrame(loop);
   });
 
-  if (ARGUS.state.booted || !document.getElementById('boot')) begin(); // sub-pages have no boot
-  ARGUS.on('boot-done', begin);
+  if (BUNNYS.state.booted || !document.getElementById('boot')) begin(); // sub-pages have no boot
+  BUNNYS.on('boot-done', begin);
 })();

@@ -13,7 +13,7 @@ const SITE = path.resolve(__dirname, '..');
 const url = p => 'file://' + (process.platform === 'win32' ? '/' : '') + path.join(SITE, p).replace(/\\/g, '/');
 async function launch({ width = 1440, height = 900, reduce = false } = {}) {
   const port = 9300 + Math.floor(Math.random() * 600);
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bunnys-'));
   const proc = spawn(chromePath(), ['--headless=new', '--no-sandbox', '--hide-scrollbars', '--allow-file-access-from-files',
     '--remote-debugging-port=' + port, '--user-data-dir=' + dir, 'about:blank'], { stdio: 'ignore' });
   const sleep = ms => new Promise(r => setTimeout(r, ms));

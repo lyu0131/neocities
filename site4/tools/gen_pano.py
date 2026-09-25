@@ -384,6 +384,11 @@ for _ in range(150):
     x = rnd.uniform(0, W)
     warm = density(x) > .45 and t < .3 and rnd.random() < .4
     gid, op = rnd.randint(0, 5), rnd.uniform(.1, .26) * (1.2 - t * .5)   # pick once: every image must be identical
+    # Thin the glints out before the bottom edge. The floor cap past it is a smooth ramp,
+    # so glints running to the last row left a visible arc where the texture just stopped.
+    op *= max(0., min(1., (H - (y + 70 * s)) / 300.))
+    if op < .02:
+        continue
     for o in images(x, x + 430 * s):
         add('<use href="#g%d" transform="translate(%s %s) scale(%s)" fill="%s" opacity="%s"/>' % (
             gid, f(x + o), f(y), f(s, 2), SOD if warm else GLINT, f(op, 2)))

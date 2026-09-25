@@ -1,4 +1,4 @@
-// Regenerates the SL-01 "ARGUS" art: img/ms/sl01-{front,side,back}.svg and img/ms/decals.svg,
+// Regenerates the SL-01 "BUNNyS" art: img/ms/sl01-{front,side,back}.svg and img/ms/decals.svg,
 // plus check pages in tests/out/ (ms-sheet.html, ms-detail.html). No dependencies.
 // Run: node site4/tools/ms-gen.js   then   node site4/tests/svg.test.js ms
 'use strict';
@@ -194,7 +194,7 @@ function front() {
     edge(bA), ...FP(bA, [bAf]), ln(circ(206, 282, 3) + circ(268, 280, 3)), ac(L([[160, 298], [238, 294]])),
   ];
   o.push(part('binder-r', binder), part('binder-l', binder, MIRROR));
-  return svg('SL-01 ARGUS, front view', o.join(''));
+  return svg('SL-01 BUNNyS, front view', o.join(''));
 }
 
 // ---------- SIDE (faces right; the suit's right side is nearest) ----------
@@ -299,7 +299,7 @@ function side() {
     edge(sA), ...FP(sA, [sAf]), SD(circ(404, 290, 13), 'd'), ln(circ(404, 290, 6) + circ(360, 306, 3) + circ(446, 296, 3)),
     ac(L([[350, 314], [390, 311]])),
   ]));
-  return svg('SL-01 ARGUS, right side view with beam rifle', o.join(''));
+  return svg('SL-01 BUNNyS, right side view with beam rifle', o.join(''));
 }
 
 // ---------- BACK (viewer-left is the suit's left) ----------
@@ -364,7 +364,7 @@ function back() {
     S([[336, 290], [352, 300], [346, 316], [330, 306]], 'v', 1), ac(L([[334, 300], [348, 308]]), 1),
     S([[330, 472], [382, 472], [394, 524], [318, 524]], 'd', 1), ln(hl(328, 386, 490), 1), SD(ell(356, 524, 38, 7), 'v', 1), ac(vvents(338, 510, 522, 5, 9), 1),
   ]));
-  return svg('SL-01 ARGUS, back view', o.join(''));
+  return svg('SL-01 BUNNyS, back view', o.join(''));
 }
 
 // ---------- DECALS (approved; keep byte-identical) ----------

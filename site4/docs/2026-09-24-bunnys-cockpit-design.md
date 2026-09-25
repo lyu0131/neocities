@@ -1,4 +1,4 @@
-# Site4 "ARGUS": design spec
+# Site4 "BUNNyS": design spec
 
 Status: approved in brainstorming on 2026-09-24. The implementation plan is `docs/plan.md`.
 
@@ -11,7 +11,7 @@ A new Neocities site for **Sylas Lyu**, built on a completely new design logic f
 ## 2. Hard constraints
 - **Original IP only:**
   - no "Gundam" wordmark, logos, official mobile-suit designs or names;
-  - the suit is the original **SL-01 "ARGUS"**;
+  - the suit is the original **SL-01 "BUNNyS"**;
   - avoid franchise lore terms like "Minovsky" and "Newtype"; use invented terms such as "particle interference".
 - **Real content only,** from what Sylas provided (section 9). Nothing invented about them: no grades, location or email.
 - **Separate pages:** a hub plus three content pages.
@@ -62,7 +62,7 @@ site4/
   index.html        boot sequence + 360 cockpit hub
   pilot.html        pilot ID: intro + LinkedIn
   missions.html     mission logs: the two research roles
-  hangar.html       SL-01 ARGUS three-view spec sheet (art showcase)
+  hangar.html       SL-01 BUNNyS three-view spec sheet (art showcase)
   css/cockpit.css   tokens, base, frame, HUD, hub, boot, sub-page display
   js/cockpit.js     360 engine: view state, input, cylinder, targets, lock-on
   js/hud.js         HUD rendering: heading tape, pitch ladder, FPM, readouts (hub + sub-pages)
@@ -95,7 +95,7 @@ site4/
   - wheel / trackpad: `deltaX` and `deltaY` both turn yaw;
   - keyboard ← → turn 15°, ↑ ↓ tilt pitch, `Home` faces forward;
   - on phones, an "Enable tilt" button asks for `DeviceOrientationEvent` permission and then maps gamma/beta.
-- **Events:** each frame it dispatches `document` event `argus:view` with `{yaw, pitch}`, only when changed. It also sets CSS custom properties `--yaw` and `--pitch` on `:root`.
+- **Events:** each frame it dispatches `document` event `bunnys:view` with `{yaw, pitch}`, only when changed. It also sets CSS custom properties `--yaw` and `--pitch` on `:root`.
 - **Idle sway:** after 4s without input, ±0.6° yaw / ±0.3° pitch, a slow sine. Off under reduced motion.
 - **Visibility:** the loop pauses when the tab is hidden.
 
@@ -104,7 +104,7 @@ site4/
 |---|---|---|---|---|
 | `t-pilot` | −52° | PILOT | pilot.html | `ID SYLAS LYU / RNG 0.4 KM` |
 | `t-missions` | 0° | MISSIONS | missions.html | `2 ACTIVE / RNG 1.2 KM` |
-| `t-hangar` | +52° | HANGAR | hangar.html | `SL-01 ARGUS / RNG 0.1 KM` |
+| `t-hangar` | +52° | HANGAR | hangar.html | `SL-01 BUNNyS / RNG 0.1 KM` |
 | `t-unknown` | 180° | UNKNOWN | not a link | `UNIDENTIFIED MS / NO IFF`, the easter egg behind you |
 
 - **Appearance:** each target is a target-designator box (four corner brackets) around a small emblem, with its label and range under it.
@@ -131,18 +131,18 @@ site4/
 - **Side bars:**
   - left is "SPD", fed by scroll velocity on sub-pages and drag velocity on the hub;
   - right is "ALT", scroll depth in metres on sub-pages and pitch on the hub.
-- **Status line (bottom centre):** `ARGUS SL-01 / SYS NOMINAL`, which changes to `LOCK: …` during lock-on.
-- **On sub-pages,** the HUD is a reduced set (heading tape, side bars, status line), driven by scroll instead of `argus:view`.
+- **Status line (bottom centre):** `BUNNyS SL-01 / SYS NOMINAL`, which changes to `LOCK: …` during lock-on.
+- **On sub-pages,** the HUD is a reduced set (heading tape, side bars, status line), driven by scroll instead of `bunnys:view`.
 
 ## 6. Boot sequence (`js/boot.js`, index only)
-- **Total:** about 6.2s. Once per session (`sessionStorage` key `argus-booted`). Any key, click or "Skip" jumps to the end state.
+- **Total:** about 6.2s. Once per session (`sessionStorage` key `bunnys-booted`). Any key, click or "Skip" jumps to the end state.
 - **Reduced motion:** skip straight to the end state with no flashes.
-- **Events:** at the end it dispatches `argus:boot-done`. `cockpit.js` holds input until then, and `fx.js` starts after it.
+- **Events:** at the end it dispatches `bunnys:boot-done`. `cockpit.js` holds input until then, and `fx.js` starts after it.
 
 | t (ms) | beat |
 |---|---|
 | 0 | Black. A 1px green cursor blinks at the lower left. |
-| 300–1900 | A boot log types out in B612 Mono, one line every ~180ms: `ARGUS SL-01 // COLD START`, `LINEAR SEAT ........ LOCKED`, `REACTOR ............ 12% ▲`, `PARTICLE INTERFERENCE ... 0.2%`, `ALL-AROUND MONITOR .. INIT`, `PILOT BIOMETRIC ..... MATCH`, `CALLSIGN ............ SYLAS LYU`. The reactor percentage counts up in place to 100%. |
+| 300–1900 | A boot log types out in B612 Mono, one line every ~180ms: `BUNNyS SL-01 // COLD START`, `LINEAR SEAT ........ LOCKED`, `REACTOR ............ 12% ▲`, `PARTICLE INTERFERENCE ... 0.2%`, `ALL-AROUND MONITOR .. INIT`, `PILOT BIOMETRIC ..... MATCH`, `CALLSIGN ............ SYLAS LYU`. The reactor percentage counts up in place to 100%. |
 | 1900–3100 | The **monitor panels flicker on** one by one (24 slices light in a scattered order), each with a quick white-to-scene stutter. The frame seams glow green then settle. |
 | 3100–4300 | **360 whip:** yaw spins 360° with ease-in-out and a horizontal motion-blur filter on the ring (blur peaks mid-spin), landing at yaw 0. |
 | 4300–5400 | **HUD draw-in:** the tapes, ladder and boresight draw their strokes in (dashoffset), the side bars fill, and the reticle drops from 3× scale to 1× with a snap. |
@@ -199,7 +199,7 @@ Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
 ## 10. Verification (definition of done)
 - **Screenshots:** headless Chrome/Edge screenshots of every page at the section 2 test widths, with no horizontal overflow and no console errors.
 - **Scripted interactions** (CDP, like the scratchpad `interact.js` / `cover-test.js`):
-  - boot completes and fires `argus:boot-done`, and skip works;
+  - boot completes and fires `bunnys:boot-done`, and skip works;
   - drag changes yaw and the heading tape follows;
   - arrow keys turn;
   - Tab focus turns to face each target, and Enter navigates;

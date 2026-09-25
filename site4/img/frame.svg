@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMax slice">
-<title>ARGUS cockpit frame</title>
+<title>BUNNyS cockpit frame</title>
 <defs>
 <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
 <stop offset="0" stop-color="#060A12" stop-opacity=".38"/>
@@ -94,24 +94,25 @@
   <path d="M288,985 L400,989 L700,991 L960,993 L1220,991 L1520,989 L1632,985"/>
 </g>
 
+<!-- fuel gauge: one centred horizontal instrument, seated below the bottom-centre
+     status text (ends ~y1034) and clear of the lip (y993 at x960). Bracket ends
+     at x868/x1052 and every mark are symmetric about x=960. -->
 <g id="console-readouts">
-  <g fill="none" stroke="#DDE7EE" stroke-width="1" stroke-opacity=".7">
-    <rect x="754" y="993" width="14" height="40" rx="1.5"/>
-    <rect x="1152" y="993" width="14" height="40" rx="1.5"/>
+  <g fill="none" stroke="#DDE7EE" stroke-width="1" stroke-opacity=".7" stroke-linecap="square">
+    <path d="M868,1043 L868,1061 M868,1043 L874,1043 M868,1061 L874,1061"/>
+    <path d="M1052,1043 L1052,1061 M1052,1043 L1046,1043 M1052,1061 L1046,1061"/>
   </g>
-  <g fill="#DDE7EE" fill-opacity=".2" stroke="none">
-    <rect x="757" y="999" width="8" height="17"/>
-    <rect x="1155" y="999" width="8" height="17"/>
+  <rect x="880" y="1046" width="160" height="12" rx="1.5" fill="#DDE7EE" fill-opacity=".12" stroke="#DDE7EE" stroke-width="1" stroke-opacity=".5"/>
+  <rect x="880" y="1046" width="112" height="12" fill="#8CFFC1" fill-opacity=".5"/>
+  <g stroke="#DDE7EE" stroke-width="1" stroke-opacity=".3">
+    <line x1="900" y1="1046" x2="900" y2="1058"/>
+    <line x1="920" y1="1046" x2="920" y2="1058"/>
+    <line x1="940" y1="1046" x2="940" y2="1058"/>
+    <line x1="980" y1="1046" x2="980" y2="1058"/>
+    <line x1="1000" y1="1046" x2="1000" y2="1058"/>
+    <line x1="1020" y1="1046" x2="1020" y2="1058"/>
   </g>
-  <g fill="#8CFFC1" fill-opacity=".55" stroke="none">
-    <rect x="757" y="1020" width="8" height="10"/>
-    <rect x="1155" y="1020" width="8" height="10"/>
-  </g>
-  <g fill="#8CFFC1" fill-opacity=".7" stroke="none">
-    <circle cx="944" cy="1038" r="2.5"/>
-    <circle cx="960" cy="1038" r="2.5"/>
-    <circle cx="976" cy="1038" r="2.5"/>
-  </g>
+  <line x1="960" y1="1046" x2="960" y2="1058" stroke="#8CFFC1" stroke-width="1" stroke-opacity=".6"/>
 </g>
 
 <g id="caution" fill="none" stroke="#FFB02E" stroke-width="1.5" stroke-linecap="square">
