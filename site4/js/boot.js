@@ -75,7 +75,11 @@
     cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
     overlay.appendChild(cursor);
 
-    // t=180-1000: boot log, one line every 55ms; the reactor % counts up in place
+    // Boot log, paced across most of the sequence. It used to fire every 55ms, which
+    // put all 16 lines up between t=180 and t=1005 and then left the log frozen for the
+    // remaining 2.4s -- it blipped in rather than flowing. One line every ~185ms runs the
+    // roll from t=200 to t=2975, so text is still arriving while the panels flicker and
+    // the view whips round.
     var LOG = [
       'BUNNyS OS 2.6.1 // SYSTEM BOOT',
       'CORE BLOCK ........... LOCKED',
@@ -95,16 +99,16 @@
       'DEPLOYMENT READY'
     ];
     LOG.forEach(function (line, i) {
-      at(180 + i * 55, function () {
+      at(200 + i * 185, function () {
         var idx = lines.length;
         lines.push(line.indexOf('{P}') > -1 ? line.replace('{P}', '12') : line);
         render();
-        if (line.indexOf('{P}') > -1) countReactor(idx, line, 180 + i * 55);
+        if (line.indexOf('{P}') > -1) countReactor(idx, line);
       });
     });
-    function countReactor(idx, template, startAt) {
+    function countReactor(idx, template) {
       var t0 = performance.now();
-      var dur = Math.max(1050 - startAt, 200);
+      var dur = 1200;   // its own window now that the roll is spread out
       (function step() {
         if (done) return;
         var p = Math.min(1, (performance.now() - t0) / dur);
