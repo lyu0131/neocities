@@ -644,23 +644,56 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 #hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
 
 /* ---------- slew panel: rotate the view onto a contact, bottom-left instrument column ---------- */
+/* Matches the SVG instrument housings it now sits under: the same dark backing, corner
+   registration brackets, a rule under the header and a stencilled part number. It is HTML
+   rather than SVG because its children are real buttons, so the brackets are drawn as
+   background gradients instead of stroked lines. */
 .slew {
   position: fixed;
-  left: 22px;
+  right: 22px;
   bottom: 26px;
   top: auto;
-  right: auto;
+  left: auto;
   transform: none;
-  width: 204px;
+  width: 194px;
   z-index: var(--z-nav);
-  background: linear-gradient(var(--housing-lip), var(--housing) 2px);
-  border: 1px solid var(--edge);
-  padding: 10px 10px 12px;
+  background: rgba(6, 10, 18, .88);
+  border: none;
+  padding: 16px 18px 20px;
   color: var(--ice);
   font: 700 11px/1 'B612 Mono', monospace;
   letter-spacing: .12em;
 }
-.slew-head { margin: 0 0 8px; opacity: .8; }
+/* four corner brackets, 10px arms, same geometry as corners() draws in the SVG panels */
+.slew::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --b: linear-gradient(var(--hud), var(--hud));
+  background:
+    var(--b) top left / 10px 1px no-repeat,     var(--b) top left / 1px 10px no-repeat,
+    var(--b) top right / 10px 1px no-repeat,    var(--b) top right / 1px 10px no-repeat,
+    var(--b) bottom left / 10px 1px no-repeat,  var(--b) bottom left / 1px 10px no-repeat,
+    var(--b) bottom right / 10px 1px no-repeat, var(--b) bottom right / 1px 10px no-repeat;
+}
+.slew::after {
+  content: 'SL-01 · BNS-NAV-118A';
+  position: absolute;
+  right: 18px; bottom: 6px;
+  font: 400 7px/1 'B612 Mono', monospace;
+  letter-spacing: .08em;
+  color: var(--ice);
+  opacity: .55;
+}
+.slew-head {
+  margin: 0 0 9px;
+  padding-bottom: 6px;
+  color: var(--lock);
+  font-size: 10px;
+  letter-spacing: .18em;
+  border-bottom: 1px solid rgba(140, 255, 193, .45);
+}
 .slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .slew button {
   display: block;

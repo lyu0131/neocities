@@ -277,7 +277,7 @@
   // instead of each hardcoding its own copy, so the two can't drift out of sync
   // rowH 17, not 20: shrinks the housing 324 -> 300 so it clears the slew panel now
   // parked under it in the left column (see place()).
-  var G_PAD = 12, rowH = 17, barX = 46, barW = 72, sparkY = 0, gaugeH = 0;
+  var G_PAD = 12, rowH = 17, barX = 46, barW = 72, sparkY = 0, gaugeH = 0, gaugeW = 0;
   function buildGauges() {
     var pctX = barX + barW + 10, pctW = 52; // wide enough for "STANDBY", not just "100%"
     var contentW = pctX + pctW; // widest row (label..bar..readout) sets the panel width
@@ -296,7 +296,7 @@
 
     // housing first, sized from the content above rather than a fixed guess
     var bx = -G_PAD, by = -G_PAD, bw = contentW + G_PAD * 2, bh = contentBottom + G_PAD * 2;
-    gaugeH = bh;
+    gaugeH = bh; gaugeW = bw;
     gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.85)' }));
     gaugeBox.appendChild(corners(bx, by, bw, bh));
     var hdr = el('text', { x: 0, y: headerY });
@@ -376,6 +376,10 @@
   // w/h/frame count off the data at runtime: the source mesh has already been
   // re-scaled once and will be again. Degrades to nothing if the data never loaded.
   var DMG_W = 194, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
+  // Text needs a bigger inset than the art does: the corner brackets occupy the first and
+  // last 10px of each edge, so header and stencil set at DMG_PAD sat exactly flush against
+  // them and read as touching the box.
+  var DMG_TEXT_PAD = 18;
   var dmgBox, dmgBg, dmgCorners, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
   // idle | ease (spinning to front-on the short way round) | hold (fronted, flashing)
@@ -390,11 +394,11 @@
     dmgBox.appendChild(dmgBg);
     dmgCorners = corners(0, 0, DMG_W, 10);
     dmgBox.appendChild(dmgCorners);
-    var hdr = el('text', { x: DMG_PAD, y: headerY });
+    var hdr = el('text', { x: DMG_TEXT_PAD, y: headerY });
     hdr.textContent = 'DIAGNOSTIC MODE';
     dmgBox.appendChild(hdr);
-    dmgBox.appendChild(el('line', { x1: DMG_PAD, y1: ruleY, x2: DMG_W - DMG_PAD, y2: ruleY, opacity: .55 }));
-    tickScale(dmgBox, DMG_PAD, DMG_W - DMG_PAD, ruleY, 12);
+    dmgBox.appendChild(el('line', { x1: DMG_TEXT_PAD, y1: ruleY, x2: DMG_W - DMG_TEXT_PAD, y2: ruleY, opacity: .55 }));
+    tickScale(dmgBox, DMG_TEXT_PAD, DMG_W - DMG_TEXT_PAD, ruleY, 12);
     // the scaled artwork: 8 zone paths, built once and never recreated -- drawDamage
     // only rewrites their `d` and re-appends them in the current frame's paint order
     dmgArt = el('g', { class: 'dmg-art' });
@@ -409,7 +413,7 @@
       dmgZones[z.id] = { path: p, state: 'nominal', since: 0 };
     });
     dmgStep = 360 / D.frames.length;
-    dmgStencil = stencil(dmgBox, DMG_W - DMG_PAD, 0, 'end', UNIT_SERIAL + ' · BNS-DMG-220C');
+    dmgStencil = stencil(dmgBox, DMG_W - DMG_TEXT_PAD, 0, 'end', UNIT_SERIAL + ' · BNS-DMG-220C');
     svg.appendChild(dmgBox);
     setFrame(0);
   }
@@ -420,7 +424,7 @@
   // *bottom* of that range (flush above COMBAT SYSTEM) so anything the shrink frees up
   // opens as blank scene above the map, under the tape, rather than as a gap between
   // the two panels.
-  function layoutDamage(top, bottom, room) {
+  function layoutDamage(x, top, bottom, room) {
     var D = window.BUNNYS_DMG;
     if (!D || !dmgBox) return;
     var avail = bottom - top;
@@ -437,7 +441,7 @@
     var scale = Math.min(side / D.w, side / D.h);
     var artW = D.w * scale, artH = D.h * scale;
     var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
-    xf(dmgBox, 22, bottom - h);                  // anchored to the bottom, flush above
+    xf(dmgBox, x, bottom - h);                   // anchored to the bottom, flush above
     dmgBg.setAttribute('height', h);             // COMBAT SYSTEM
     updateCorners(dmgCorners, 0, 0, DMG_W, h);
     dmgStencil.setAttribute('y', h - 6);
@@ -952,29 +956,27 @@
       // a fixed margin
       var tapeBottom = Math.max(40, H * 0.055) + 42;
 
-      // -- left column, top to bottom: damage map, COMBAT SYSTEM, SLEW TO --
-      // SLEW TO is now a fixed-position CSS panel in the bottom-left corner (see
-      // cockpit.css .slew); COMBAT SYSTEM sits just above it, and the damage map
-      // takes whatever is left above that.
+      // -- RIGHT column, top to bottom: damage map, COMBAT SYSTEM, SLEW TO --
+      // SLEW TO is a fixed-position CSS panel pinned bottom-right (see cockpit.css
+      // .slew); COMBAT SYSTEM sits just above it, and the damage map takes whatever
+      // is left above that.
       gaugeBox.setAttribute('opacity', room ? 1 : 0);
       var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
       var slewVisible = !!(slewR && slewR.height);
       // the slew panel's own media query hides it below 860px wide / 520px tall, and
       // a hidden element's rect is all zeros -- fall back to a fixed foot margin
       var combatBottom = slewVisible ? (slewR.top - 14) : (H - 26);
-      xf(gaugeBox, 34, combatBottom - (gaugeH - G_PAD));
+      xf(gaugeBox, W - 22 - gaugeW + G_PAD, combatBottom - (gaugeH - G_PAD));
       var combatTop = combatBottom - gaugeH;
       var mapTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
-      layoutDamage(mapTop, combatTop - 14, room);
+      layoutDamage(W - 22 - DMG_W, mapTop, combatTop - 14, room);
 
-      // -- right column, top to bottom: UNIT DATA, ARMAMENT, radar --
-      // the radar pins to the bottom-right corner, lifted clear of #tilt (right:16/
-      // bottom:16) when that button is showing on a touch device
+      // -- LEFT column, top to bottom: UNIT DATA, ARMAMENT, radar --
+      // the radar pins to the bottom-LEFT corner now; #tilt lives bottom-right so the
+      // lift that used to clear it is no longer needed there
       radar.setAttribute('opacity', room ? 1 : 0);
-      var tiltEl = document.getElementById('tilt');
-      var radarLift = tiltEl && !tiltEl.hidden ? 56 : 0;
-      var radarColX = W - 22 - RAD - PAD;
-      var radarTy = H - RAD - PAD - 26 - radarLift;
+      var radarColX = 22 + RAD + PAD;
+      var radarTy = H - RAD - PAD - 26;
       xf(radar, radarColX, radarTy);
       var radarTop = radarTy - RAD - PAD - HEAD;
 
@@ -989,8 +991,8 @@
       xf(dossier, cx, dosY);
 
       // The hostile set fills the whole frame, so it has to be placed round the two things
-      // already living in the right column: UNIT DATA sits under the heading tape, ARMAMENT
-      // under that, and the radar now pinned bottom-right sits under both of them. If either
+      // already living in the LEFT column: UNIT DATA sits under the heading tape, ARMAMENT
+      // under that, and the radar pinned bottom-left sits under both of them. If either
       // will not fit, the set stands down and the plain dossier card covers the contact instead.
       var specY = Math.max(96, H * 0.115, tapeBottom + 10);
       var armsY = specY + hx.spec.h + 16;
@@ -1003,11 +1005,11 @@
       var logY = idBottom + HX_LOG_GAP;
       hxLogBottom = logY + hxLogH;
       hxRoom = room && W > 1100
-            && hxArmsBottom + 14 <= radarTop     // clear of the radar, now bottom-right
+            && hxArmsBottom + 14 <= radarTop     // clear of the radar, now bottom-left
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, idY);
-      xf(hx.spec, W - 26 - hx.spec.w, specY);
-      xf(hx.arms, W - 26 - hx.arms.w, armsY);
+      xf(hx.spec, 26, specY);
+      xf(hx.arms, 26, armsY);
       xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
       xf(hx.left, cx - 92, cy - 17);
       xf(hx.right, cx + 92, cy - 17);
