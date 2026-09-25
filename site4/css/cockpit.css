@@ -227,8 +227,10 @@ a { color: inherit; }
 #hud .warn text, #hud .is-locked text, #hud .blip.is-locked text { fill: currentColor; }
 #hud .warn, #hud .is-locked { filter: var(--glow); }
 
-/* HUD draw-in during boot: strokes draw in, the reticle drops from 3x with a snap */
-#hud.hud-draw :is(path, line, polyline, circle, rect) {
+/* HUD draw-in during boot: strokes draw in, the reticle drops from 3x with a snap.
+   :not(.dmg-zone) excludes the damage map's 8 zone paths -- they redraw their `d`
+   every rotation frame, and dash-in would thrash on top of that churn. */
+#hud.hud-draw :is(path, line, polyline, circle, rect):not(.dmg-zone) {
   stroke-dasharray: 260;
   animation: hud-stroke-in 1.1s ease-out 1 both;
 }
@@ -468,9 +470,17 @@ a { color: inherit; }
 @keyframes hx-alarm-box  { 50% { fill: var(--lock); } }
 @keyframes hx-alarm-ink  { 50% { fill: var(--night); } }
 @keyframes hx-alarm-edge { 50% { stroke: var(--night); } }
+
+/* damage map: zones sit at a permanent state colour (set below) and amber/red ones
+   flash to it from a dim "off" tone -- steps(1, end), same hard square-wave as the
+   hostile alarm above, not steps(2) which blends a half-colour into a soft pulse. */
+#hud .dmg-zone.is-caution { fill: var(--amber); animation: dmg-zone-flash .8s steps(1, end) infinite; }
+#hud .dmg-zone.is-hit { fill: var(--lock); animation: dmg-zone-flash .8s steps(1, end) infinite; }
+@keyframes dmg-zone-flash { 50% { fill: rgba(140, 255, 193, .16); } }
 @media (prefers-reduced-motion: reduce) {
   #hud .warn.is-blinking { animation: none; opacity: 1; }
   #hud .hx-alarm rect, #hud .hx-alarm text, #hud .hx-alarm line { animation: none; }
+  #hud .dmg-zone.is-caution, #hud .dmg-zone.is-hit { animation: none; }
 }
 
 #hud .dossier text { font-size: 14px; }
@@ -633,12 +643,15 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 #hud .dossier .dos-title { font-size: 22px; letter-spacing: .1em; }
 #hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
 
-/* ---------- slew panel: rotate the view onto a contact, beside the ALT bar ---------- */
+/* ---------- slew panel: rotate the view onto a contact, bottom-left instrument column ---------- */
 .slew {
   position: fixed;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 22px;
+  bottom: 26px;
+  top: auto;
+  right: auto;
+  transform: none;
+  width: 204px;
   z-index: var(--z-nav);
   background: linear-gradient(var(--housing-lip), var(--housing) 2px);
   border: 1px solid var(--edge);
@@ -648,12 +661,14 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   letter-spacing: .12em;
 }
 .slew-head { margin: 0 0 8px; opacity: .8; }
-.slew ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .slew button {
   display: block;
   width: 100%;
-  min-height: 34px;
-  padding: 9px 12px;
+  /* the WCAG 2.5.8 floor, not the real height: at this padding the button's own
+     content sets it taller (~31px) than this minimum ever has to act on */
+  min-height: 24px;
+  padding: 6px 8px;
   font: inherit;
   text-align: left;
   color: var(--hud);

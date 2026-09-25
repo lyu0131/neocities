@@ -275,7 +275,9 @@
   var sparkPts = [], spark = null, lamps = [];
   // panel metrics: buildGauges (layout) and drawGauges (per-frame values) share these
   // instead of each hardcoding its own copy, so the two can't drift out of sync
-  var G_PAD = 12, rowH = 20, barX = 46, barW = 72, sparkY = 0, gaugeH = 0;
+  // rowH 17, not 20: shrinks the housing 324 -> 300 so it clears the slew panel now
+  // parked under it in the left column (see place()).
+  var G_PAD = 12, rowH = 17, barX = 46, barW = 72, sparkY = 0, gaugeH = 0;
   function buildGauges() {
     var pctX = barX + barW + 10, pctW = 52; // wide enough for "STANDBY", not just "100%"
     var contentW = pctX + pctW; // widest row (label..bar..readout) sets the panel width
@@ -365,6 +367,117 @@
       var on = Math.sin(now / (1700 + i * 600) + i * 2) > -0.75;
       pip.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.18)');
     });
+  }
+
+  // ---------------------------------------------------------------- damage map
+  // A rotating diagram of the suit, baked into js/dmgmap.js by tools/gen_dmgmap.py as
+  // 24 frames (one per 15 degrees) of 8 zone paths plus a per-frame paint order (zones
+  // overlap in projection -- without reordering an arm paints over the torso). Read
+  // w/h/frame count off the data at runtime: the source mesh has already been
+  // re-scaled once and will be again. Degrades to nothing if the data never loaded.
+  var DMG_W = 194, DMG_PAD = 10, DMG_MIN_H = 110;
+  var dmgBox, dmgBg, dmgCorners, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
+  var dmgPaths = [], dmgZones = null, dmgStep = 15;
+  // idle | ease (spinning to front-on the short way round) | hold (fronted, flashing)
+  var dmgState = 'idle', dmgPhase = 0, dmgHoldUntil = 0, dmgLastIdx = -1;
+  function buildDamage() {
+    var D = window.BUNNYS_DMG;
+    if (!D) return; // no data baked -- panel simply never exists
+    var headerY = 9, ruleY = headerY + 9;
+    dmgArtTop = ruleY + 9;
+    dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
+    dmgBg = el('rect', { x: 0, y: 0, width: DMG_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.85)' });
+    dmgBox.appendChild(dmgBg);
+    dmgCorners = corners(0, 0, DMG_W, 10);
+    dmgBox.appendChild(dmgCorners);
+    var hdr = el('text', { x: DMG_PAD, y: headerY });
+    hdr.textContent = 'DIAGNOSTIC MODE';
+    dmgBox.appendChild(hdr);
+    dmgBox.appendChild(el('line', { x1: DMG_PAD, y1: ruleY, x2: DMG_W - DMG_PAD, y2: ruleY, opacity: .55 }));
+    tickScale(dmgBox, DMG_PAD, DMG_W - DMG_PAD, ruleY, 12);
+    // the scaled artwork: 8 zone paths, built once and never recreated -- drawDamage
+    // only rewrites their `d` and re-appends them in the current frame's paint order
+    dmgArt = el('g', { class: 'dmg-art' });
+    dmgBox.appendChild(dmgArt);
+    dmgZones = {};
+    D.zones.forEach(function (z) {
+      // explicit fill attribute, not just a class: #hud path:not([fill]) forces
+      // fill:none on anything that doesn't carry one, which would blank every zone
+      var p = el('path', { class: 'dmg-zone', fill: 'rgba(140,255,193,.16)' });
+      dmgArt.appendChild(p);
+      dmgPaths.push(p);
+      dmgZones[z.id] = { path: p, state: 'nominal', since: 0 };
+    });
+    dmgStep = 360 / D.frames.length;
+    dmgStencil = stencil(dmgBox, DMG_W - DMG_PAD, 0, 'end', UNIT_SERIAL + ' · BNS-DMG-220C');
+    svg.appendChild(dmgBox);
+    setFrame(0);
+  }
+  // sizes and positions the housing for the vertical space place() hands it, or
+  // stands it down cleanly (opacity 0, rotation paused) when that space is too tight
+  function layoutDamage(top, bottom, room) {
+    var D = window.BUNNYS_DMG;
+    if (!D || !dmgBox) return;
+    var h = bottom - top;
+    dmgOn = !!room && h >= DMG_MIN_H;
+    dmgBox.setAttribute('opacity', dmgOn ? 1 : 0);
+    if (!dmgOn) return;
+    xf(dmgBox, 22, top);
+    dmgBg.setAttribute('height', h);
+    updateCorners(dmgCorners, 0, 0, DMG_W, h);
+    dmgStencil.setAttribute('y', h - 6);
+    var artW = DMG_W - DMG_PAD * 2, artH = Math.max(1, h - dmgArtTop - DMG_PAD);
+    var scale = Math.min(artW / D.w, artH / D.h);
+    var tx = DMG_PAD + (artW - D.w * scale) / 2, ty = dmgArtTop + (artH - D.h * scale) / 2;
+    xf(dmgArt, tx, ty, ' scale(' + scale.toFixed(4) + ')');
+  }
+  function setFrame(idx) {
+    var D = window.BUNNYS_DMG;
+    if (!D || idx === dmgLastIdx) return;
+    dmgLastIdx = idx;
+    var f = D.frames[idx];
+    for (var i = 0; i < dmgPaths.length; i++) dmgPaths[i].setAttribute('d', f.d[i]);
+    for (var j = 0; j < f.order.length; j++) dmgArt.appendChild(dmgPaths[f.order[j]]);
+  }
+  // public entry point -- Task 3 calls this when a zone is hit. No-ops cleanly if
+  // the damage map never built (no window.BUNNYS_DMG).
+  function setZone(id, state) {
+    if (!dmgZones) return;
+    var z = dmgZones[id];
+    if (!z) return;
+    z.state = state;
+    z.since = performance.now();
+    z.path.classList.remove('is-caution', 'is-hit');
+    if (state === 'caution') z.path.classList.add('is-caution');
+    else if (state === 'hit') {
+      z.path.classList.add('is-hit');
+      if (dmgState === 'idle') dmgState = 'ease'; // spin to front-on the short way round
+    }
+  }
+  function drawDamage(now, dt) {
+    if (!dmgOn) return;
+    var D = window.BUNNYS_DMG;
+    if (BUNNYS.reduce) {
+      setFrame(0); // pinned, never advances
+    } else {
+      if (dmgState === 'hold') {
+        if (now >= dmgHoldUntil) dmgState = 'idle';
+      } else if (dmgState === 'ease') {
+        var delta = shortestDelta(dmgPhase, 0), step = 720 * dt;
+        if (Math.abs(delta) <= step) { dmgPhase = 0; dmgState = 'hold'; dmgHoldUntil = now + 3000; }
+        else dmgPhase = wrap360(dmgPhase + (delta > 0 ? step : -step));
+      } else {
+        dmgPhase = wrap360(dmgPhase + dmgStep * 12 * dt); // idle: ~12fps through the ring
+      }
+      setFrame(Math.floor(dmgPhase / dmgStep) % D.frames.length);
+    }
+    for (var id in dmgZones) {
+      var z = dmgZones[id];
+      if (z.state !== 'nominal' && now - z.since >= 3000) {
+        z.state = 'nominal';
+        z.path.classList.remove('is-caution', 'is-hit');
+      }
+    }
   }
 
   // ---------------------------------------------------------------- target dossier
@@ -717,11 +830,37 @@
     if (!isPage) {
       // the scope needs real estate; drop it on small screens rather than crush it
       var room = W > 760 && H > 520;
-      radar.setAttribute('opacity', room ? 1 : 0);
+      // the heading tape's own housing reaches wide enough to run into both columns
+      // below about W=1222, so anything sitting under it has to clear this, not just
+      // a fixed margin
+      var tapeBottom = Math.max(40, H * 0.055) + 42;
+
+      // -- left column, top to bottom: damage map, COMBAT SYSTEM, SLEW TO --
+      // SLEW TO is now a fixed-position CSS panel in the bottom-left corner (see
+      // cockpit.css .slew); COMBAT SYSTEM sits just above it, and the damage map
+      // takes whatever is left above that.
       gaugeBox.setAttribute('opacity', room ? 1 : 0);
-      var colX = 22 + RAD + PAD;                       // centre of the left instrument column
-      xf(radar, colX, H - RAD - PAD - 26);
-      xf(gaugeBox, 34, Math.max(84, H * 0.11));
+      var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
+      var slewVisible = !!(slewR && slewR.height);
+      // the slew panel's own media query hides it below 860px wide / 520px tall, and
+      // a hidden element's rect is all zeros -- fall back to a fixed foot margin
+      var combatBottom = slewVisible ? (slewR.top - 14) : (H - 26);
+      xf(gaugeBox, 34, combatBottom - (gaugeH - G_PAD));
+      var combatTop = combatBottom - gaugeH;
+      var mapTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
+      layoutDamage(mapTop, combatTop - 14, room);
+
+      // -- right column, top to bottom: UNIT DATA, ARMAMENT, radar --
+      // the radar pins to the bottom-right corner, lifted clear of #tilt (right:16/
+      // bottom:16) when that button is showing on a touch device
+      radar.setAttribute('opacity', room ? 1 : 0);
+      var tiltEl = document.getElementById('tilt');
+      var radarLift = tiltEl && !tiltEl.hidden ? 56 : 0;
+      var radarColX = W - 22 - RAD - PAD;
+      var radarTy = H - RAD - PAD - 26 - radarLift;
+      xf(radar, radarColX, radarTy);
+      var radarTop = radarTy - RAD - PAD - HEAD;
+
       // Low, not mid-screen: at 0.62 the card sat straight over the enemy suit's head and
       // torso, which is the one contact big enough to be worth looking at. Keep it under
       // the reticle but down in the lower third, still clear of the status line.
@@ -733,18 +872,15 @@
       xf(dossier, cx, dosY);
 
       // The hostile set fills the whole frame, so it has to be placed round the two things
-      // already living on the right: the slew panel above the middle, and the status line
-      // at the foot. UNIT DATA goes above the slew, ARMAMENT below it -- the left column
-      // has no gap between the gauges and the radar to put it in. If either will not fit,
-      // the set stands down and the plain dossier card covers the contact instead.
-      var sl = document.getElementById('slew'), slR = sl && sl.getBoundingClientRect();
-      var slTop = slR && slR.height ? slR.top : cy - 95;
-      var slBot = slR && slR.height ? slR.bottom : cy + 95;
-      var specY = Math.min(Math.max(96, H * 0.115), slTop - 10 + HX_PAD - hx.spec.h);
-      var armsY = slBot + 16 + HX_PAD;
+      // already living in the right column: UNIT DATA sits under the heading tape, ARMAMENT
+      // under that, and the radar now pinned bottom-right sits under both of them. If either
+      // will not fit, the set stands down and the plain dossier card covers the contact instead.
+      var specY = Math.max(96, H * 0.115, tapeBottom + 10);
+      var armsY = specY + hx.spec.h + 16;
+      hxArmsBottom = armsY - HX_PAD + hx.arms.h;
       hxRoom = room && W > 1100
-            && specY - HX_PAD >= 78                                   // clear of the heading tape
-            && armsY - HX_PAD + hx.arms.h <= statusY - 16;            // clear of the status line
+            && hxArmsBottom + 14 <= radarTop     // clear of the radar, now bottom-right
+            && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, Math.max(112, H * 0.135));
       xf(hx.spec, W - 26 - hx.spec.w, specY);
       xf(hx.arms, W - 26 - hx.arms.w, armsY);
@@ -761,7 +897,11 @@
     }
   }
 
-  var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null;
+  var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
+  // TASK 3 HOOK: the alarm log panel doesn't exist yet. Until it does, borrow
+  // ARMAMENT's own bottom edge as the stand-in; Task 3 should replace this
+  // function body with the alarm log's real bottom edge.
+  function logBottom() { return hxArmsBottom; }
 
   if (!isPage) {
     // -- pitch ladder: rungs regenerated around the current pitch, banks slightly with vx --
@@ -801,7 +941,7 @@
       fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
     });
 
-    buildRadar(); buildGauges(); buildWarn(); buildDossier();
+    buildRadar(); buildGauges(); buildDamage(); buildWarn(); buildDossier();
     place();
     drawHeading(0); drawLadder(0, 0); drawRadar(0);
 
@@ -838,6 +978,7 @@
       drawGauges(t);
       drawSweep(t);
       drawHostile(t);
+      drawDamage(t, dt);
       drawBar(spd, dt); drawBar(alt, dt);
     })();
   } else {
