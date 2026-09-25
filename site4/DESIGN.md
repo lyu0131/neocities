@@ -77,6 +77,36 @@ window.BUNNYS_DMG = {
 - The source mesh lives in `img/ref/` and is git-ignored; the derived trace ships.
   `tools/tracelib.py` holds the tracing helpers, shared with `trace_suit.py`.
 
+## Cockpit layout (hub)
+Two columns, set by `place()`:
+- **left**, top to bottom: damage map (`DIAGNOSTIC MODE`) -> `COMBAT SYSTEM` -> `SLEW TO`
+  (a 2x2 grid, bottom-left, anchored in CSS)
+- **right**, top to bottom: `UNIT DATA` -> `ARMAMENT DETECTED` -> `SENSOR ARRAY` (the radar,
+  bottom-right). The first two are hostile-lock only, so outside a lock the right column is
+  just the radar.
+
+The damage map's art region is a **square** and its housing shrink-wraps to it, anchored to
+the bottom of the range `place()` hands it so freed space opens above the map rather than
+as a gap above `COMBAT SYSTEM`. The artwork fits to whichever axis constrains it and is
+centred on the other — do not assume portrait, the source mesh gets re-scaled and the art
+has been both taller and wider than square.
+
+The radar lifts 56px when `#tilt` is visible, or it lands on the tilt button.
+
+## Cautions and alarms
+One scheduler, two modes, keyed off `hxOn`:
+- **general** (no hostile lock): the wide banner at `clamp(H*0.26, 90, 260)`, 9-25s cadence.
+  `CAUTIONS` entries are `[text, zoneId]`, so each flashes its damage-map zone **amber**.
+- **hostile**: the banner is suppressed and the 3-slot alarm log under `TARGET ID` takes
+  over. `HOSTILE_ALARMS` are `[text, zoneId]`; each flashes its zone **red**, which also
+  eases the damage map to front-on and holds it.
+
+Every mode switch must hide the banner **and** clear the pending timer — its 4.2s hold
+means it can already be on screen when a lock lands. That overlap was a real bug: the
+banner is at least 560px wide and the `TARGET ID` box ends near `0.25H`.
+
+Alarm and caution strings are **<=34 characters**: `hxFit` never re-runs after build.
+
 ## Invariants
 - **`.pano-ring` must be translated forward by the perspective distance.** CSS puts the
   camera at `z = +perspective` while the ring's origin — the sphere's centre — is at
