@@ -93,7 +93,8 @@ a { color: inherit; }
   background-repeat: repeat-x;
   transform-origin: 50% 50% 0;
   backface-visibility: hidden;
-  will-change: transform;
+  /* no will-change here: there are ~360 of these, and promoting every one to its own
+     compositor layer cost more than it saved (measured: 166 -> 266 frames across the boot). */
 }
 
 /* boot: monitor panels flicker on one by one (js toggles this per slice) */
@@ -341,15 +342,21 @@ a { color: inherit; }
   background: rgba(140, 255, 193, .16);
   overflow: hidden;
 }
+/* scaleX, not width: a width animation runs on the main thread, so it froze solid
+   whenever the panorama rasterised -- which is exactly what "the boot gets stuck" looked
+   like. On transform it stays on the compositor and keeps moving through any stall. */
 .boot-bar i {
   display: block;
   height: 100%;
-  width: 0;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
   background: var(--hud);
-  box-shadow: 0 0 8px var(--hud);
   animation: boot-fill 6.2s linear forwards;
 }
-@keyframes boot-fill { to { width: 100%; } }
+@keyframes boot-fill { to { transform: scaleX(1); } }
+.boot-cursor { animation: boot-blink 1s steps(2, end) infinite; }
+@keyframes boot-blink { 50% { opacity: 0; } }
 .boot-ver {
   margin: 12px 0 0;
   font: 11px/1 'B612 Mono', monospace;
@@ -409,7 +416,8 @@ a { color: inherit; }
   #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
   .target { transition: none; }
   #boot { transition: none; }
-  .boot-bar i { animation: none; width: 100%; }
+  .boot-bar i { animation: none; transform: scaleX(1); }
+  .boot-cursor { animation: none; }
   #frame.seam-glow { animation: none; filter: none; }
 }
 

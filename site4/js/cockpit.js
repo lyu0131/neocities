@@ -126,8 +126,7 @@
     var imgH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
 
     tiles.forEach(function (t) {
-      var cos = Math.cos(t.lat * Math.PI / 180);
-      var w = sliceW * cos;
+      var cos = Math.cos(t.lat * Math.PI / 180);   // always positive: no band centre passes 90deg
       var tileH = 2 * R * Math.tan(t.h / 2 * Math.PI / 180);
       // A quad is one fixed width, but the sphere's circumference shrinks across the
       // band, so its edge nearer the equator needs more width than its centre does.
@@ -138,20 +137,25 @@
       var over = Math.max(OVER, Math.cos(edge * Math.PI / 180) / cos * 1.03);
       // texture: this quad shows image cell (i, j), so scale the whole image by the
       // cell count and offset to that cell
-      t.el.style.width = (w * over) + 'px';
+      // Lay every tile out at the equator's width and squeeze it with scaleX rather than
+      // sizing it by cos(lat). The rendered geometry is identical, but background-size is
+      // then the same for all eight image bands, so the browser rasterises pano.svg once
+      // instead of once per band. Eight multi-thousand-pixel vector rasters cost 5.5s of
+      // dropped frames across the boot on a throttled CPU -- that was the "stuck" boot.
+      t.el.style.width = (sliceW * over) + 'px';
       t.el.style.height = (tileH * OVER) + 'px';
-      t.el.style.marginLeft = (-w * over / 2) + 'px';
+      t.el.style.marginLeft = (-sliceW * over / 2) + 'px';
       t.el.style.marginTop = (-tileH * OVER / 2) + 'px';
-      var xOff = -(t.i * w) - w * (over - 1) / 2;
+      var xOff = -(t.i * sliceW) - sliceW * (over - 1) / 2;
       if (t.band.row >= 0) {
-        t.el.style.backgroundSize = (w * SLICES) + 'px ' + (imgH * LAT_BANDS) + 'px';
+        t.el.style.backgroundSize = (sliceW * SLICES) + 'px ' + (imgH * LAT_BANDS) + 'px';
         t.el.style.backgroundPosition = xOff + 'px '
                                       + (-(t.band.row * imgH) - imgH * (OVER - 1) / 2) + 'px';
       } else {
-        paintCap(t, w, xOff);
+        paintCap(t, sliceW, xOff);
       }
       t.el.style.transform = 'rotateY(' + (-t.i * SLICE_DEG) + 'deg) rotateX('
-                           + (-t.lat) + 'deg) translateZ(' + (-R) + 'px)';
+                           + (-t.lat) + 'deg) translateZ(' + (-R) + 'px) scaleX(' + cos.toFixed(5) + ')';
     });
 
     placeTargets(state.yaw, state.pitch);

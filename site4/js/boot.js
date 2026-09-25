@@ -9,7 +9,6 @@
   var lines = [];
   var timers = [];
   var raf = null;
-  var blinkTimer = null;
   var done = false;
 
   // .hud-draw is a ONE-SHOT intro: it animates every stroke inside #hud. hud.js rebuilds
@@ -36,7 +35,6 @@
     done = true;
     clearTimers();
     if (raf) cancelAnimationFrame(raf);
-    if (blinkTimer) clearInterval(blinkTimer);
     document.removeEventListener('keydown', onSkip);
     document.removeEventListener('click', onSkip);
     var ring = document.querySelector('.pano-ring');
@@ -76,8 +74,6 @@
     cursor.className = 'boot-cursor';
     cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
     overlay.appendChild(cursor);
-    var blinkOn = true;
-    blinkTimer = setInterval(function () { blinkOn = !blinkOn; cursor.style.opacity = blinkOn ? '1' : '0'; }, 500);
 
     // t=300-1900: boot log, one line every ~180ms; the reactor % counts up in place
     var LOG = [
@@ -115,12 +111,17 @@
       // the frame seams glow green as the panels light, then settle (css owns the look)
       var frameEl = document.getElementById('frame');
       if (frameEl) frameEl.classList.add('seam-glow');
-      var slices = Array.prototype.slice.call(document.querySelectorAll('.pano-slice'));
+      // Only the image bands, and only some of them. A filter animation forces the tile's
+      // big background to re-rasterise, so running it across all ~360 slices stalled the
+      // main thread for most of this window. A scattered subset reads the same.
+      var slices = Array.prototype.slice.call(
+        document.querySelectorAll('.pano-slice:not(.pole-top):not(.pole-bot)'));
       var order = slices.map(function (_, i) { return i; });
       for (var i = order.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
         var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
       }
+      order = order.slice(0, 56);
       var span = 1200, n = order.length;
       order.forEach(function (idx, k) {
         at(Math.floor(k * span / n), function () {
@@ -135,15 +136,16 @@
     // t=3100-4300: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it while
     // booted is false); the ring's blur filter is ours to drive here since it tracks the tween.
     at(3100, function () {
-      var ring = document.querySelector('.pano-ring');
+      // No motion blur: blur() on .pano-ring re-rasterises the whole 360-tile sphere every
+      // frame of the spin, and it was the single worst stall in the sequence. A 300deg/s
+      // whip already reads as fast without it.
       var t0 = performance.now(), dur = 1200;
       function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
       function step(now) {
         var p = Math.min(1, (now - t0) / dur);
         BUNNYS.state.yaw = ease(p) * 360;
-        if (ring) ring.style.filter = 'blur(' + (Math.sin(p * Math.PI) * 10).toFixed(1) + 'px)';
         if (p < 1) raf = requestAnimationFrame(step);
-        else { BUNNYS.state.yaw = 0; if (ring) ring.style.filter = ''; raf = null; }
+        else { BUNNYS.state.yaw = 0; raf = null; }
       }
       raf = requestAnimationFrame(step);
     });
