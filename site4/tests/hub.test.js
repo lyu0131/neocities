@@ -18,8 +18,22 @@ async function ready(pg, ms = 4000) {
   check('boot done fires', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
   check('boot overlay gone', await p.eval("!document.getElementById('boot') || getComputedStyle(document.getElementById('boot')).display === 'none'"));
   await p.eval("sessionStorage.clear()"); await p.goto('index.html', 600);
-  await p.key(' ', 'Space', 32); await p.sleep(700);
+  // Retry the skip until it takes. A single keypress 600ms after navigation races
+  // boot.js attaching its listener -- under load (the suite starts Chrome three times
+  // over) the press lands first and is silently lost, the boot runs its full length, and
+  // every interaction check below then fails against a hub that is not interactive yet.
+  // That race was the whole of this file's intermittent failures.
+  await ready(p);
+  for (let i = 0; i < 30 && !(await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) {
+    await p.key(' ', 'Space', 32);
+    await p.sleep(100);
+  }
   check('skip boot works', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
+  // Whether or not the skip landed, never drive the view until the hub is actually
+  // interactive: cockpit.js drops every input while state.booted is false, so a drag sent
+  // early is silently discarded and reads as "the drag did nothing". If the skip raced,
+  // just let the boot finish on its own.
+  for (let i = 0; i < 80 && !(await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) await p.sleep(100);
   // T5: 24 slices, drag turns yaw, heading tape follows, arrows turn
   // the sphere is tessellated 24 longitude segments x N latitude bands
   const tiles = await p.eval("document.querySelectorAll('.pano-slice').length");
