@@ -41,6 +41,25 @@
     </ul>
   </div>
 
+  <div id="hudmode" class="slew hudmode">
+    <p class="slew-head">HUD MODE</p>
+    <ul>
+      <li><button type="button" data-mode="declutter" aria-pressed="false">DECLUTTER</button></li>
+      <li><button type="button" data-mode="nv" aria-pressed="false">NIGHT VIS</button></li>
+      <li><button type="button" data-mode="diag">RUN DIAG</button></li>
+      <li><button type="button" data-mode="comms">COMMS</button></li>
+    </ul>
+  </div>
+
+  <section id="comms" class="pop comms" aria-label="Incoming transmission" hidden>
+    <p class="pop-head"><span class="comms-from"></span><span class="comms-ch">CH 07</span></p>
+    <p class="comms-msg"></p>
+    <button type="button" class="comms-ack">ACK</button>
+  </section>
+  <p id="toast" class="pop toast" role="status" aria-live="polite" hidden></p>
+  <div class="nv-tint" aria-hidden="true"></div>
+  <div class="nv-scan" aria-hidden="true"></div>
+
   <p id="lock-status" class="sr-only" aria-live="polite"></p>
   <button id="tilt" class="hud-btn" type="button" hidden>Enable tilt</button>
 </main>

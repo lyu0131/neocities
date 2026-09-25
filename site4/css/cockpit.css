@@ -659,11 +659,13 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   top: auto;
   left: auto;
   transform: none;
-  width: 194px;
+  /* left/width are driven from place() so this lands on the same lane, and at the same
+     width, as the SVG instruments above it -- see the two-column block there */
+  width: 232px;
   z-index: var(--z-nav);
   background: rgba(6, 10, 18, .97);
   border: none;
-  padding: 16px 18px 20px;
+  padding: 14px 14px 20px;   /* G_PAD in js/hud.js: same text inset as every other panel */
   color: var(--ice);
   font: 700 11px/1 'B612 Mono', monospace;
   letter-spacing: .12em;
@@ -684,19 +686,32 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 .slew::after {
   content: 'RX-124 · BNS-NAV-118A';
   position: absolute;
-  right: 18px; bottom: 6px;
+  right: 14px; bottom: 7px;
   font: 400 7px/1 'B612 Mono', monospace;
   letter-spacing: .08em;
   color: var(--ice);
   opacity: .55;
 }
+/* Matched to the SVG panel headers: same pale ink, same rule, same tick scale under it.
+   It was red, which reads as a lock or a warning -- this is a navigation control, and the
+   odd colour plus a missing tick rule is what made the box look unlike the rest of the
+   group it sits in. */
 .slew-head {
-  margin: 0 0 9px;
+  position: relative;
+  margin: 0 0 13px;
   padding-bottom: 6px;
-  color: var(--lock);
+  color: var(--hud);
   font-size: 10px;
   letter-spacing: .18em;
-  border-bottom: 1px solid rgba(140, 255, 193, .45);
+  border-bottom: 1px solid rgba(140, 255, 193, .55);
+}
+.slew-head::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  height: 4px;
+  background: repeating-linear-gradient(to right, var(--hud) 0 1px, transparent 1px 12px);
+  opacity: .5;
 }
 .slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .slew button {
@@ -715,3 +730,79 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 }
 .slew button:hover, .slew button:focus-visible { background: var(--hud); color: var(--night); }
 @media (max-width: 860px), (max-height: 520px) { .slew { display: none; } }
+
+/* HUD MODE: a second .slew panel, so it inherits the housing, brackets, header rule and
+   button style outright -- only its stencil code differs. place() stacks it above SLEW TO
+   on the same lane. A pressed toggle stays lit, the way a latched cockpit switch does. */
+.hudmode { bottom: auto; }
+.hudmode::after { content: 'RX-124 · BNS-HUD-031M'; }
+.slew button[aria-pressed="true"] { background: rgba(140, 255, 193, .16); border-color: var(--hud); }
+
+/* Popups in the open sky either side of TARGET ID. Same housing as every panel: the .97
+   backing, 10px corner brackets, 14px inset. Positioned by place(). */
+.pop {
+  position: fixed;
+  z-index: var(--z-nav);
+  margin: 0;
+  background: rgba(6, 10, 18, .97);
+  color: var(--ice);
+  font: 700 10px/1.45 'B612 Mono', monospace;
+  letter-spacing: .1em;
+}
+.pop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --b: linear-gradient(var(--hud), var(--hud));
+  background:
+    var(--b) top left / 10px 1px no-repeat,     var(--b) top left / 1px 10px no-repeat,
+    var(--b) top right / 10px 1px no-repeat,    var(--b) top right / 1px 10px no-repeat,
+    var(--b) bottom left / 10px 1px no-repeat,  var(--b) bottom left / 1px 10px no-repeat,
+    var(--b) bottom right / 10px 1px no-repeat, var(--b) bottom right / 1px 10px no-repeat;
+}
+.pop[hidden] { display: none; }
+.comms { padding: 14px 14px 12px; }
+.pop-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  color: var(--amber);            /* amber: something wants your attention, not a threat */
+  border-bottom: 1px solid rgba(140, 255, 193, .55);
+  letter-spacing: .18em;
+}
+.comms-ch { color: var(--ice); opacity: .55; }
+.comms-msg { margin: 0 0 10px; min-height: 2.9em; }
+.comms-ack {
+  font: inherit;
+  padding: 5px 14px;
+  min-height: 24px;
+  color: var(--hud);
+  background: transparent;
+  border: 1px solid rgba(140, 255, 193, .4);
+  cursor: pointer;
+}
+.comms-ack:hover, .comms-ack:focus-visible { background: var(--hud); color: var(--night); }
+.toast { padding: 9px 14px; color: var(--hud); letter-spacing: .16em; }
+@media (prefers-reduced-motion: no-preference) {
+  .pop:not([hidden]) { animation: pop-in .18s steps(3, end); }   /* a stepped raster wipe, not a soft fade */
+}
+@keyframes pop-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+
+/* DECLUTTER strips the secondary instruments and leaves the flight HUD: reticle, tape,
+   SPD/ALT, radar, status line. CSS beats the opacity attributes hud.js sets. */
+.declutter #hud .panel, .declutter #hud .dmgmap,
+.declutter #hud .foot, .declutter #hud .lane { opacity: 0; }
+
+/* NIGHT VISION tints the scene only -- both layers sit at --z-fx, under the frame and the
+   HUD, so the instruments stay crisp. No filter on the sphere: a filter flattens
+   preserve-3d and would collapse the panorama. `color` recolours the scene green while
+   keeping its luminance; `screen` lifts the shadows and lays the scanlines. */
+.nv-tint, .nv-scan { position: fixed; inset: 0; z-index: var(--z-fx); pointer-events: none; display: none; }
+.nv-tint { background: rgb(70, 255, 130); mix-blend-mode: color; }
+.nv-scan {
+  mix-blend-mode: screen;
+  background: repeating-linear-gradient(to bottom, rgba(60, 190, 100, .22) 0 2px, rgba(60, 190, 100, .07) 2px 4px);
+}
+.nv .nv-tint, .nv .nv-scan { display: block; }

@@ -154,12 +154,14 @@
   // ---------------------------------------------------------------- radar scope
   // Heading-up: straight ahead is at the top, and a bearing to the right of the
   // nose plots to the right, so it agrees with the heading tape and the scene.
-  var RAD = 100;
+  var RAD = 108;   // with PAD 16 this makes the radar housing 248 -- exactly PANEL_W
   var radar = el('g', { class: 'radar' });
   var radarCone, blips = [];
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
-  var PAD = 16, HEAD = 22;
+  // R_HEAD: the band above the scope holding the header and its rule, on the same
+  // header/rule/tick rhythm as buildPanel so SENSOR ARRAY lines up with the panels
+  var PAD = 16, R_HEAD = 44;
   // the scanning sweep: a rotating arm with a decaying phosphor trail behind it,
   // and blips that brighten as the arm passes their bearing then fade back down
   var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;
@@ -168,12 +170,12 @@
   var sweepGroup;
   function buildRadar() {
     // housing first, so the scope sits inside a panel rather than floating on the scene
-    var w = RAD * 2 + PAD * 2, h = RAD * 2 + PAD * 2 + HEAD;
-    var bx = -w / 2, by = -RAD - PAD - HEAD, headRuleY = -RAD - PAD;
+    var w = RAD * 2 + PAD * 2, h = R_HEAD + RAD * 2 + PAD;
+    var bx = -w / 2, by = -RAD - R_HEAD, headRuleY = by + G_PAD + 20;
     radar.appendChild(el('rect', { x: bx, y: by, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' }));
     radar.appendChild(corners(bx, by, w, h));
-    radar.appendChild(el('line', { x1: bx, y1: headRuleY, x2: bx + w, y2: headRuleY, opacity: .6 }));
-    tickScale(radar, bx + 4, bx + w - 4, headRuleY, 10);
+    radar.appendChild(el('line', { x1: bx + G_PAD, y1: headRuleY, x2: bx + w - G_PAD, y2: headRuleY, opacity: .55 }));
+    tickScale(radar, bx + G_PAD, bx + w - G_PAD, headRuleY, 12);
     radar.appendChild(el('circle', { r: RAD, fill: 'rgba(6,10,18,.55)' }));
     [RAD, RAD * 0.66, RAD * 0.33].forEach(function (r) {
       radar.appendChild(el('circle', { r: r, opacity: r === RAD ? 1 : 0.4 }));
@@ -204,10 +206,10 @@
     sweepGroup.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: .9 }));
     radar.appendChild(sweepGroup);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
-    var cap = el('text', { x: bx + 8, y: headRuleY - 7 });
+    var cap = el('text', { x: bx + G_PAD, y: by + G_PAD + 11 });
     cap.textContent = 'SENSOR ARRAY';
     radar.appendChild(cap);
-    stencil(radar, bx + w - 6, by + h - 6, 'end', 'BNS-SNS-7741A');
+    stencil(radar, bx + w - G_PAD, by + h - 7, 'end', UNIT_SERIAL + ' \u00B7 BNS-SNS-7741A');
 
     targets.forEach(function (t) {
       var g = el('g', { class: 'blip' });
@@ -260,91 +262,184 @@
   function fmtVector(v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; }
   function fmtLink(v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; }
   function fmtHardpoint(v) { return Math.max(1, Math.round(v * 6)) + '/6'; }
-  var GAUGES = [
-    { key: 'REACT', base: 0.92, drift: 0.03 },      // REACTOR STATUS
-    { key: 'COOL',  base: 0.61, drift: 0.09 },
-    { key: 'P-INT', base: 0.24, drift: 0.14 },      // PARTICLE INTERFERENCE
-    { key: 'FRAME', base: 0.88, drift: 0.04 },      // FRAME INTEGRITY
-    { key: 'THR-V', base: 0.50, drift: 0.30, fmt: fmtVector },     // THRUSTER VECTOR
-    { key: 'SENSR', base: 0.70, drift: 0.11 },      // SENSOR ARRAY
-    { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: fmtLink },       // WEAPON LINK
-    { key: 'HDPT',  base: 0.83, drift: 0.15, fmt: fmtHardpoint }   // HARDPOINT STATUS
-  ];
+  // ------------------------------------------------------- instrument panels
+  // Three panels, one builder, ONE width. This used to be a single hardcoded COMBAT
+  // SYSTEM whose width fell out of its own content (204) while the damage map was 194 and
+  // the slew panel 194 -- three widths across two columns, which is what made the columns
+  // read as misaligned however carefully each box was positioned. PANEL_W is now the width
+  // every column instrument is drawn at, and place() scales a whole column down together
+  // when the gutter is too narrow for it, so the edges stay flush at every size.
+  //
+  // Each panel also carries its OWN extra instrument, so three boxes of bars don't read as
+  // one panel repeated: the reactor gets the interference trace and the bus lamps, the
+  // thrusters an attitude cross, the combat panel its hardpoint cells.
+  var PANEL_W = 248, G_PAD = 14, rowH = 17;
   var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM', 'AUX', 'CORE']; // AUXILIARY BUS, CORE BLOCK
-  var gaugeBox = el('g', { class: 'gauges' });
-  var sparkPts = [], spark = null, lamps = [];
-  // panel metrics: buildGauges (layout) and drawGauges (per-frame values) share these
-  // instead of each hardcoding its own copy, so the two can't drift out of sync
-  // rowH 17, not 20: shrinks the housing 324 -> 300 so it clears the slew panel now
-  // parked under it in the left column (see place()).
-  var G_PAD = 12, rowH = 17, barX = 46, barW = 72, sparkY = 0, gaugeH = 0, gaugeW = 0;
-  function buildGauges() {
-    var pctX = barX + barW + 10, pctW = 52; // wide enough for "STANDBY", not just "100%"
-    var contentW = pctX + pctW; // widest row (label..bar..readout) sets the panel width
+  var PANELS = [
+    { id: 'reactor', title: 'REACTOR STATUS', code: 'BNS-PWR-118R', extra: 'spark',
+      rows: [{ key: 'OUTPT', base: 0.94, drift: 0.03 },
+             { key: 'COOL', base: 0.65, drift: 0.09 },
+             { key: 'P-INT', base: 0.38, drift: 0.16 },   // PARTICLE INTERFERENCE
+             { key: 'CORE', base: 0.88, drift: 0.04 },    // CORE BLOCK
+             { key: 'FLUX', base: 0.62, drift: 0.12 }] },
+    { id: 'thruster', title: 'THRUSTER VECTOR', code: 'BNS-THR-204V', extra: 'cross',
+      rows: [{ key: 'MAIN', base: 0.90, drift: 0.06 },
+             { key: 'VRN-A', base: 0.72, drift: 0.11 },
+             { key: 'VRN-B', base: 0.68, drift: 0.13 },
+             { key: 'VRN-C', base: 0.75, drift: 0.09 }] },
+    { id: 'combat', title: 'COMBAT SYSTEM', code: 'BNS-SYS-206C', extra: 'cells',
+      rows: [{ key: 'SENSR', base: 0.70, drift: 0.11 },   // SENSOR ARRAY
+             { key: 'FRAME', base: 0.88, drift: 0.04 },   // FRAME INTEGRITY
+             { key: 'THR-V', base: 0.50, drift: 0.30, fmt: fmtVector },
+             { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: fmtLink },
+             { key: 'HDPT', base: 0.83, drift: 0.15, fmt: fmtHardpoint }] }
+  ];
+  var sparkPts = [];
 
-    var headerY = 9;                              // header baseline
-    var ruleY = headerY + 9;
-    var rowsY = ruleY + 16;                        // first gauge row baseline
-    var rowsBottom = rowsY + GAUGES.length * rowH;
-    var sparkLabelY = rowsBottom + 16;
-    sparkY = sparkLabelY + 8;                      // sparkline frame top, shared with drawGauges
-    var sparkH = 30;
-    var lampsTop = sparkY + sparkH + 16;
-    var lampH = 11;
-    var lampLabelY = lampsTop + lampH + 11;
-    var contentBottom = lampLabelY + 14;           // room for the lamp labels, then the stencil line below them
-
-    // housing first, sized from the content above rather than a fixed guess
-    var bx = -G_PAD, by = -G_PAD, bw = contentW + G_PAD * 2, bh = contentBottom + G_PAD * 2;
-    gaugeH = bh; gaugeW = bw;
-    gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.97)' }));
-    gaugeBox.appendChild(corners(bx, by, bw, bh));
-    var hdr = el('text', { x: 0, y: headerY });
-    hdr.textContent = 'COMBAT SYSTEM';
-    gaugeBox.appendChild(hdr);
-    gaugeBox.appendChild(el('line', { x1: 0, y1: ruleY, x2: contentW, y2: ruleY, opacity: .55 }));
-    tickScale(gaugeBox, 0, contentW, ruleY, 12);
-    GAUGES.forEach(function (g, i) {
-      var y = rowsY + i * rowH;
-      var lbl = el('text', { x: 0, y: y + 4 });
-      lbl.textContent = g.key;
-      gaugeBox.appendChild(lbl);
-      gaugeBox.appendChild(el('rect', { x: barX, y: y - 6, width: barW, height: 9 }));
-      g.fill = el('rect', { x: barX + 1, y: y - 5, width: 1, height: 7, fill: 'currentColor', stroke: 'none' });
-      gaugeBox.appendChild(g.fill);
-      g.txt = el('text', { x: pctX + pctW, y: y + 4, 'text-anchor': 'end' });
-      gaugeBox.appendChild(g.txt);
-    });
-    // particle-interference trend, so the panel has something moving that is not a bar
-    var sl = el('text', { x: 0, y: sparkLabelY });
-    sl.textContent = 'P-INT TREND';
-    gaugeBox.appendChild(sl);
-    gaugeBox.appendChild(el('rect', { x: 0, y: sparkY, width: contentW, height: sparkH, opacity: .45 }));
-    spark = el('polyline', { points: '', opacity: .9 });
-    gaugeBox.appendChild(spark);
-    gaugeBox.appendChild(el('line', { x1: 0, y1: lampsTop - 8, x2: contentW, y2: lampsTop - 8, opacity: .35 }));
-    stencil(gaugeBox, contentW, contentBottom - 3, 'end', UNIT_SERIAL + ' · BNS-SYS-206C');
-    // status lamps -- box+pip+label, all measured down from lampsTop so the labels
-    // land inside the housing instead of on its bottom edge
-    LAMPS.forEach(function (name, i) {
-      var lx = i * 26;
-      var box = el('rect', { x: lx, y: lampsTop, width: 18, height: lampH, opacity: .8 });
-      var pip = el('rect', { x: lx + 2, y: lampsTop + 2, width: 14, height: lampH - 4, fill: 'currentColor', stroke: 'none' });
-      var t = el('text', { x: lx + 9, y: lampLabelY, 'text-anchor': 'middle', style: 'font-size:8px' });
-      t.textContent = name;
-      gaugeBox.appendChild(box); gaugeBox.appendChild(pip); gaugeBox.appendChild(t);
-      lamps.push(pip);
-    });
-    svg.appendChild(gaugeBox);
+  // The two column lanes: a hairline down the middle of each gutter, which every
+  // instrument in that column is centred on. Structure rather than decoration -- the
+  // panels sit on top of it, so it shows only in the gaps and ties a column of separate
+  // boxes into one line of instruments.
+  var lane = el('g', { class: 'lane', opacity: 0 });
+  var laneRuleL = el('line', { opacity: .22 });
+  var laneRuleR = el('line', { opacity: .22 });
+  function buildLane() {
+    lane.appendChild(laneRuleL);
+    lane.appendChild(laneRuleR);
+    svg.appendChild(lane);   // appended first, so every panel paints over it
   }
 
-  function drawGauges(now) {
-    GAUGES.forEach(function (g, i) {
-      var v = clamp(g.base + Math.sin(now / (3100 + i * 900) + i) * g.drift, 0.02, 1);
-      g.fill.setAttribute('width', (1 + v * (barW - 2)).toFixed(1));
-      g.txt.textContent = g.fmt ? g.fmt(v) : Math.round(v * 100) + '%';
-      g.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
+  function buildPanel(spec) {
+    var g = el('g', { class: 'panel' });
+    // the group's origin is the housing's top-left corner, so place() positions a panel by
+    // the same x/y it would use for any other box -- no padding offset to remember
+    var x0 = G_PAD, x1 = PANEL_W - G_PAD, inner = x1 - x0;
+    // label | bar | value, with a 10px gutter each side of the bar. The value column is
+    // sized for the widest string it ever shows (STANDBY), not for a percentage.
+    var labelW = 52, pctW = 64, barX = x0 + labelW, barW = inner - labelW - pctW - 10;
+    // header a full line below the housing edge: at the old 9px baseline the caps touched
+    // the top of the box, which is what read as the text being against the edge
+    var headerY = G_PAD + 11, ruleY = headerY + 9, rowsY = ruleY + 17;
+
+    spec.bg = el('rect', { x: 0, y: 0, width: PANEL_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.97)' });
+    g.appendChild(spec.bg);
+    spec.cn = corners(0, 0, PANEL_W, 10);
+    g.appendChild(spec.cn);
+    var hdr = el('text', { x: x0, y: headerY });
+    hdr.textContent = spec.title;
+    g.appendChild(hdr);
+    g.appendChild(el('line', { x1: x0, y1: ruleY, x2: x1, y2: ruleY, opacity: .55 }));
+    tickScale(g, x0, x1, ruleY, 12);
+
+    spec.rows.forEach(function (r, i) {
+      var ry = rowsY + i * rowH;
+      var lbl = el('text', { x: x0, y: ry + 4 });
+      lbl.textContent = r.key;
+      g.appendChild(lbl);
+      g.appendChild(el('rect', { x: barX, y: ry - 6, width: barW, height: 9 }));
+      r.fill = el('rect', { x: barX + 1, y: ry - 5, width: 1, height: 7, fill: 'currentColor', stroke: 'none' });
+      g.appendChild(r.fill);
+      r.txt = el('text', { x: x1, y: ry + 4, 'text-anchor': 'end' });
+      g.appendChild(r.txt);
+      r.barW = barW;
     });
+
+    var y = rowsY + spec.rows.length * rowH + 2;
+    if (spec.extra === 'spark') {
+      var sl = el('text', { x: x0, y: y + 10 });
+      sl.textContent = 'P-INT TREND';
+      g.appendChild(sl);
+      spec.sparkY = y + 18;
+      g.appendChild(el('rect', { x: x0, y: spec.sparkY, width: inner, height: 30, opacity: .45 }));
+      spec.spark = el('polyline', { points: '', opacity: .9 });
+      g.appendChild(spec.spark);
+      y = spec.sparkY + 30 + 16;
+      g.appendChild(el('line', { x1: x0, y1: y - 8, x2: x1, y2: y - 8, opacity: .35 }));
+      spec.lamps = [];
+      var step = inner / LAMPS.length;
+      LAMPS.forEach(function (name, i) {
+        var lx = x0 + i * step;
+        g.appendChild(el('rect', { x: lx, y: y, width: step - 8, height: 11, opacity: .8 }));
+        var pip = el('rect', { x: lx + 2, y: y + 2, width: step - 12, height: 7, fill: 'currentColor', stroke: 'none' });
+        var t = el('text', { x: lx + (step - 8) / 2, y: y + 22, 'text-anchor': 'middle', style: 'font-size:8px' });
+        t.textContent = name;
+        g.appendChild(pip); g.appendChild(t);
+        spec.lamps.push(pip);
+      });
+      y += 30;
+    } else if (spec.extra === 'cross') {
+      // the one instrument here that shows a direction rather than a level
+      var side = 62, ccx = x0 + inner / 2, ccy = y + side / 2;
+      g.appendChild(el('rect', { x: ccx - side / 2, y: y, width: side, height: side, opacity: .45 }));
+      g.appendChild(el('line', { x1: ccx - side / 2, y1: ccy, x2: ccx + side / 2, y2: ccy, opacity: .3 }));
+      g.appendChild(el('line', { x1: ccx, y1: y, x2: ccx, y2: y + side, opacity: .3 }));
+      for (var k = -1; k <= 1; k += 2) {
+        g.appendChild(el('line', { x1: ccx + k * 16, y1: ccy - 4, x2: ccx + k * 16, y2: ccy + 4, opacity: .5 }));
+        g.appendChild(el('line', { x1: ccx - 4, y1: ccy + k * 16, x2: ccx + 4, y2: ccy + k * 16, opacity: .5 }));
+      }
+      spec.crossC = [ccx, ccy, side / 2 - 6];
+      spec.dot = el('circle', { cx: ccx, cy: ccy, r: 3.5, fill: 'currentColor', stroke: 'none' });
+      g.appendChild(spec.dot);
+      spec.roll = el('text', { x: x0, y: y + side + 15 });
+      g.appendChild(spec.roll);
+      spec.pitch = el('text', { x: x1, y: y + side + 15, 'text-anchor': 'end' });
+      g.appendChild(spec.pitch);
+      y += side + 23;
+    } else if (spec.extra === 'cells') {
+      var hl = el('text', { x: x0, y: y + 10 });
+      hl.textContent = 'HARDPOINT STATUS';
+      g.appendChild(hl);
+      y += 18;
+      spec.cells = [];
+      var n = 6, cw = inner / n;
+      for (var c = 0; c < n; c++) {
+        var cxp = x0 + c * cw;
+        g.appendChild(el('rect', { x: cxp, y: y, width: cw - 6, height: 16, opacity: .7 }));
+        var cell = el('rect', { x: cxp + 2, y: y + 2, width: cw - 10, height: 12, fill: 'currentColor', stroke: 'none' });
+        g.appendChild(cell);
+        var ct = el('text', { x: cxp + (cw - 6) / 2, y: y + 28, 'text-anchor': 'middle', style: 'font-size:8px' });
+        ct.textContent = 'H' + (c + 1);
+        g.appendChild(ct);
+        spec.cells.push(cell);
+      }
+      y += 36;
+    }
+
+    var h = y + G_PAD;
+    spec.h = h;
+    spec.bg.setAttribute('height', h);
+    updateCorners(spec.cn, 0, 0, PANEL_W, h);
+    stencil(g, x1, h - 7, 'end', UNIT_SERIAL + ' · ' + spec.code);
+    spec.g = g;
+    svg.appendChild(g);
+  }
+  function buildPanels() { PANELS.forEach(buildPanel); }
+
+  function drawPanels(now) {
+    PANELS.forEach(function (spec, pi) {
+      spec.rows.forEach(function (r, i) {
+        var v = clamp(r.base + Math.sin(now / (3100 + i * 900 + pi * 370) + i + pi) * r.drift, 0.02, 1);
+        r.fill.setAttribute('width', (1 + v * (r.barW - 2)).toFixed(1));
+        r.txt.textContent = r.fmt ? r.fmt(v) : Math.round(v * 100) + '%';
+        r.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
+      });
+      if (spec.extra === 'cross') {
+        // drifts around the centre rather than tracking the view: this is the suit's
+        // thrust vector, not the camera
+        var a = clamp(Math.sin(now / 2600) * 0.8 + Math.sin(now / 910) * 0.3, -1, 1);
+        var b = clamp(Math.cos(now / 3100) * 0.7 + Math.sin(now / 1270) * 0.3, -1, 1);
+        spec.dot.setAttribute('cx', (spec.crossC[0] + a * spec.crossC[2]).toFixed(1));
+        spec.dot.setAttribute('cy', (spec.crossC[1] + b * spec.crossC[2]).toFixed(1));
+        spec.roll.textContent = 'ROLL ' + (a * 24).toFixed(0) + '°';
+        spec.pitch.textContent = (b * 18).toFixed(0) + '° PITCH';
+      } else if (spec.extra === 'cells') {
+        spec.cells.forEach(function (cell, i) {
+          var on = Math.sin(now / (2300 + i * 480) + i) > -0.55;
+          cell.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.16)');
+        });
+      }
+    });
+
     // A live interference trace, not a clean waveform: a slow drift, three beating
     // harmonics that never line up, and a noise floor that occasionally bursts. The
     // spikes clip against the clamp below, which is what interference should look like.
@@ -352,18 +447,22 @@
     // under a second of signal, so the slow components just slid the whole trace up and
     // down instead of shaping it -- and the trace scrolled at whatever frame rate the
     // machine happened to run at. At 30ms the window is 1.7s, so every band below shows.
-    if (now >= (drawGauges.nextPt || 0)) {
-      drawGauges.nextPt = now + 30;
+    var rx = PANELS[0];
+    if (now >= (drawPanels.nextPt || 0)) {
+      drawPanels.nextPt = now + 30;
       var burst = Math.sin(now / 3100) > 0.55 ? 1.25 : 0.32;
       sparkPts.push(Math.sin(now / 900) * 0.3 + Math.sin(now / 430) * 0.3
                   + Math.sin(now / 173) * 0.22 + Math.sin(now / 67) * 0.13
                   + (Math.random() - 0.5) * burst);
       if (sparkPts.length > 58) sparkPts.shift();
     }
-    spark.setAttribute('points', sparkPts.map(function (v, i) {
-      return (3 + i * 3) + ',' + (sparkY + 15 - clamp(v, -1, 1) * 12).toFixed(1);
-    }).join(' '));
-    lamps.forEach(function (pip, i) {
+    if (rx.spark) {
+      var stepX = (PANEL_W - G_PAD * 2) / 58;
+      rx.spark.setAttribute('points', sparkPts.map(function (v, i) {
+        return (G_PAD + i * stepX).toFixed(1) + ',' + (rx.sparkY + 15 - clamp(v, -1, 1) * 12).toFixed(1);
+      }).join(' '));
+    }
+    if (rx.lamps) rx.lamps.forEach(function (pip, i) {
       var on = Math.sin(now / (1700 + i * 600) + i * 2) > -0.75;
       pip.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.18)');
     });
@@ -375,20 +474,25 @@
   // overlap in projection -- without reordering an arm paints over the torso). Read
   // w/h/frame count off the data at runtime: the source mesh has already been
   // re-scaled once and will be again. Degrades to nothing if the data never loaded.
-  var DMG_W = 194, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
+  // DMG_W tracks PANEL_W: the damage map is a column instrument like any other, and it
+  // being 194 while COMBAT SYSTEM was 204 is half of why the columns looked ragged.
+  var DMG_W = PANEL_W, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
   // Text needs a bigger inset than the art does: the corner brackets occupy the first and
   // last 10px of each edge, so header and stencil set at DMG_PAD sat exactly flush against
-  // them and read as touching the box.
-  var DMG_TEXT_PAD = 18;
+  // them and read as touching the box. G_PAD matches the other panels' text inset exactly,
+  // so all four headers start on the same line as each other.
+  var DMG_TEXT_PAD = G_PAD;
   var dmgBox, dmgBg, dmgCorners, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
   // idle | ease (spinning to front-on the short way round) | hold (fronted, flashing)
-  var dmgState = 'idle', dmgPhase = 0, dmgHoldUntil = 0, dmgLastIdx = -1;
+  var dmgState = 'idle', dmgPhase = 0, dmgHoldUntil = 0, dmgLastIdx = -1, dmgH = 0;
   function buildDamage() {
     var D = window.BUNNYS_DMG;
     if (!D) return; // no data baked -- panel simply never exists
-    var headerY = 9, ruleY = headerY + 9;
-    dmgArtTop = ruleY + 9;
+    // same vertical rhythm as buildPanel: at the old 9px baseline the header's caps sat
+    // hard against the top edge of the housing, which is what read as touching
+    var headerY = G_PAD + 11, ruleY = headerY + 9;
+    dmgArtTop = ruleY + 12;
     dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
     dmgBg = el('rect', { x: 0, y: 0, width: DMG_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.97)' });
     dmgBox.appendChild(dmgBg);
@@ -424,10 +528,11 @@
   // *bottom* of that range (flush above COMBAT SYSTEM) so anything the shrink frees up
   // opens as blank scene above the map, under the tape, rather than as a gap between
   // the two panels.
-  function layoutDamage(x, top, bottom, room) {
+  function layoutDamage(x, top, bottom, room, sc) {
     var D = window.BUNNYS_DMG;
     if (!D || !dmgBox) return;
-    var avail = bottom - top;
+    sc = sc || 1;
+    var avail = (bottom - top) / sc;   // measure in the panel's own units, then scale once
     // The art region is a SQUARE, by request -- a tall box with a small suit adrift in it
     // read as unfinished. Its side is the housing's inner width, unless the column is too
     // short for that, in which case it shrinks to whatever height is on offer.
@@ -441,8 +546,9 @@
     var scale = Math.min(side / D.w, side / D.h);
     var artW = D.w * scale, artH = D.h * scale;
     var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
-    xf(dmgBox, x, bottom - h);                   // anchored to the bottom, flush above
-    dmgBg.setAttribute('height', h);             // COMBAT SYSTEM
+    xf(dmgBox, x, top, ' scale(' + sc.toFixed(4) + ')');   // top of the column
+    dmgBg.setAttribute('height', h);
+    dmgH = h * sc;
     updateCorners(dmgCorners, 0, 0, DMG_W, h);
     dmgStencil.setAttribute('y', h - 6);
     xf(dmgArt, (DMG_W - artW) / 2, dmgArtTop + (side - artH) / 2,
@@ -745,8 +851,9 @@
   // for two of the armament rows. Re-run once the webfont lands, since the fallback
   // metrics differ from B612 Mono's.
   var HX_GAP = 16;
-  function hxFit(g) {
-    var need = g.w;
+  // minW lets two boxes that stack in one column be fitted to one shared width
+  function hxFit(g, minW) {
+    var need = Math.max(g.w, minW || 0);
     g.pairs.forEach(function (p) {
       var lw = 0, vw = 0;
       try { lw = p.l.getComputedTextLength(); vw = p.v.getComputedTextLength(); } catch (e) { return; }
@@ -812,7 +919,13 @@
     return { id: idb, spec: sp, arms: ar, warn: wn, left: left, right: right };
   })();
 
-  function hxFitAll() { [hx.id, hx.spec, hx.arms, hx.warn].forEach(hxFit); }
+  function hxFitAll() {
+    [hx.id, hx.spec, hx.arms, hx.warn].forEach(function (g) { hxFit(g); });
+    // UNIT DATA and ARMAMENT stack beside the contact as one column: one width, so
+    // their edges line up the way every other column in the HUD does
+    var w = Math.max(hx.spec.w, hx.arms.w);
+    hxFit(hx.spec, w); hxFit(hx.arms, w);
+  }
   hxFitAll();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { hxFitAll(); place(); });
 
@@ -906,6 +1019,116 @@
   // of the cycle red-on-red or dark-on-dark, invisible exactly when it matters most.
   // One clock cannot drift against itself.
   var ALARM_HALF = 400;
+
+  // ----------------------------------------------- HUD MODE, comms and status toast
+  var modeEl = document.getElementById('hudmode');
+  var commsEl = document.getElementById('comms'), toastEl = document.getElementById('toast');
+  // Cockpit chatter from the suit's own world. Nothing here is about the owner, and the
+  // hostile unit is never named outside HX_DATA -- it is "the contact at 180" here.
+  var COMMS = [
+    ['HQ-7', 'Patrol route confirmed. Hold bearing 180 and report any contact.'],
+    ['HANGAR CONTROL', 'Bay 3 is clear. RX-124 is cleared for redeployment.'],
+    ['HQ-7', 'Particle interference rising in sector 7. Expect sensor noise.'],
+    ['MISSION LOG', 'Three waypoints marked on your panoramic monitor.'],
+    ['LINEAR SEAT', 'Pilot biometrics nominal. Cockpit pressure holding.'],
+    ['HQ-7', 'Deployment ready on your mark. All systems nominal.']
+  ];
+  // POP_H: the tallest a popup gets -- a three-line transmission at the narrowest slot
+  // measured 136px -- so place() can tell whether the band clears the SPD/ALT captions
+  var POP_MAX = 300, POP_MIN = 200, POP_H = 150;
+  // Sizes a popup into the band [left, right]. Too narrow a band and it falls back to the
+  // centre slot under the tape, stacked `drop` px down so comms and toast never share it.
+  function popSlot(node, left, right, top, alignEnd, drop) {
+    if (!node) return;
+    var w = Math.min(POP_MAX, right - left);
+    if (w >= POP_MIN) {
+      node.style.left = (alignEnd ? right - w : left) + 'px';
+      node.style.top = top + 'px';
+      node.dataset.centre = '';
+    } else {
+      w = Math.min(POP_MAX, W - 48);
+      node.style.left = (W / 2 - w / 2) + 'px';
+      node.style.top = (top + drop) + 'px';
+      node.dataset.centre = '1';   // shares TARGET ID's slot: stood down while it is up
+    }
+    node.style.width = w + 'px';
+  }
+  function blocked(node) { return node.dataset.centre === '1' && hxOn; }
+
+  var toastTimer = null;
+  function toast(msg) {
+    if (!toastEl || blocked(toastEl)) return;
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2600);
+  }
+
+  var commsIdx = 0, commsTimer = null, commsHide = null, commsType = null;
+  function showComms(from, msg) {
+    if (!commsEl || blocked(commsEl)) return;
+    commsEl.querySelector('.comms-from').textContent = 'INCOMING // ' + from;
+    var out = commsEl.querySelector('.comms-msg');
+    clearInterval(commsType);
+    if (BUNNYS.reduce) out.textContent = msg;
+    else {
+      // typed out like a teleprinter; the full line is set as the accessible name first
+      // so a screen reader is not fed it a character at a time
+      out.setAttribute('aria-label', msg);
+      var n = 0;
+      out.textContent = '';
+      commsType = setInterval(function () {
+        out.textContent = msg.slice(0, ++n);
+        if (n >= msg.length) clearInterval(commsType);
+      }, 22);
+    }
+    commsEl.hidden = false;
+    clearTimeout(commsHide);
+    commsHide = setTimeout(hideComms, 11000);
+  }
+  function hideComms() {
+    // never pull the panel out from under a keyboard user who is on its ACK button
+    if (commsEl.contains(document.activeElement)) { commsHide = setTimeout(hideComms, 3000); return; }
+    clearInterval(commsType);
+    commsEl.hidden = true;
+  }
+  function nextComms() { var c = COMMS[commsIdx++ % COMMS.length]; showComms(c[0], c[1]); }
+  function scheduleComms(delay) {
+    clearTimeout(commsTimer);
+    commsTimer = setTimeout(function () {
+      nextComms();
+      scheduleComms(30000 + Math.random() * 20000);
+    }, delay);
+  }
+
+  // RUN DIAG: an amber sweep across every zone of the damage map, then the all-clear
+  function runDiag() {
+    var D = window.BUNNYS_DMG;
+    if (!D) { toast('DIAGNOSTIC UNAVAILABLE'); return; }
+    toast('DIAGNOSTIC SWEEP');
+    D.zones.forEach(function (z, i) { setTimeout(function () { setZone(z.id, 'caution'); }, i * 220); });
+    setTimeout(function () { toast('ALL SYSTEMS NOMINAL'); }, D.zones.length * 220 + 900);
+  }
+  function wireModes() {
+    if (commsEl) commsEl.querySelector('.comms-ack').addEventListener('click', function () {
+      commsEl.hidden = true;
+      clearInterval(commsType);
+      toast('TRANSMISSION ACKNOWLEDGED');
+    });
+    if (!modeEl) return;
+    modeEl.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-mode]');
+      if (!b) return;
+      var m = b.dataset.mode;
+      if (m === 'declutter' || m === 'nv') {
+        var on = document.body.classList.toggle(m);
+        b.setAttribute('aria-pressed', on);
+        toast(m === 'nv' ? (on ? 'NIGHT VISION ENGAGED' : 'NIGHT VISION OFF')
+                         : (on ? 'DECLUTTER ON' : 'FULL HUD RESTORED'));
+      } else if (m === 'diag') runDiag();
+      else if (m === 'comms') nextComms();
+    });
+  }
   function drawAlarmFlash(now) {
     var inv = !BUNNYS.reduce && Math.floor(now / ALARM_HALF) % 2 === 1;
     var on = document.querySelectorAll('#hud .hx-alarm');
@@ -923,7 +1146,12 @@
     // 4.2s hold means one can already be on screen, wide enough to overprint TARGET ID,
     // when a lock lands.
     hideCaution();
-    if (on) hxLogStart();
+    if (on) {
+      // a popup parked in the centre slot is sitting where TARGET ID is about to appear
+      [commsEl, toastEl].forEach(function (n) { if (n && n.dataset.centre === '1') n.hidden = true; });
+      hxLogStart();
+      showComms('HQ-7', 'Hostile confirmed at bearing 180. Engage at your discretion.');
+    }
     else { hxLogStop(); scheduleCaution(); }
   }
   // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than
@@ -1045,32 +1273,73 @@
       // a fixed margin
       var tapeBottom = Math.max(40, H * 0.055) + 42;
 
-      // -- RIGHT column, top to bottom: damage map, COMBAT SYSTEM, SLEW TO --
-      // SLEW TO is a fixed-position CSS panel pinned bottom-right (see cockpit.css
-      // .slew); COMBAT SYSTEM sits just above it, and the damage map takes whatever
-      // is left above that.
-      gaugeBox.setAttribute('opacity', room ? 1 : 0);
-      var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
-      var slewVisible = !!(slewR && slewR.height);
-      // the slew panel's own media query hides it below 860px wide / 520px tall, and
-      // a hidden element's rect is all zeros -- fall back to a fixed foot margin
-      var combatBottom = slewVisible ? (slewR.top - 14) : (H - 26);
-      xf(gaugeBox, W - 22 - gaugeW + G_PAD, combatBottom - (gaugeH - G_PAD));
-      var combatTop = combatBottom - gaugeH;
-      var mapTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
-      layoutDamage(W - 22 - DMG_W, mapTop, combatTop - 14, room);
+      // -- two columns, each centred on the middle of its own gutter --
+      // The gutter is the band between the screen edge and the SPD (or ALT) bar. Its
+      // midline is the lane every box in that column centres on, so a column reads as one
+      // line of instruments instead of a stack that each found its own margin. Every
+      // column instrument is PANEL_W wide and the whole column scales together when the
+      // gutter is too narrow, so their edges stay flush at every viewport size.
+      var colW = Math.min(PANEL_W, inset - 30);
+      var colS = colW / PANEL_W;
+      var laneL = inset / 2, laneR = W - inset / 2;
+      var colLx = laneL - colW / 2, colRx = laneR - colW / 2;
+      var colTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
+      lane.setAttribute('opacity', room ? 1 : 0);
+      if (room) {
+        laneRuleL.setAttribute('x1', laneL); laneRuleL.setAttribute('x2', laneL);
+        laneRuleR.setAttribute('x1', laneR); laneRuleR.setAttribute('x2', laneR);
+        [laneRuleL, laneRuleR].forEach(function (r) {
+          r.setAttribute('y1', colTop - 16); r.setAttribute('y2', statusY - 6);
+        });
+      }
 
-      // -- LEFT column, top to bottom: UNIT DATA, ARMAMENT, radar --
-      // the radar pins to the bottom-LEFT corner now; #tilt lives bottom-right so the
-      // lift that used to clear it is no longer needed there
+      var reactor = PANELS[0], thruster = PANELS[1], combat = PANELS[2];
+      PANELS.forEach(function (sp) { sp.g.setAttribute('opacity', room ? 1 : 0); });
+
+      // LEFT column, top to bottom: REACTOR STATUS, THRUSTER VECTOR, SENSOR ARRAY
       radar.setAttribute('opacity', room ? 1 : 0);
-      var radarColX = 22 + RAD + PAD;
-      var radarTy = H - RAD - PAD - 26;
+      // the radar's housing is PANEL_W wide by construction, so the same colS fits it
+      var radarCy = H - 26 - (RAD + PAD) * colS;
+      var radarTop = radarCy - (RAD + R_HEAD) * colS;
+      xf(radar, laneL, radarCy, ' scale(' + colS.toFixed(4) + ')');
+      xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
+      var thrusterY = colTop + reactor.h * colS + 14;
+      xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
+      // the thruster panel is the one that gives way first: it stands down rather than
+      // running into the radar below it
+      if (thrusterY + thruster.h * colS > radarTop - 12) thruster.g.setAttribute('opacity', 0);
+
+      // RIGHT column, top to bottom: DIAGNOSTIC MODE, COMBAT SYSTEM, SLEW TO.
+      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it
+      // is driven onto the same lane and the same width here rather than in the stylesheet.
+      var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
+      if (slewEl && room) {
+        slewEl.style.left = colRx + 'px';
+        slewEl.style.right = 'auto';
+        slewEl.style.width = colW + 'px';
+        slewR = slewEl.getBoundingClientRect();
+      }
+      var slewVisible = !!(slewR && slewR.height);
+      var modeR = null;
+      if (modeEl && room && slewVisible) {
+        modeEl.style.left = colRx + 'px';
+        modeEl.style.width = colW + 'px';
+        modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
+        modeR = modeEl.getBoundingClientRect();
+      }
+      // the slew panel's own media query hides it below 860px wide / 520px tall, and a
+      // hidden element's rect is all zeros -- fall back to a fixed foot margin
+      // Stacked from the TOP, mirroring the left column: DIAGNOSTIC MODE at colTop,
+      // COMBAT SYSTEM straight under it, SLEW TO pinned to the foot. The map takes the
+      // largest square that still leaves COMBAT SYSTEM room above the slew panel.
+      var rightFloor = modeR ? (modeR.top - 14) : slewVisible ? (slewR.top - 14) : (H - 26);
+      layoutDamage(colRx, colTop, rightFloor - combat.h * colS - 14, room, colS);
+      var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
+      xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
+
       // the foot row runs between the two bottom-corner instruments
       var slewLeft = slewVisible ? slewR.left : (W - 22);
-      layoutFoot(22 + (RAD + PAD) * 2 + 26, slewLeft - 26, statusY + 16);
-      xf(radar, radarColX, radarTy);
-      var radarTop = radarTy - RAD - PAD - HEAD;
+      layoutFoot(laneL + colW / 2 + 26, slewLeft - 26, statusY + 16);
 
       // Low, not mid-screen: at 0.62 the card sat straight over the enemy suit's head and
       // torso, which is the one contact big enough to be worth looking at. Keep it under
@@ -1083,11 +1352,30 @@
       xf(dossier, cx, dosY);
 
       // The hostile set fills the whole frame, so it has to be placed round the two things
-      // already living in the LEFT column: UNIT DATA sits under the heading tape, ARMAMENT
-      // under that, and the radar pinned bottom-left sits under both of them. If either
-      // will not fit, the set stands down and the plain dossier card covers the contact instead.
-      var specY = Math.max(96, H * 0.115, tapeBottom + 10);
-      var armsY = specY + hx.spec.h + 16;
+      // beside the contact, not in a column: UNIT DATA and ARMAMENT read as belonging to
+      // the suit you are looking at, and both side columns stay free for your own
+      // instruments. If the pair will not fit, the set stands down and the plain dossier
+      // card covers the contact instead.
+      // Measured, not guessed: the ALT / LOCK / IFF readouts' own box decides where the
+      // pair may go. An hx box spans x-HX_PAD .. x+w+HX_PAD, hence the HX_PAD terms.
+      var rb = hx.right.getBBox();
+      var readR = cx + 92 + rb.x + rb.width;
+      var readTop = cy - 17 + rb.y, readBot = readTop + rb.height;
+      var boxW = hx.spec.w + HX_PAD * 2, rightLimit = colRx - 16;
+      var specX, specY, armsY;
+      if (readR + 16 + boxW <= rightLimit) {
+        // wide screens: the pair stands to the right of the readouts, beside the contact
+        specX = readR + 16 + HX_PAD;
+        specY = cy - 128;
+        armsY = specY + hx.spec.h + 16;
+      } else {
+        // narrower: the pair straddles the readouts' band instead -- UNIT DATA above it,
+        // ARMAMENT below it -- flush to the right column, so it still never covers them
+        specX = rightLimit - boxW + HX_PAD;
+        specY = readTop - 14 - hx.spec.h + HX_PAD;
+        armsY = readBot + 14 + HX_PAD;
+      }
+      var specLeft = specX - HX_PAD, specTop = specY - HX_PAD;
       hxArmsBottom = armsY - HX_PAD + hx.arms.h;
       // TARGET ID's own top and bottom, and the alarm log flush beneath it -- computed
       // here (not inside logBottom()) so the hxRoom check below and the xf() calls
@@ -1097,11 +1385,24 @@
       var logY = idBottom + HX_LOG_GAP;
       hxLogBottom = logY + hxLogH;
       hxRoom = room && W > 1100
-            && hxArmsBottom + 14 <= radarTop     // clear of the radar, now bottom-left
+            && specLeft >= cx + hx.id.w / 2 + HX_PAD + 12   // clear of TARGET ID
+            && specLeft >= cx + hx.warn.w / 2 + HX_PAD + 12 // and of the anchor warning
+            && specTop >= tapeBottom + 8                     // under the heading tape
+            && hxArmsBottom + 14 <= statusY - 20             // over the status line
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, idY);
-      xf(hx.spec, 26, specY);
-      xf(hx.arms, 26, armsY);
+      // Popup slots in the open sky either side of TARGET ID, top-aligned with it. On a
+      // tall screen the SPD/ALT captions (cy - barH - 12) start below the whole popup band,
+      // so the slots may reach out to the columns; on a short one the band would run into
+      // those captions, so the bars' own x becomes the bound. Too narrow either way, and
+      // the popup takes the centre slot instead.
+      var popTop = idY - HX_PAD, idHalf = hx.id.w / 2 + HX_PAD;
+      var clearOfBars = popTop + POP_H <= cy - barH - 24;
+      popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, popTop, true, 0);
+      // 132: a two-line transmission at full width is 121px tall, plus an 11px gap
+      popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132);
+      xf(hx.spec, specX, specY);
+      xf(hx.arms, specX, armsY);
       xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
       xf(hx.left, cx - 92, cy - 17);
       xf(hx.right, cx + 92, cy - 17);
@@ -1160,7 +1461,7 @@
       fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
     });
 
-    buildRadar(); buildGauges(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
+    buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
     place();
     drawHeading(0); drawLadder(0, 0); drawRadar(0);
 
@@ -1185,7 +1486,9 @@
     BUNNYS.on('boot-done', function () {
       status.textContent = IDLE_STATUS;
       scheduleCaution();
+      scheduleComms(8000);
     });
+    wireModes();
 
     // gauges tick on their own clock; cheap, and pauses with the tab
     (function tick(now) {
@@ -1194,7 +1497,7 @@
       var t = now || performance.now();
       var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
       tick.last = t;
-      drawGauges(t);
+      drawPanels(t);
       drawFoot(t);
       drawSweep(t);
       drawHostile(t);

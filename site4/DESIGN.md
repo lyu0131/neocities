@@ -82,27 +82,63 @@ window.BUNNYS_DMG = {
   `tools/tracelib.py` holds the tracing helpers, shared with `trace_suit.py`.
 
 ## Cockpit layout (hub)
-Two columns, set by `place()`:
-- **left**, top to bottom: `UNIT DATA` -> `ARMAMENT DETECTED` -> `SENSOR ARRAY` (the radar,
-  bottom-left). The first two are hostile-lock only, so outside a lock the left column is
-  just the radar.
-- **right**, top to bottom: damage map (`DIAGNOSTIC MODE`) -> `COMBAT SYSTEM` -> `SLEW TO`
-  (anchored bottom-right, styled like the rest of the group: corner brackets, red header
-  rule and a stencil, not the bare button block it started as).
+Two columns, set by `place()`, each centred on a **lane**: the midline of the gutter between
+the screen edge and the SPD (or ALT) bar. A faint hairline runs down each lane; the panels
+paint over it, so it shows only in the gaps and ties each column into one line.
+- **left**, top to bottom: `REACTOR STATUS` -> `THRUSTER VECTOR` -> `SENSOR ARRAY` (radar,
+  pinned to the foot)
+- **right**, top to bottom: `DIAGNOSTIC MODE` -> `COMBAT SYSTEM` -> `HUD MODE` -> `SLEW TO`
+  (the last two pinned to the foot)
 
-The damage map's art region is a **square** and its housing shrink-wraps to it, anchored to
-the bottom of the range `place()` hands it so freed space opens above the map rather than
-as a gap above `COMBAT SYSTEM`. The artwork fits to whichever axis constrains it and is
-centred on the other — do not assume portrait, the source mesh gets re-scaled and the art
-has been both taller and wider than square.
+**One width.** Every column instrument is `PANEL_W` (248) wide: the three meter panels, the
+damage map, the radar (whose housing is `RAD*2 + PAD*2` = 248 by construction) and the two
+HTML button panels, which `place()` drives onto the same lane and width. When the gutter is
+narrower, the whole column scales together by `colS`, so edges stay flush at every size.
+Three different widths across the columns (204/194/194) is what used to make them look
+misaligned, however carefully each box was positioned. At common sizes the gutter is 324px,
+so a column sits 38px from both the screen edge and its bar.
 
-The radar lifts 56px when `#tilt` is visible, or it lands on the tilt button.
+**One header rhythm.** Every panel, the radar included, puts its header baseline at
+`G_PAD + 11` from the housing top, its rule 9px below that with a 12px tick scale, and its
+text at a `G_PAD` (14) inset. The old 9px baseline set the caps against the top edge.
+
+The three meter panels share `buildPanel(spec)` but each carries its own extra instrument,
+so they do not read as one panel repeated: the reactor's P-INT trace and bus lamps, the
+thrusters' attitude cross, the combat panel's hardpoint cells. Row keys are **at most five
+characters** (`OUTPT`, `VRN-A`, `SENSR`) — that is what lets a label clear its bar.
+
+The damage map's art region is a **square** that fits the full inner width and shrinks only
+if the column is too short; it is anchored to the **top** of its range. The artwork fits to
+whichever axis constrains it — do not assume portrait, the mesh gets re-scaled.
+
+`THRUSTER VECTOR` is the panel that stands down first when the left column is too short.
+
+### Hostile set
+`UNIT DATA` and `ARMAMENT DETECTED` sit beside the contact, not in a column, fitted to one
+shared width by `hxFit(g, minW)`. Their position is **measured** from the ALT / LOCK / IFF
+readouts' own box: on wide screens the pair stands to the right of the readouts; narrower,
+it straddles their band (UNIT DATA above, ARMAMENT below). Either way it never covers them.
+Where neither fits (below ~1400px wide) the set stands down and the dossier card takes over.
+
+### Popups and HUD MODE
+Two popup slots sit in the open sky either side of `TARGET ID`, top-aligned with it:
+incoming **comms** on the left, the **status toast** on the right. They are bounded by the
+columns when the band clears the SPD/ALT captions (`POP_H` is the tallest a popup gets) and
+by the bars when it does not; too narrow either way, and they share the centre slot, which
+is stood down (and emptied) while a hostile set is up. Comms arrive every 30-50s, a hostile
+lock sends its own, and the lines never name the hostile unit outside `HX_DATA`.
+
+`HUD MODE` holds four controls, each confirmed by the toast: `DECLUTTER` strips the
+secondary instruments and keeps the flight HUD; `NIGHT VIS` greens the scene through two
+overlay layers at `--z-fx` (a `filter` on the sphere would flatten `preserve-3d`, so it is
+never used there); `RUN DIAG` sweeps every damage-map zone amber, then reports all clear;
+`COMMS` replays the next transmission.
 
 Across the foot, between the bottom-corner instruments, sits a row of six live segmented
 bars (`PROP/COOL/PWR/O2/HYD/AUX`), driven from the same `tick(now)` loop. They stand down
-when the span between those instruments is under 340px. `img/frame.svg` used to carry a
-painted gauge here; painted art cannot move, so the row lives in the HUD instead, and the
-canopy struts are pulled inboard (x=360/1560) so the ribs no longer cross the columns.
+when the span between those instruments is under 340px. `img/frame.svg` carries no art in
+the bottom corners or under the foot row: the instruments occupy that space, and painted
+art there only ever showed through as stray fragments.
 
 ## Cautions and alarms
 One scheduler, two modes, keyed off `hxOn`:
