@@ -53,6 +53,12 @@ waits out live input (`now - lastInputTime > 90`) so a wheel nudge or a held tur
 never fought, and stays off entirely while dragging.
 
 ## Invariants
+- **`.pano-ring` must be translated forward by the perspective distance.** CSS puts the
+  camera at `z = +perspective` while the ring's origin — the sphere's centre — is at
+  `z = 0`, so without `translateZ(PERSP)` the camera stands outside the sphere and the
+  projection is wrong: a 15° slice does not subtend 15°, and the field of view comes out
+  at 237° instead of 100°. `applyRing()` writes it. Winding `perspective` up to compensate
+  only pushes the projection toward orthographic and the scene reads flat.
 - CSS must never set `transform` or `filter` on `.pano-ring`, `.pano-slice` or `.target` — cockpit.js and boot.js write those inline every frame.
 - `--slice-h` must stay `--slice-w * 5`; the strip is 400x2000 units per slice, and any other ratio distorts the whole scene. The floor and ceiling caps cover the pitch range instead.
 - **Cap tiles** (`band.row < 0`) carry no image. `paintCap()` gives them a latitude ramp

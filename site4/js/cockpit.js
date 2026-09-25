@@ -36,7 +36,7 @@
     for (var j = 0; j < LAT_BANDS; j++) BANDS.push({ top: bandTopLat(j), bot: bandTopLat(j + 1), row: j, cap: 0 });
     for (var k = 0; k < nBot; k++) BANDS.push({ top: imgBot - k * stepBot, bot: imgBot - (k + 1) * stepBot, row: -1, cap: k });
   })();
-  var sliceW = 0, R = 0;
+  var sliceW = 0, R = 0, PERSP = 0;
   var OVER = 1.04;   // quads are chords, so overlap slightly or the seams show
 
   // The strip spans 43.1deg up and 31.9deg down; cap tiles close the sphere past that.
@@ -123,6 +123,14 @@
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
+    // CSS puts the camera at z = +perspective, but .pano-ring's origin -- the sphere's
+    // centre -- sits at z = 0, so the camera was standing OUTSIDE the sphere by that much.
+    // That is what made the projection wrong: a 15deg slice did not subtend 15deg, the
+    // field of view came out at 237deg instead of the 100deg intended, and winding the
+    // perspective up to compensate only flattened the scene toward orthographic. Push the
+    // ring forward by the perspective distance so the sphere's centre lands on the camera,
+    // and R = sliceW / (2 tan 7.5) means exactly what it says again.
+    PERSP = parseFloat(getComputedStyle(pano).perspective) || 0;
     var imgH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
 
     tiles.forEach(function (t) {
@@ -213,7 +221,8 @@
 
   // ring rotation: yaw - 7.5deg corrects the half-slice offset above
   function applyRing(yaw, pitch) {
-    var t = 'rotateX(' + pitch.toFixed(2) + 'deg) rotateY(' + (yaw - HALF_SLICE).toFixed(2) + 'deg)';
+    var t = 'translateZ(' + PERSP.toFixed(1) + 'px) rotateX(' + pitch.toFixed(2)
+          + 'deg) rotateY(' + (yaw - HALF_SLICE).toFixed(2) + 'deg)';
     if (firing) {
       var p = Math.min(1, (performance.now() - fireStart) / 280);
       t += ' scale(' + (1 + p * 0.5).toFixed(3) + ')'; // boot.js owns filter on .pano-ring; we only scale
@@ -423,7 +432,10 @@
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       var off = Math.abs(shortestDelta(yaw, dy));
-      var hidden = off > 95;
+      // 80, not 95: with the sphere's centre on the camera a contact at exactly 90deg sits
+      // in the camera plane, where the projection scale goes to infinity. Nothing past
+      // 50deg is on screen at a 100deg field anyway, so cut well short of the singularity.
+      var hidden = off > 80;
       t.style.visibility = hidden ? 'hidden' : '';
       t.style.pointerEvents = hidden ? 'none' : '';
     });
