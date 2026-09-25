@@ -26,6 +26,52 @@
   function cardinal(h) { return h === 0 ? 'N' : h === 90 ? 'E' : h === 180 ? 'S' : h === 270 ? 'W' : null; }
   function xf(g, x, y, extra) { g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' + (extra || '')); }
 
+  // -- mechanical framing: registration-mark corner brackets, ruler tick scales and
+  // stencilled part-number captions, shared by every panel so they read as machined
+  // housings rather than floating rectangles. Fictional but fixed, not per-frame. --
+  function corners(x0, y0, w, h, len) {
+    len = len || 10;
+    var g = el('g', { class: 'brackets' });
+    var pts = [[x0, y0, 1, 1], [x0 + w, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + w, y0 + h, -1, -1]];
+    g.lines = pts.map(function (c) {
+      var a = el('line', {}), b = el('line', {});
+      g.appendChild(a); g.appendChild(b);
+      return { a: a, b: b, sx: c[2], sy: c[3] };
+    });
+    updateCorners(g, x0, y0, w, h, len);
+    return g;
+  }
+  function updateCorners(g, x0, y0, w, h, len) {
+    len = len || 10;
+    var pts = [[x0, y0], [x0 + w, y0], [x0, y0 + h], [x0 + w, y0 + h]];
+    g.lines.forEach(function (ln, i) {
+      var x = pts[i][0], y = pts[i][1];
+      ln.a.setAttribute('x1', x); ln.a.setAttribute('y1', y);
+      ln.a.setAttribute('x2', (x + len * ln.sx).toFixed(1)); ln.a.setAttribute('y2', y);
+      ln.b.setAttribute('x1', x); ln.b.setAttribute('y1', y);
+      ln.b.setAttribute('x2', x); ln.b.setAttribute('y2', (y + len * ln.sy).toFixed(1));
+    });
+  }
+  function tickScale(container, x0, x1, y, step) {
+    for (var x = x0; x <= x1; x += step) {
+      container.appendChild(el('line', { x1: x, y1: y, x2: x, y2: y + 4, opacity: .35 }));
+    }
+  }
+  function stencil(container, x, y, anchor, text) {
+    // text-anchor goes through inline style, not just the attribute: the dossier's
+    // own `text { text-anchor: middle }` rule would otherwise win and re-centre it
+    var t = el('text', {
+      x: x, y: y, 'text-anchor': anchor, class: 'stencil',
+      style: 'font-size:7px;opacity:.55;letter-spacing:.08em;text-anchor:' + anchor
+    });
+    t.textContent = text;
+    container.appendChild(t);
+    return t;
+  }
+  // fictional identifiers, invented once and reused everywhere so they stay
+  // consistent across redraws instead of drifting per frame
+  var UNIT_SERIAL = 'SL-01', BLOCK_REV = 'BLOCK 04C';
+
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
   // -- heading tape: fixed caret + readout, ticks regenerated around the current heading --
@@ -64,7 +110,7 @@
   svg.appendChild(bore);
 
   // -- status line, bottom centre --
-  var IDLE_STATUS = 'BUNNyS SL-01 / SYS NOMINAL';
+  var IDLE_STATUS = 'ALL SYSTEMS NOMINAL';
   var status = el('text', { 'text-anchor': 'middle' });
   status.textContent = IDLE_STATUS;
   svg.appendChild(status);
@@ -118,8 +164,11 @@
   function buildRadar() {
     // housing first, so the scope sits inside a panel rather than floating on the scene
     var w = RAD * 2 + PAD * 2, h = RAD * 2 + PAD * 2 + HEAD;
-    radar.appendChild(el('rect', { x: -w / 2, y: -RAD - PAD - HEAD, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.82)' }));
-    radar.appendChild(el('line', { x1: -w / 2, y1: -RAD - PAD, x2: w / 2, y2: -RAD - PAD, opacity: .6 }));
+    var bx = -w / 2, by = -RAD - PAD - HEAD, headRuleY = -RAD - PAD;
+    radar.appendChild(el('rect', { x: bx, y: by, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.82)' }));
+    radar.appendChild(corners(bx, by, w, h));
+    radar.appendChild(el('line', { x1: bx, y1: headRuleY, x2: bx + w, y2: headRuleY, opacity: .6 }));
+    tickScale(radar, bx + 4, bx + w - 4, headRuleY, 10);
     radar.appendChild(el('circle', { r: RAD, fill: 'rgba(6,10,18,.55)' }));
     [RAD, RAD * 0.66, RAD * 0.33].forEach(function (r) {
       radar.appendChild(el('circle', { r: r, opacity: r === RAD ? 1 : 0.4 }));
@@ -150,9 +199,10 @@
     sweepGroup.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: .9 }));
     radar.appendChild(sweepGroup);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
-    var cap = el('text', { x: -RAD - PAD + 8, y: -RAD - PAD - 7 });
-    cap.textContent = 'CONTACTS';
+    var cap = el('text', { x: bx + 8, y: headRuleY - 7 });
+    cap.textContent = 'SENSOR ARRAY';
     radar.appendChild(cap);
+    stencil(radar, bx + w - 6, by + h - 6, 'end', 'BNS-SNS-7741A');
 
     targets.forEach(function (t) {
       var g = el('g', { class: 'blip' });
@@ -202,23 +252,28 @@
 
   // ---------------------------------------------------------------- system gauges
   // Fictional readouts. They drift rather than sit still, so the panel reads as live.
+  function fmtVector(v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; }
+  function fmtLink(v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; }
+  function fmtHardpoint(v) { return Math.max(1, Math.round(v * 6)) + '/6'; }
   var GAUGES = [
-    { key: 'PROP', base: 0.78, drift: 0.05 },
-    { key: 'COOL', base: 0.61, drift: 0.09 },
-    { key: 'PWR',  base: 0.92, drift: 0.03 },
-    { key: 'P-INT', base: 0.24, drift: 0.14 },
-    { key: 'FRAME', base: 0.88, drift: 0.04 },
-    { key: 'OPTIC', base: 0.70, drift: 0.11 }
+    { key: 'REACT', base: 0.92, drift: 0.03 },      // REACTOR STATUS
+    { key: 'COOL',  base: 0.61, drift: 0.09 },
+    { key: 'P-INT', base: 0.24, drift: 0.14 },      // PARTICLE INTERFERENCE
+    { key: 'FRAME', base: 0.88, drift: 0.04 },      // FRAME INTEGRITY
+    { key: 'THR-V', base: 0.50, drift: 0.30, fmt: fmtVector },     // THRUSTER VECTOR
+    { key: 'SENSR', base: 0.70, drift: 0.11 },      // SENSOR ARRAY
+    { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: fmtLink },       // WEAPON LINK
+    { key: 'HDPT',  base: 0.83, drift: 0.15, fmt: fmtHardpoint }   // HARDPOINT STATUS
   ];
-  var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM'];
+  var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM', 'AUX', 'CORE']; // AUXILIARY BUS, CORE BLOCK
   var gaugeBox = el('g', { class: 'gauges' });
   var sparkPts = [], spark = null, lamps = [];
   // panel metrics: buildGauges (layout) and drawGauges (per-frame values) share these
   // instead of each hardcoding its own copy, so the two can't drift out of sync
   var G_PAD = 12, rowH = 20, barX = 46, barW = 72, sparkY = 0;
   function buildGauges() {
-    var pctX = barX + barW + 10, pctW = 34;
-    var contentW = pctX + pctW; // widest row (label..bar..percentage) sets the panel width
+    var pctX = barX + barW + 10, pctW = 52; // wide enough for "STANDBY", not just "100%"
+    var contentW = pctX + pctW; // widest row (label..bar..readout) sets the panel width
 
     var headerY = 9;                              // header baseline
     var ruleY = headerY + 9;
@@ -230,17 +285,17 @@
     var lampsTop = sparkY + sparkH + 16;
     var lampH = 11;
     var lampLabelY = lampsTop + lampH + 11;
-    var contentBottom = lampLabelY + 3;            // headroom below the lamp labels' baseline
+    var contentBottom = lampLabelY + 14;           // room for the lamp labels, then the stencil line below them
 
     // housing first, sized from the content above rather than a fixed guess
-    gaugeBox.appendChild(el('rect', {
-      x: -G_PAD, y: -G_PAD, width: contentW + G_PAD * 2, height: contentBottom + G_PAD * 2,
-      rx: 3, fill: 'rgba(6,10,18,.85)'
-    }));
+    var bx = -G_PAD, by = -G_PAD, bw = contentW + G_PAD * 2, bh = contentBottom + G_PAD * 2;
+    gaugeBox.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, rx: 3, fill: 'rgba(6,10,18,.85)' }));
+    gaugeBox.appendChild(corners(bx, by, bw, bh));
     var hdr = el('text', { x: 0, y: headerY });
-    hdr.textContent = 'SYS / SL-01';
+    hdr.textContent = 'COMBAT SYSTEM';
     gaugeBox.appendChild(hdr);
     gaugeBox.appendChild(el('line', { x1: 0, y1: ruleY, x2: contentW, y2: ruleY, opacity: .55 }));
+    tickScale(gaugeBox, 0, contentW, ruleY, 12);
     GAUGES.forEach(function (g, i) {
       var y = rowsY + i * rowH;
       var lbl = el('text', { x: 0, y: y + 4 });
@@ -249,16 +304,18 @@
       gaugeBox.appendChild(el('rect', { x: barX, y: y - 6, width: barW, height: 9 }));
       g.fill = el('rect', { x: barX + 1, y: y - 5, width: 1, height: 7, fill: 'currentColor', stroke: 'none' });
       gaugeBox.appendChild(g.fill);
-      g.txt = el('text', { x: pctX, y: y + 4 });
+      g.txt = el('text', { x: pctX + pctW, y: y + 4, 'text-anchor': 'end' });
       gaugeBox.appendChild(g.txt);
     });
-    // particle-density trace, so the panel has something moving that is not a bar
+    // particle-interference trend, so the panel has something moving that is not a bar
     var sl = el('text', { x: 0, y: sparkLabelY });
-    sl.textContent = 'P-DENSITY';
+    sl.textContent = 'P-INT TREND';
     gaugeBox.appendChild(sl);
     gaugeBox.appendChild(el('rect', { x: 0, y: sparkY, width: contentW, height: sparkH, opacity: .45 }));
     spark = el('polyline', { points: '', opacity: .9 });
     gaugeBox.appendChild(spark);
+    gaugeBox.appendChild(el('line', { x1: 0, y1: lampsTop - 8, x2: contentW, y2: lampsTop - 8, opacity: .35 }));
+    stencil(gaugeBox, contentW, contentBottom - 3, 'end', UNIT_SERIAL + ' · BNS-SYS-206C');
     // status lamps -- box+pip+label, all measured down from lampsTop so the labels
     // land inside the housing instead of on its bottom edge
     LAMPS.forEach(function (name, i) {
@@ -277,7 +334,7 @@
     GAUGES.forEach(function (g, i) {
       var v = clamp(g.base + Math.sin(now / (3100 + i * 900) + i) * g.drift, 0.02, 1);
       g.fill.setAttribute('width', (1 + v * (barW - 2)).toFixed(1));
-      g.txt.textContent = Math.round(v * 100) + '%';
+      g.txt.textContent = g.fmt ? g.fmt(v) : Math.round(v * 100) + '%';
       g.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
     });
     sparkPts.push(Math.sin(now / 900) * 0.4 + Math.sin(now / 340) * 0.3 + (Math.random() - 0.5) * 0.25);
@@ -295,31 +352,65 @@
   // Filled whenever a target is acquired -- by hover, by keyboard focus, or by putting
   // the boresight on it. cockpit.js decides; this only renders.
   var dossier = el('g', { class: 'dossier', opacity: 0 });
-  var dosLabel = el('text', { x: 0, y: 0, class: 'dos-title' });
-  var dosRead = el('text', { x: 0, y: 24, class: 'dim' });
+  var dosLabel = el('text', { x: 0, y: 8, class: 'dos-title' });
+  var dosRead = el('text', { x: 0, y: 30, class: 'dim' });
+  // `#hud .dossier text` forces text-anchor:middle in cockpit.css; an inline style
+  // beats that stylesheet rule (a bare attribute would not), so the start/end
+  // alignment has to be set inline here to actually take effect
+  var DOS_CAP_STYLE = 'font-size:10px;letter-spacing:.12em;opacity:.75;text-anchor:';
+  var dosCap = el('text', { x: -200, y: -20, class: 'dos-cap', style: DOS_CAP_STYLE + 'start' });
+  var dosSeq = el('text', { x: 200, y: -20, 'text-anchor': 'end', class: 'dos-seq', style: DOS_CAP_STYLE + 'end' });
   var dosBrief = [], dosHint = el('text', { x: 0, y: 0, class: 'dos-hint' });
-  var dosBox, dosRule;
+  var dosBox, dosRule, dosSeqTimer = null, dosLastId = null;
   function buildDossier() {
-    dosBox = el('rect', { x: -220, y: -34, width: 440, height: 150, rx: 3, fill: 'rgba(6,10,18,.9)' });
+    // TARGET ACQUISITION / LOCK SEQUENCE overline, then name, readout, rule, brief, hint
+    var ruleY = 42, briefY0 = 64, briefStep = 18;
+    var hintY = briefY0 + 2 * briefStep + 32;
+    var boxTop = -36, boxBottom = hintY + 26, padX = 220; // extra room below the hint for the stencil line
+    dosCap.textContent = 'TARGET ACQUISITION';
+    dosBox = el('rect', { x: -padX, y: boxTop, width: padX * 2, height: boxBottom - boxTop, rx: 3, fill: 'rgba(6,10,18,.9)' });
     dossier.appendChild(dosBox);
-    dossier.appendChild(el('rect', { x: -214, y: -28, width: 428, height: 138, rx: 2, opacity: .45 }));
-    dosRule = el('line', { x1: -200, y1: 36, x2: 200, y2: 36, opacity: .5 });
+    dossier.appendChild(corners(-padX, boxTop, padX * 2, boxBottom - boxTop));
+    dossier.appendChild(el('rect', { x: -padX + 6, y: boxTop + 6, width: padX * 2 - 12, height: boxBottom - boxTop - 12, rx: 2, opacity: .45 }));
+    dossier.appendChild(dosCap); dossier.appendChild(dosSeq);
+    dosRule = el('line', { x1: -200, y1: ruleY, x2: 200, y2: ruleY, opacity: .5 });
     dossier.appendChild(dosLabel); dossier.appendChild(dosRead); dossier.appendChild(dosRule);
+    tickScale(dossier, -200, 200, ruleY, 20);
     for (var i = 0; i < 3; i++) {
-      var t = el('text', { x: 0, y: 58 + i * 18, class: 'dim' });
+      var t = el('text', { x: 0, y: briefY0 + i * briefStep, class: 'dim' });
       dosBrief.push(t); dossier.appendChild(t);
     }
-    dosHint.setAttribute('y', 128);
+    dosHint.setAttribute('y', hintY);
     dossier.appendChild(dosHint);
+    stencil(dossier, padX - 6, boxBottom - 8, 'end', 'BNS-TAQ-330B · ' + BLOCK_REV);
     svg.appendChild(dossier);
   }
   function setDossier(d) {
-    if (!d || !d.id) { dossier.setAttribute('opacity', 0); return; }
+    if (!d || !d.id) { dossier.setAttribute('opacity', 0); clearTimeout(dosSeqTimer); dosLastId = null; return; }
     dosLabel.textContent = d.label || '';
     dosRead.textContent = d.readout || '';
     var lines = (d.brief || '').split('|');
     dosBrief.forEach(function (t, i) { t.textContent = lines[i] || ''; });
-    dosHint.textContent = d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED';
+    // IFF STATUS: a target with an approach (href) reads as a friendly/known contact;
+    // the unknown target (no href) never resolves an IFF handshake
+    var iff = d.href ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
+    dosHint.textContent = (d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED') + ' — ' + iff;
+    if (d.id !== dosLastId) {
+      // LOCK SEQUENCE: acquiring for the same 350ms the target's own bracket
+      // close-in takes (see .target transition in cockpit.css), then locked
+      dosLastId = d.id;
+      dosSeq.textContent = 'LOCK SEQUENCE: ACQUIRING';
+      // `#hud text { fill: currentColor }` beats a plain fill attribute, same as the
+      // text-anchor issue above, so the colour has to go through inline style too
+      dosSeq.style.fill = 'var(--amber, #FFB02E)';
+      dosSeq.classList.add('is-acquiring'); dosSeq.classList.remove('is-locked');
+      clearTimeout(dosSeqTimer);
+      dosSeqTimer = setTimeout(function () {
+        dosSeq.textContent = 'LOCK SEQUENCE: LOCKED';
+        dosSeq.style.fill = 'var(--lock, #FF3347)';
+        dosSeq.classList.remove('is-acquiring'); dosSeq.classList.add('is-locked');
+      }, 350);
+    }
     dossier.setAttribute('opacity', 1);
   }
 
@@ -328,26 +419,81 @@
   var CAUTIONS = [
     'PARTICLE INTERFERENCE RISING',
     'COOLANT LOOP 2 OFF NOMINAL',
-    'HULL STRESS / SECTOR 7',
-    'SENSOR GHOST BEARING 214',
+    'FRAME INTEGRITY: SECTOR 7 STRESS',
+    'SENSOR ARRAY: GHOST CONTACT, BEARING 214',
     'PROPELLANT RESERVE LOW',
-    'IFF HANDSHAKE TIMEOUT'
+    'IFF STATUS: HANDSHAKE TIMEOUT',
+    'WEAPON LINK DEGRADED',
+    'AUXILIARY BUS OVERLOAD',
+    'HARDPOINT STATUS: UNSECURED',
+    'SENSOR ARRAY CALIBRATION REQUIRED',
+    'SYSTEM OVERRIDE ENGAGED'
   ];
   var warn = el('g', { class: 'warn', opacity: 0 });
-  var warnText = el('text', { x: 28, y: 8, 'text-anchor': 'middle', class: 'warn-text' });
+  var warnText = el('text', { y: 8, 'text-anchor': 'middle', class: 'warn-text' });
+  // The box spans -halfW..halfW so xf(warn, cx, ...) keeps it centred. The triangle
+  // sits a fixed inset (WARN_PAD) off the box's *left* edge, so as halfW grows to
+  // fit longer text both the triangle and the text's free span move outward together
+  // and stay in step -- see layoutWarn(), which derives the text anchor from that
+  // geometry instead of a hand-guessed constant.
+  var WARN_MIN_HALF = 280, WARN_PAD = 32, WARN_TRI_W = 40, WARN_PAD_R = 0, WARN_MARGIN = 16;
+  var warnBox, warnInner, warnTri, warnTick, warnDot, warnCorners, warnPN;
   function buildWarn() {
-    warn.appendChild(el('rect', { x: -280, y: -30, width: 560, height: 60, fill: 'rgba(6,10,18,.86)' }));
-    warn.appendChild(el('rect', { x: -274, y: -24, width: 548, height: 48, opacity: .5 }));
-    warn.appendChild(el('path', { d: 'M-248,14 L-228,-22 L-208,14 Z' }));
-    warn.appendChild(el('line', { x1: -228, y1: -10, x2: -228, y2: 2 }));
-    warn.appendChild(el('circle', { cx: -228, cy: 8, r: 1.6 }));
+    warnBox = el('rect', { y: -30, height: 60, fill: 'rgba(6,10,18,.86)' });
+    warnInner = el('rect', { y: -24, height: 48, opacity: .5 });
+    warnTri = el('path', {});
+    warnTick = el('line', { y1: -10, y2: 2 });
+    warnDot = el('circle', { cy: 8, r: 1.6 });
+    warn.appendChild(warnBox);
+    warnCorners = corners(-WARN_MIN_HALF, -30, WARN_MIN_HALF * 2, 60);
+    warn.appendChild(warnCorners);
+    warn.appendChild(warnInner);
+    warn.appendChild(warnTri);
+    warn.appendChild(warnTick);
+    warn.appendChild(warnDot);
     warn.appendChild(warnText);
+    warnPN = stencil(warn, WARN_MIN_HALF - 8, 24, 'end', 'BNS-CTN-041A');
+    layoutWarn(WARN_MIN_HALF);
     svg.appendChild(warn);
+  }
+  // positions every x-dependent part of the banner from a single half-width, so
+  // growing/shrinking the box (to fit text, or to fit a narrow viewport) can never
+  // throw the triangle, the text anchor or the frame out of sync with each other
+  function layoutWarn(halfW) {
+    warnBox.setAttribute('x', (-halfW).toFixed(1)); warnBox.setAttribute('width', (halfW * 2).toFixed(1));
+    warnInner.setAttribute('x', (-halfW + 6).toFixed(1)); warnInner.setAttribute('width', (halfW * 2 - 12).toFixed(1));
+    updateCorners(warnCorners, -halfW, -30, halfW * 2, 60);
+    var triX0 = -halfW + WARN_PAD, triX1 = triX0 + WARN_TRI_W, triMidX = triX0 + WARN_TRI_W / 2;
+    warnTri.setAttribute('d', 'M' + triX0.toFixed(1) + ',14 L' + triMidX.toFixed(1) + ',-22 L' + triX1.toFixed(1) + ',14 Z');
+    warnTick.setAttribute('x1', triMidX.toFixed(1)); warnTick.setAttribute('x2', triMidX.toFixed(1));
+    warnDot.setAttribute('cx', triMidX.toFixed(1));
+    // the caption's free span runs from the triangle's right edge to the box's own
+    // right edge (less its inset); anchor the centred text at that span's midpoint
+    var textZoneRight = halfW - WARN_PAD_R;
+    warnText.setAttribute('x', ((triX1 + textZoneRight) / 2).toFixed(1));
+    warnPN.setAttribute('x', (halfW - 8).toFixed(1));
+  }
+  // grows the box to fit the current caution text (down to a viewport-clamped
+  // maximum), and as a last resort compresses the glyphs so nothing can run past
+  // the box's edge even on a 375px screen
+  function fitWarn() {
+    warnText.removeAttribute('textLength'); warnText.removeAttribute('lengthAdjust');
+    var natural = warnText.getComputedTextLength ? warnText.getComputedTextLength() : 0;
+    var maxHalf = Math.max(90, (W || 900) / 2 - 20);
+    var idealHalf = (natural + WARN_MARGIN * 2 + WARN_PAD + WARN_TRI_W + WARN_PAD_R) / 2;
+    var halfW = clamp(Math.max(idealHalf, WARN_MIN_HALF), 90, maxHalf);
+    layoutWarn(halfW);
+    var zoneWidth = 2 * halfW - WARN_PAD - WARN_TRI_W - WARN_PAD_R - WARN_MARGIN * 2;
+    if (natural > 0 && zoneWidth > 20 && natural > zoneWidth) {
+      warnText.setAttribute('textLength', zoneWidth.toFixed(1));
+      warnText.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+    }
   }
   function scheduleCaution() {
     var wait = 9000 + Math.random() * 16000;
     setTimeout(function () {
       warnText.textContent = CAUTIONS[Math.floor(Math.random() * CAUTIONS.length)];
+      fitWarn();
       warn.setAttribute('opacity', 1);
       warn.classList.toggle('is-blinking', !BUNNYS.reduce);
       setTimeout(function () {
@@ -368,7 +514,8 @@
     xf(hdg, cx, Math.max(40, H * 0.055));
     xf(bore, cx, cy);
     status.setAttribute('x', cx);
-    status.setAttribute('y', H - Math.max(26, H * 0.05));
+    var statusY = H - Math.max(26, H * 0.05);
+    status.setAttribute('y', statusY);
 
     [spd, alt].forEach(function (b) {
       b.rule.setAttribute('y1', -barH); b.rule.setAttribute('y2', barH);
@@ -391,8 +538,16 @@
       var colX = 22 + RAD + PAD;                       // centre of the left instrument column
       xf(radar, colX, H - RAD - PAD - 26);
       xf(gaugeBox, 34, Math.max(84, H * 0.11));
-      xf(dossier, cx, clamp(H * 0.62, 260, H - 190));   // under the reticle: a popup, not a corner panel  // above the SPD cap at cy-barH-12
+      // Low, not mid-screen: at 0.62 the card sat straight over the enemy suit's head and
+      // torso, which is the one contact big enough to be worth looking at. Keep it under
+      // the reticle but down in the lower third, still clear of the status line.
+      // Derived, not dialled in: the card's own box height decides how high it has to
+      // sit. A fixed fraction put it over the enemy suit's head at tall sizes and through
+      // the status line at short ones. Sit it low, but never closer than 18px to the line.
+      var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
+      xf(dossier, cx, clamp(H * 0.74, 200, statusY - 18 - dosBot));
       xf(warn, cx, clamp(H * 0.26, 90, 260));
+      fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
       if (ladder) xf(ladder, cx, cy, ' rotate(' + lastRoll.toFixed(2) + ')');
       if (fpm) xf(fpm, cx, cy);
     }
@@ -450,12 +605,12 @@
       setBar(alt, clamp((d.pitch + 12) / 24, 0, 1), (d.pitch >= 0 ? '+' : '') + Math.round(d.pitch));
     });
     BUNNYS.on('lock', function (d) {
-      status.textContent = d.id ? 'LOCK: ' + d.label : IDLE_STATUS;
+      status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
       setDossier(d);
       drawRadar(BUNNYS.state.yaw);
     });
     BUNNYS.on('boot-done', function () {
-      status.textContent = 'ALL SYSTEMS NOMINAL';
+      status.textContent = IDLE_STATUS;
       scheduleCaution();
     });
 

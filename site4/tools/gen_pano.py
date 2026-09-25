@@ -8,6 +8,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 W, H, HZ = 9600, 2000, 1150
 rnd = random.Random(1979)
+
+# ---- eye height -------------------------------------------------------------
+# The pilot sits in a mobile suit's head, EYE_M metres above the water, so the
+# scene is laid out from there.  The strip is equirectangular: 360 deg over W px,
+# so PX_DEG deg per px in BOTH axes, and the horizon stays at HZ whatever the eye
+# height.  What the height changes is the depression to everything at sea level.
+#   ey(z, D) = the image row of a point z metres up, D metres away.
+# Anything shorter than EYE_M therefore lands below HZ; only what is taller rises.
+PX_DEG = 360.0 / W                                 # 0.0375 deg per px
+EYE_M = 18.0
+def ey(z, D): return HZ - math.degrees(math.atan((z - EYE_M) / D)) / PX_DEG
+# distances of the scene's layers, in metres
+D_CITY, D_MID, D_NEAR = 1800., 1100., 600.
+# D_SUIT is the close one: the strip only reaches (H - HZ) * PX_DEG = 31.875 deg below the
+# horizon, so feet at sea level need D > 18 / tan(31.875) = 28.96 m to stay on the image.
+D_BRIDGE, D_SHIP, D_HEAD, D_DOCK, D_SUIT = 1800., 1500., 4000., 92., 33.
+SEA_CITY, SEA_NEAR = ey(0, D_CITY), ey(0, D_NEAR)   # the far and near shorelines
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'img', 'pano.svg')
 
 NIGHT, INDIGO, TEAL, SOD, WHITE = '#060A12', '#0E1830', '#1F4E5F', '#FF9A3D', '#FFFFFF'
@@ -211,6 +228,18 @@ for op, pts in hl.items(): dots(pts, SOD, op)
 add('<use href="#blk" x="6620" y="%s" transform="scale(1)"/>' % f(HZ - hills_far(6620) - 60))
 add('<rect x="6618" y="%s" width="4" height="60" fill="%s"/>' % (f(HZ - hills_far(6620) - 60), mix(INDIGO, TEAL, .22)))
 
+# ---------------------------------------------------------------- sea (water plane)
+# Laid in before the shore because from 18 m up every shoreline sits BELOW the
+# horizon, so the city, the bridge and the quay are drawn standing on this band.
+# The strip's bottom edge is where the floor cap joins, so it must not fall to pure
+# night or looking down reads as a void instead of water.  The last stop is sampled
+# by cockpit.js as SEA_EDGE, so it must not move.
+vgrad('sea', HZ, H, [(0, mix(INDIGO, TEAL, .34), 1), (.02, mix(NIGHT, INDIGO, .9), 1), (.22, mix(NIGHT, INDIGO, .62), 1),
+                     (.6, mix(NIGHT, INDIGO, .5), 1), (1, mix(NIGHT, INDIGO, .42), 1)])
+add('<rect x="-10" y="%d" width="%d" height="%d" fill="url(#sea)"/>' % (HZ + 2, W + 20, H - HZ + 8))
+add('<rect x="-10" y="%d" width="%d" height="3" fill="%s" opacity=".22"/>' % (HZ + 2, W + 20, GLINT))
+D.append('<clipPath id="kw"><rect x="-10" y="%d" width="%d" height="%d"/></clipPath>' % (HZ + 1, W + 20, H - HZ))
+
 # ---------------------------------------------------------------- skyline (windows are patterns; each building translates so its grid aligns)
 def win_pattern(pid, cw, ch, ww, wh, cols, rows, plit, strip=False):
     groups = {}
@@ -236,28 +265,31 @@ def env_low(x):
     return max(150 * gauss(x, 0, 2100), 100 * gauss(x, 2750, 650), 80 * gauss(x, 6950, 650), 110 * gauss(x, 7800, 550))
 def density(x):
     return max(gauss(x, 0, 2000), .85 * gauss(x, 2750, 650), .55 * gauss(x, 6950, 700), .8 * gauss(x, 7800, 520))
-def cap(x):  # keep the sky behind PILOT / MISSIONS / HANGAR clear: roofs stay below y~1050 there
-    c = calm(x, 330)
-    return 100 + (1 - c) ** 2 * 2000
+def cap(x):  # keep the sky behind PILOT / MISSIONS / HANGAR clear.  In metres now: at a
+    c = calm(x, 330)                    # target bearing only sub-eye-height blocks survive,
+    return 22 + (1 - c) ** 2 * 700      # so their roofs sit on the horizon instead of over it.
 
 REFL, SMEAR = [], []
-LAYERS = [  # name, cell w/h, window w/h, cols, tower k, low k, grads, window op, roof, reflection
-    ('f', 8, 10, 4, 5, (4, 10), 1.0, 1.0, [(mix(INDIGO, TEAL, .26), mix(INDIGO, TEAL, .46)), (mix(INDIGO, TEAL, .34), mix(INDIGO, TEAL, .5))], .55, 8, 0),
-    ('m', 12, 15, 6, 8, (3, 8), .75, .8, [(mix(NIGHT, INDIGO, .8), mix(INDIGO, TEAL, .24)), (mix(NIGHT, INDIGO, .95), mix(INDIGO, TEAL, .3))], .85, 10, .5),
-    ('n', 16, 20, 8, 10, (3, 9), 0, .6, [(NEAR, mix(NIGHT, INDIGO, .75)), (mix(NIGHT, INDIGO, .5), mix(INDIGO, TEAL, .12))], 1, 12, .8),
+# tower k / low k are metres per unit of env_tower / env_low, so heights are real:
+# f tops out near 200 m at 1.8 km, m near 120 m at 1.1 km, n is waterfront blocks under 55 m.
+LAYERS = [  # name, cell w/h, window w/h, cols, dist, tower k, low k, grads, window op, roof, reflection
+    ('f', 8, 10, 4, 5, (4, 10), D_CITY, .5, .47, [(mix(INDIGO, TEAL, .26), mix(INDIGO, TEAL, .46)), (mix(INDIGO, TEAL, .34), mix(INDIGO, TEAL, .5))], .55, 8, 0),
+    ('m', 12, 15, 6, 8, (3, 8), D_MID, .3, .4, [(mix(NIGHT, INDIGO, .8), mix(INDIGO, TEAL, .24)), (mix(NIGHT, INDIGO, .95), mix(INDIGO, TEAL, .3))], .85, 10, .5),
+    ('n', 16, 20, 8, 10, (3, 9), D_NEAR, 0, .37, [(NEAR, mix(NIGHT, INDIGO, .75)), (mix(NIGHT, INDIGO, .5), mix(INDIGO, TEAL, .12))], 1, 12, .8),
 ]
-def building(name, x, w, h, rows, roof, cw, ch, grad, gt, pat, wop, feat):
+def building(name, x, base, w, h, rows, roof, cw, ch, grad, gt, pat, wop, feat):
     kx, ky = rnd.randint(0, 11), rnd.randint(0, 13)
     op = wop * rnd.uniform(.65, 1)
     for o in images(x - 12, x + w + 12):
-        g = '<g transform="translate(%s %s)">%s<rect width="%s" height="%s" fill="url(#%s)"/>' % (f(x + o), f(HZ - h), feat, f(w), f(h + 2), grad)
+        g = '<g transform="translate(%s %s)">%s<rect width="%s" height="%s" fill="url(#%s)"/>' % (f(x + o), f(base - h), feat, f(w), f(h + 2), grad)
         if pat:
             g += '<rect x="%d" y="%d" width="%s" height="%s" fill="url(#%s)" opacity="%s" transform="translate(%d %d)"/>' % (
                 kx * cw, ky * ch, f(w), f(rows * ch), pat, f(op, 2), -kx * cw, roof - ky * ch)
         g += '<rect width="%s" height="2" fill="%s" opacity=".45"/></g>' % (f(w), mix(gt, TEAL, .7))
         add(g)
 
-for name, cw, ch, ww, wh, cr, tk, lk, grads, wop, roof, refl in LAYERS:
+for name, cw, ch, ww, wh, cr, dist, tk, lk, grads, wop, roof, refl in LAYERS:
+    base = ey(0, dist)                  # this layer's shoreline, below the horizon
     for v in range(3): win_pattern('w%s%d' % (name, v), cw, ch, ww, wh, 12, 14, .42 if name != 'n' else .3)
     win_pattern('w%s3' % name, cw, ch, ww, wh, 12, 14, .45, strip=True)
     for i, (gt, gb) in enumerate(grads): bgrad('B%s%d' % (name, i), [(0, gt, 1), (1, gb, 1)])
@@ -270,92 +302,94 @@ for name, cw, ch, ww, wh, cr, tk, lk, grads, wop, roof, refl in LAYERS:
             x += rnd.uniform(80, 260); continue
         tall = env_tower(xc) * tk * rnd.uniform(.3, 1) * (rnd.random() < .75)
         low = env_low(xc) * lk * rnd.uniform(.3, 1)
-        h = min(max(tall, low), cap(xc) * (1.25 if name == 'f' else 1))
+        zm = min(max(tall, low), cap(xc) * (1.25 if name == 'f' else 1))   # metres
+        h = base - ey(zm, dist)                                           # px, base to roof
         if h < ch * 2:
             x += w * .7; continue
         rows = int((h - roof) / ch); h = roof + rows * ch
         gi = rnd.randint(0, 1); gt = grads[gi][0]
         feat = ''
-        if h > 150 and rnd.random() < .75:
+        # thresholds are in drawn px, which the 18 m eye shrank by roughly 2.5x
+        if h > 60 and rnd.random() < .75:
             k = rnd.random()
             if k < .45:
-                L = rnd.uniform(30, 80)
+                L = h * rnd.uniform(.18, .45)
                 feat = '<rect x="%s" y="%s" width="4" height="%s" fill="%s"/>' % (f(w / 2 - 2), f(-L), f(L), gt)
-                if h > 250: feat += '<use href="#blk" x="%s" y="%s" transform="scale(.6)"/>' % (f(w / 2 / .6), f(-L / .6))
+                if h > 110: feat += '<use href="#blk" x="%s" y="%s" transform="scale(.6)"/>' % (f(w / 2 / .6), f(-L / .6))
             elif k < .75:
                 cwid = w * rnd.uniform(.4, .7)
                 feat = '<rect x="%s" y="%s" width="%s" height="%s" fill="%s"/>' % (f((w - cwid) / 2), -ch * 2, f(cwid), ch * 2, gt)
             else:
                 s = w * rnd.uniform(.25, .5)
                 feat = '<path d="M0 0L%s %s %s 0Z" fill="%s"/>' % (f(w if rnd.random() < .5 else 0), f(-s), f(w), gt)
-        pat = None if rnd.random() < .07 else 'w%s%d' % (name, rnd.choice([0, 1, 2, 3] if h > 120 else [0, 1, 2]))
-        building(name, x, w, h, rows, roof, cw, ch, 'B%s%d' % (name, gi), gt, pat, wop, feat)
-        if refl and pat and rnd.random() < d * .8: SMEAR.append((xc, w * .55, refl * min(1, h / 250 + .35)))
+        pat = None if rnd.random() < .07 else 'w%s%d' % (name, rnd.choice([0, 1, 2, 3] if h > 80 else [0, 1, 2]))
+        building(name, x, base, w, h, rows, roof, cw, ch, 'B%s%d' % (name, gi), gt, pat, wop, feat)
+        if refl and pat and rnd.random() < d * .8: SMEAR.append((xc, w * .55, refl * min(1, h / 150 + .35), base))
         x += w + (rnd.uniform(0, 5) if d > .5 else rnd.uniform(0, 50 * (1 - d)))
     add('</g>')
     if name == 'f':
-        # landmark towers framing the targets: tapered crowns, lit crown bands, spires
-        for lx, lw, lh in [(600, 64, 470), (8860, 56, 420), (1930, 48, 330), (7680, 52, 350)]:
-            top = HZ - lh
+        # landmark towers framing the targets: real supertalls (metres), so at 1.8 km they
+        # are the only structures that clear the horizon by any distance
+        for lx, lw, zm in [(600, 64, 340), (8860, 56, 300), (1930, 48, 210), (7680, 52, 230)]:
+            top = ey(zm, dist); lh = base - top; sp = max(40, lh * .3)
             for o in images(lx - 10, lx + lw + 10):
                 a = lx + o
-                add('<path d="M%s %sL%s %s %s %s %s %s %s %sZ" fill="url(#Bm0)"/>' % (f(a), HZ, f(a), f(top + 40), f(a + lw / 2), f(top), f(a + lw), f(top + 40), f(a + lw), HZ))
+                add('<path d="M%s %sL%s %s %s %s %s %s %s %sZ" fill="url(#Bm0)"/>' % (f(a), f(base), f(a), f(top + 40), f(a + lw / 2), f(top), f(a + lw), f(top + 40), f(a + lw), f(base)))
                 add('<rect x="%s" y="%s" width="%s" height="%s" fill="url(#wm3)" opacity=".8"/>' % (f(a + 6), f(top + 60), f(lw - 12), f(lh - 60)))
                 add('<path d="M%s %sh%sv5h-%sz M%s %sh%sv4h-%sz" fill="%s" opacity=".85"/>' % (f(a + 4), f(top + 44), f(lw - 8), f(lw - 8), f(a + 6), f(top + 52), f(lw - 12), f(lw - 12), SOD))
                 add('<rect x="%s" y="%s" width="3" height="%s" fill="%s" opacity=".35"/>' % (f(a + 2), f(top + 40), f(lh - 40), GLINT))
-                add('<rect x="%s" y="%s" width="4" height="90" fill="%s"/>' % (f(a + lw / 2 - 2), f(top - 90), mix(NIGHT, INDIGO, .95)))
-                add('<use href="#blk" x="%s" y="%s"/>' % (f(a + lw / 2), f(top - 90)))
+                add('<rect x="%s" y="%s" width="4" height="%s" fill="%s"/>' % (f(a + lw / 2 - 2), f(top - sp), f(sp), mix(NIGHT, INDIGO, .95)))
+                add('<use href="#blk" x="%s" y="%s"/>' % (f(a + lw / 2), f(top - sp)))
             glow(lx + lw / 2, top + 48, 90, 30, 'gS', .35)
-            SMEAR.append((lx + lw / 2, lw * .7, .8))
-        vgrad('fog1', 960, HZ, [(0, FOG, 0), (.7, FOG, .3), (1, FOG, .5)])
-        add('<rect x="-10" y="960" width="%d" height="200" fill="url(#fog1)"/>' % (W + 20))
+            SMEAR.append((lx + lw / 2, lw * .7, .8, base))
+        vgrad('fog1', 960, base, [(0, FOG, 0), (.7, FOG, .3), (1, FOG, .5)])
+        add('<rect x="-10" y="960" width="%d" height="%s" fill="url(#fog1)"/>' % (W + 20, f(base - 960)))
     elif name == 'm':
-        vgrad('fog2', 1050, HZ, [(0, FOG, 0), (1, FOG, .4)])
-        add('<rect x="-10" y="1050" width="%d" height="110" fill="url(#fog2)"/>' % (W + 20))
-        # second row of street lights, glimpsed between the waterfront blocks
-        dots([(x, HZ - rnd.uniform(18, 40)) for x in range(0, W, 9) if rnd.random() < density(x) * .5], SOD, .8, 3)
+        vgrad('fog2', 1050, base, [(0, FOG, 0), (1, FOG, .4)])
+        add('<rect x="-10" y="1050" width="%d" height="%s" fill="url(#fog2)"/>' % (W + 20, f(base - 1050)))
+        # second row of street lights, glimpsed between the waterfront blocks (10..30 m up)
+        dots([(x, ey(rnd.uniform(10, 30), dist)) for x in range(0, W, 9) if rnd.random() < density(x) * .5], SOD, .8, 3)
         for x, rx, op in [(0, 1800, .22), (700, 700, .14), (8900, 700, .14), (2750, 800, .12), (7700, 700, .12), (6950, 600, .08)]:
-            glow(x, HZ - 10, rx, 80, 'gS', op)
+            glow(x, base - 10, rx, 80, 'gS', op)
 
 # ---------------------------------------------------------------- bridge on the right quarter (far layer)
-BR0, BR1, DECK = 2980, 4080, 1086
+BR0, BR1 = 2980, 4080
+BRW = ey(0, D_BRIDGE)                                   # the water it stands in
+DECK = round(ey(50, D_BRIDGE))                          # 50 m road deck
+BRT = round(ey(180, D_BRIDGE))                          # 180 m towers
 p = ['M%d %dH%dv6H%dZ' % (BR0, DECK, BR1, BR0)]
-for px in (3330, 3780): p.append('M%d %dh10v%dh-10Z' % (px - 5, 935, HZ - 935))
-for x in range(BR0 + 120, BR1 - 60, 240): p.append('M%d %dh6v%dh-6Z' % (x, DECK + 6, HZ - DECK - 6))
+for px in (3330, 3780): p.append('M%d %sh10v%sh-10Z' % (px - 5, f(BRT), f(BRW - BRT)))
+for x in range(BR0 + 120, BR1 - 60, 240): p.append('M%d %dh6v%sh-6Z' % (x, DECK + 6, f(BRW - DECK - 6)))
 add('<path fill="%s" d="%s"/>' % (mix(INDIGO, TEAL, .22), ''.join(p)))
-c = ''.join('M%d %dL%d %d' % (px, 945 + i * 3, px + s * i * 34, DECK) for px in (3330, 3780) for i in range(1, 8) for s in (-1, 1))
+c = ''.join('M%d %dL%d %d' % (px, BRT + 10 + i * 3, px + s * i * 34, DECK) for px in (3330, 3780) for i in range(1, 8) for s in (-1, 1))
 add('<path d="%s" stroke="%s" stroke-width="2" opacity=".28" fill="none"/>' % (c, GLINT))
 dots([(x, DECK - 4) for x in range(BR0 + 10, BR1, 22)], LAMP, .9, 4)
 for x in range(BR0 + 10, BR1, 66): glow(x + 2, DECK - 2, 16, 10, 'gS', .5)
-for px in (3330, 3780): add('<use href="#blk" x="%d" y="933"/>' % px)
-REFL += [(x, .3) for x in range(BR0 + 30, BR1, 110)]
+for px in (3330, 3780): add('<use href="#blk" x="%d" y="%s"/>' % (px, f(BRT - 2)))
+REFL += [(x, .3, BRW) for x in range(BR0 + 30, BR1, 110)]
 
 # ---------------------------------------------------------------- waterfront: quay line and sodium lamps at uneven spacing
-add('<rect x="-10" y="%d" width="%d" height="6" fill="%s"/>' % (HZ - 4, W + 20, mix(NIGHT, INDIGO, .6)))
+add('<rect x="-10" y="%s" width="%d" height="6" fill="%s"/>' % (f(SEA_NEAR - 4), W + 20, mix(NIGHT, INDIGO, .6)))
 x = rnd.uniform(0, 30)
 while x < W:
     d = density(x)
     if d > .12 and rnd.random() < d + .1:
         big = rnd.random() < .45
-        for o in images(x - 15, x + 15): add('<use href="#%s" x="%s" y="%d"/>' % ('lp' if big else 'lq', f(x + o), HZ - 6))
-        if big and rnd.random() < .5: REFL.append((x, rnd.uniform(.5, .95)))
+        for o in images(x - 15, x + 15): add('<use href="#%s" x="%s" y="%s"/>' % ('lp' if big else 'lq', f(x + o), f(SEA_NEAR - 6)))
+        if big and rnd.random() < .5: REFL.append((x, rnd.uniform(.5, .95), SEA_NEAR))
     x += rnd.uniform(14, 60)
 
-# ---------------------------------------------------------------- sea
-# the strip's bottom edge is where the floor cap joins, so it must not fall to pure
-# night or looking down reads as a void instead of water
-vgrad('sea', HZ, H, [(0, mix(INDIGO, TEAL, .34), 1), (.05, mix(NIGHT, INDIGO, .85), 1), (.45, mix(NIGHT, INDIGO, .55), 1), (1, mix(NIGHT, INDIGO, .42), 1)])
-add('<rect x="-10" y="%d" width="%d" height="%d" fill="url(#sea)"/>' % (HZ + 2, W + 20, H - HZ + 8))
-D.append('<clipPath id="kw"><rect x="-10" y="%d" width="%d" height="%d"/></clipPath>' % (HZ + 1, W + 20, H - HZ))
+# ---------------------------------------------------------------- water surface: light on the sea
+# The sea band itself is laid in before the shore (see above).  This is everything the
+# city throws onto it, so it comes after the buildings and hangs from their shorelines.
 add('<g clip-path="url(#kw)">')
 for x, rx, ry, op in [(0, 2600, 230, .28), (650, 800, 150, .16), (8900, 800, 150, .16), (2750, 1000, 130, .14), (7200, 1000, 110, .1)]:
-    glow(x, HZ + 12, rx, ry, 'gS', op)
-glow(4800, HZ + 10, 900, 90, 'gT', .14)
-add('<rect x="-10" y="%d" width="%d" height="3" fill="%s" opacity=".22"/>' % (HZ + 2, W + 20, GLINT))
+    glow(x, SEA_CITY + 12, rx, ry, 'gS', op)
+glow(4800, SEA_CITY + 10, 900, 90, 'gT', .14)
 
 # soft vertical smears under the lit city
-for x, w, s in SMEAR:
-    glow(x, HZ, w * .6, 90 + 280 * s * rnd.uniform(.6, 1), 'gS', min(.5, s * .5))
+for x, w, s, b in SMEAR:
+    glow(x, b, w * .6, 90 + 280 * s * rnd.uniform(.6, 1), 'gS', min(.5, s * .5))
 
 # reflection columns: broken sodium dashes that widen and fade with depth
 def refl_symbol(sid, L):
@@ -368,19 +402,20 @@ def refl_symbol(sid, L):
         y += rnd.uniform(5, 11) * (1 + t * 1.6)
     D.append('<symbol id="%s" overflow="visible">%s</symbol>' % (sid, ''.join('<path fill="%s" opacity="%s" d="%s"/>' % (SOD, f(o, 2), ''.join(v)) for o, v in groups.items())))
 for i, L in enumerate([120, 180, 250, 320, 400]): refl_symbol('r%d' % i, L)
-for x, s in REFL:
+for x, s, b in REFL:
     k, op = min(4, int(s * 4.5 * rnd.uniform(.6, 1.1))), min(1, s * rnd.uniform(.6, 1))
     for o in images(x - 60, x + 60):
-        add('<use href="#r%d" x="%s" y="%d" opacity="%s"/>' % (k, f(x + o), HZ + 1, f(op, 2)))
+        add('<use href="#r%d" x="%s" y="%s" opacity="%s"/>' % (k, f(x + o), f(b + 1), f(op, 2)))
 
-# glints: clusters of short dashes, smaller and denser toward the horizon
+# glints: clusters of short dashes, smaller and denser toward the horizon.  From 18 m up
+# the near water opens right out, so they run further down the strip and grow faster.
 for k in range(6):
     p = ''.join('M%s %sh%sv%sh-%sz' % (f(rnd.uniform(0, 380)), f(rnd.uniform(0, 70)), f(w), rnd.choice([3, 3, 4]), f(w))
                 for w in [rnd.uniform(8, 44) for _ in range(18)])
     D.append('<symbol id="g%d" overflow="visible"><path d="%s"/></symbol>' % (k, p))
-for _ in range(150):
-    t = rnd.random() ** 1.6
-    y = HZ + 16 + t * 800; s = .7 + t * 1.8
+for _ in range(190):
+    t = rnd.random() ** 1.25
+    y = HZ + 18 + t * 810; s = .8 + t * 2.2
     x = rnd.uniform(0, W)
     warm = density(x) > .45 and t < .3 and rnd.random() < .4
     gid, op = rnd.randint(0, 5), rnd.uniform(.1, .26) * (1.2 - t * .5)   # pick once: every image must be identical
@@ -423,11 +458,22 @@ def segb(p0, p1, w0, w1):  # the same tapered limb on both sides
 import suit_trace as TR
 D.append('<symbol id="suit" overflow="visible"><path fill-rule="evenodd" d="%s"/></symbol>' % TR.BODY)
 bgrad('suitrim', [(0, mix(TEAL, WHITE, .6), .62), (.45, mix(TEAL, WHITE, .22), .3), (1, TEAL, .07)], x2=.85, y2=1)
-SX, SY, SS = 4800, 1196, 1.62   # foreground scale; feet stand below the waterline
-add('<g transform="translate(%d %d) scale(%s)">' % (SX, SY, f(SS, 2)))
-# reflection first, clipped to the water and fading with depth
-add('<g clip-path="url(#kw)" opacity=".26">')
-add('<g transform="translate(0 %s) scale(1 -1)">' % f(2 * (HZ - SY) / SS))
+# Eye to eye.  Its feet stand on the water D_SUIT metres out, so they sit ey(0, D_SUIT)
+# below the horizon; the scale is then chosen so the traced mono-eye lands ON the horizon,
+# i.e. exactly at the pilot's own 18 m.  That makes it a 690/583.05 * 18 = 21.3 m suit.
+SX, SY = 4800, ey(0, D_SUIT)
+SS = (SY - HZ) / -TR.EYE_POS[1]
+# This close the waterline is only H - SY px off the bottom, and everything that hangs from
+# it -- reflection, glow column -- would otherwise run into the rows cockpit.js samples as
+# SEA_EDGE.  Same idea as the glint taper: stop the water detail BOT px short of the edge.
+BOT = 24
+DEEP = H - BOT - SY
+D.append('<clipPath id="kd"><rect x="-10" y="%d" width="%d" height="%d"/></clipPath>' % (HZ + 1, W + 20, H - HZ - BOT))
+add('<g transform="translate(%d %s) scale(%s)">' % (SX, f(SY), f(SS, 4)))
+# reflection first, clipped to the water and fading with depth.  It mirrors about the
+# SUIT'S waterline (its own feet), not the horizon -- from up here they are far apart.
+add('<g clip-path="url(#kd)" opacity=".26">')
+add('<g transform="scale(1 -1)">')
 add('<use href="#suit" fill="%s"/>' % mix(NIGHT, INDIGO, .5))
 add('</g></g>')
 add('<use href="#suit" x="-5" y="-4" fill="url(#suitrim)"/>')           # hard rim light from the searchlight side
@@ -445,17 +491,31 @@ EX, EY = SX + SS * TR.EYE_POS[0], SY + SS * TR.EYE_POS[1]
 glow(EX, EY, 110, 42, 'gS', .28)
 glow(EX, EY, 50, 16, 'gS', .85)
 glow(EX, EY, 190, 4, 'gS', .8)                                             # horizontal flare off the visor
-glow(EX, HZ, 18, 260, 'gS', .35)                                           # its glow column down the water
-for i in range(2): add('<use href="#r4" x="%s" y="%d" opacity=".8"/>' % (f(EX + i * 3 - 1), HZ + 1))   # the eye's reflection in the water
+glow(EX, SY, 18, min(230, DEEP), 'gS', .35)                                # its glow column down the water
+# the eye's reflection, hanging from the suit's own waterline.  At this range most of the
+# column is off the bottom of the strip, so the clip takes the rest; the dashes are discrete
+# and sparse, so the cut does not read as an edge.
+add('<g clip-path="url(#kd)">')
+for i in range(2): add('<use href="#r2" x="%s" y="%s" opacity=".8"/>' % (f(EX + i * 3 - 1), f(SY + 1)))
+add('</g>')
 # a lone ship far off the left quarter, and the lighthouse on the headland
-add('<path fill="%s" d="M5880 1150L5872 1136H5990L5996 1128H6020L6030 1150Z M5930 1136V1112H5962V1136Z M5940 1112V1096H5946V1112Z"/>' % mix(NIGHT, INDIGO, .75))
-dots([(5890, 1140), (5905, 1140), (5920, 1140), (5975, 1140), (6000, 1133)], LAMP, .8, 3)
-add('<use href="#blk" x="5943" y="1094" transform="translate(0 0)"/>')
-add('<path fill="%s" d="M5536 1150L5541 1096H5551L5556 1150Z"/>' % mix(NIGHT, INDIGO, .7))
-glow(5546, 1094, 34, 22, 'gW', .5); dots([(5544, 1092)], WHITE, 1, 4)
+sw, sd, sf, sh, sm = (ey(z, D_SHIP) for z in (0, 12, 16, 26, 40))   # waterline, deck, fo'c'sle, house, masthead
+SW, SD, SF, SH, SM = (f(v) for v in (sw, sd, sf, sh, sm))
+add('<path fill="%s" d="M5880 %sL5872 %sH5990L5996 %sH6020L6030 %sZ M5930 %sV%sH5962V%sZ M5940 %sV%sH5946V%sZ"/>'
+    % (mix(NIGHT, INDIGO, .75), SW, SD, SF, SW, SD, SH, SD, SH, SM, SH))
+dots([(x, sd + 4) for x in (5890, 5905, 5920, 5975)] + [(6000, sf + 4)], LAMP, .8, 3)
+add('<use href="#blk" x="5943" y="%s"/>' % f(sm - 2))
+LW, LT = ey(0, D_HEAD), ey(95, D_HEAD)                                 # lighthouse: 95 m on the headland
+add('<path fill="%s" d="M5536 %sL5541 %sH5551L5556 %sZ"/>' % (mix(NIGHT, INDIGO, .7), f(LW), f(LT), f(LW)))
+glow(5546, LT - 2, 34, 22, 'gW', .5); dots([(5544, LT - 4)], WHITE, 1, 4)
 
 # ---------------------------------------------------------------- near container dock with gantry cranes (right quarter, strong foreground silhouette)
-DK0, DK1, DKY = 1900, 3720, 1446
+# The quay is D_DOCK metres out, so its edge sits ey(0, D_DOCK) below the horizon; the big
+# crane is scaled so its A-frame apex (664 symbol units) lands at a real 34 m -- taller than
+# the pilot, but only atan(16/92) = 9.9 deg up, so he looks slightly up at it, not cranes.
+DK0, DK1 = 1900, 3720
+DKY = round(ey(0, D_DOCK))
+CRANE_SC = round((DKY - ey(34, D_DOCK)) / 664, 2)
 glow(2800, DKY + 30, 1100, 90, 'gS', .16)
 add('<path fill="%s" d="M%d %dH%dL%d %dH%dZ"/>' % (NEAR, DK0, DKY, DK1, DK1 + 10, DKY + 34, DK0 - 10))
 add('<rect x="%d" y="%d" width="%d" height="3" fill="%s" opacity=".6"/>' % (DK0, DKY, DK1 - DK0, mix(TEAL, SOD, .35)))
@@ -473,7 +533,7 @@ CRANE = ('M0 0h12v-430h-12Z M150 0h12v-430h-12Z M-8 -448h178v20h-178Z M-8 -262h1
          'M150 -506h110v28h-110Z M-214 -456h40v14h-40Z M-196 -442h4v88h-4Z M-222 -354h56v10h-56Z')
 D.append('<symbol id="crane" overflow="visible"><path d="%s"/></symbol>' % CRANE)
 bgrad('cone', [(0, SOD, .16), (1, SOD, 0)])
-for cx, sc in [(2440, 1.55), (3260, 1.2)]:
+for cx, sc in [(2440, CRANE_SC), (3260, round(CRANE_SC * .76, 2))]:   # 34 m and a shorter ~26 m crane
     for fx in (-300, -120, 240):   # floodlight cones under the boom
         lx, ly = cx + fx * sc, DKY - 454 * sc
         add('<path d="M%s %sL%s %s %s %s %s %sZ" fill="url(#cone)"/>' % (f(lx - 4), f(ly), f(lx - 50), DKY, f(lx + 50), DKY, f(lx + 4), f(ly)))

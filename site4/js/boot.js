@@ -75,23 +75,31 @@
     cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
     overlay.appendChild(cursor);
 
-    // t=200-1050: boot log, one line every ~95ms; the reactor % counts up in place
+    // t=180-1000: boot log, one line every 55ms; the reactor % counts up in place
     var LOG = [
-      'BUNNyS OS 2.6.1 // COLD START',
-      'MEMORY CHECK ....... 8192K OK',
-      'LINEAR SEAT ........ LOCKED',
-      'REACTOR ............ {P}% ▲',
-      'PARTICLE INTERFERENCE ... 0.2%',
-      'ALL-AROUND MONITOR .. INIT',
-      'PILOT BIOMETRIC ..... MATCH',
-      'CALLSIGN ............ SYLAS LYU'
+      'BUNNyS OS 2.6.1 // SYSTEM BOOT',
+      'CORE BLOCK ........... LOCKED',
+      'LINEAR SEAT .......... LOCKED',
+      'REACTOR STATUS ....... {P}% ▲',
+      'PARTICLE INTERFERENCE  0.2%',
+      'PANORAMIC MONITOR .... INIT',
+      'SENSOR ARRAY ......... 11,200 M',
+      'THRUSTER VECTOR ...... ALIGNED',
+      'FRAME INTEGRITY ...... 84%',
+      'WEAPON LINK .......... SAFE',
+      'HARDPOINT STATUS ..... 2 OF 4',
+      'IFF STATUS ........... ACTIVE',
+      'COMBAT SYSTEM ........ STANDBY',
+      'CALIBRATION .......... COMPLETE',
+      'PILOT ID ............. SYLAS LYU',
+      'DEPLOYMENT READY'
     ];
     LOG.forEach(function (line, i) {
-      at(200 + i * 95, function () {
+      at(180 + i * 55, function () {
         var idx = lines.length;
         lines.push(line.indexOf('{P}') > -1 ? line.replace('{P}', '12') : line);
         render();
-        if (line.indexOf('{P}') > -1) countReactor(idx, line, 200 + i * 95);
+        if (line.indexOf('{P}') > -1) countReactor(idx, line, 180 + i * 55);
       });
     });
     function countReactor(idx, template, startAt) {

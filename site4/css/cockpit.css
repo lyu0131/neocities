@@ -75,11 +75,15 @@ a { color: inherit; }
   z-index: var(--z-pano);
   overflow: hidden;
   background: var(--night);
-  perspective: 42vw;         /* ~100deg horizontal FOV on landscape */
+  /* Measured, not guessed: at 42vw a 52deg gap between two contacts spanned 316px, i.e.
+     6.07px per degree and a 237deg horizontal field -- a fisheye that shrank the whole
+     world and left the enemy suit at 23% of the screen. 250vw measures 132deg, which is a
+     wide panoramic monitor rather than a fisheye, and puts the suit at 41%. */
+  perspective: 250vw;
   perspective-origin: 50% 50%;
 }
 @media (orientation: portrait) {
-  #pano { perspective: 71vw; } /* ~70deg horizontal FOV on portrait */
+  #pano { perspective: 420vw; } /* the same field on a narrow screen */
 }
 
 .pano-ring {
