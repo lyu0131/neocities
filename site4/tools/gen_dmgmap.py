@@ -27,7 +27,8 @@ OUT_SVG = os.path.join(HERE, '..', 'img', 'dmgmap.svg')
 
 FRAMES = 24          # one every 15 degrees
 RES = 320            # raster/viewBox resolution
-EPS = 1.6            # Douglas-Peucker tolerance, in viewBox units
+EPS = 2.8            # Douglas-Peucker tolerance. The map displays around 190px wide, so
+                     # anything finer than this is sub-pixel and just adds bytes and noise.
 PER_AREA = 42.0      # barycentric samples per unit of triangle area
 
 ZONES = [
@@ -162,7 +163,7 @@ def zone_path(px, py):
     img[py, px] = True
     img = ndimage.binary_closing(ndimage.binary_dilation(img, iterations=1), np.ones((3, 3)))
     img = ndimage.binary_fill_holes(img)
-    parts = trace_with_holes(img, EPS, min_area=70, min_hole=90)
+    parts = trace_with_holes(img, EPS, min_area=150, min_hole=150)
     return to_path(parts, '%.0f')
 
 
