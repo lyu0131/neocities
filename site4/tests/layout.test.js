@@ -65,6 +65,13 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       check(`${tag} every column header at one inset`, new Set(r.insets).size === 1, r.insets.join(','));
       const plates = JSON.parse(await p.eval("JSON.stringify([...document.querySelectorAll('#hud rect.plate')].map(r => r.getAttribute('rx') + '|' + r.getAttribute('fill')))"));
       check(`${tag} every housing is one plate style`, plates.length >= 10 && new Set(plates).size === 1, plates.length + ' plates: ' + [...new Set(plates)].join(' / '));
+      const css = JSON.parse(await p.eval(`JSON.stringify((() => {
+        const tok = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+        const bg = id => getComputedStyle(document.getElementById(id)).backgroundColor;
+        const br = id => getComputedStyle(document.getElementById(id), '::before').backgroundImage;
+        return { tok, same: bg('slew') === bg('hudmode') && bg('slew') === bg('comms'), brackets: br('slew') === br('comms') && br('slew') !== 'none' };
+      })())`));
+      check(`${tag} one --panel token and one bracket rule`, css.tok !== '' && css.same && css.brackets, JSON.stringify(css));
       const pair = r.all.filter(b => b.name === 'hx:UNIT DATA' || b.name === 'hx:ARMAMENT DETECTED');
       if (pair.length === 2) check(`${tag} UNIT DATA and ARMAMENT share one edge`, pair[0].l === pair[1].l && pair[0].r === pair[1].r);
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);

@@ -13,7 +13,6 @@
   --amber: #FFB02E;
   --lock: #FF3347;
   --ice: #DDE7EE;
-  --panel: rgba(6, 10, 18, .72);
   /* painted machine housing, its lit top edge, and the recessed display glass set into it.
      These are opaque paint and glass, not frosted panes: no backdrop-filter anywhere. */
   --housing: #131A24;
@@ -21,6 +20,7 @@
   --glass: #070C15;
   --edge: rgba(221, 231, 238, .20);    /* machined hairline */
   --stencil: rgba(221, 231, 238, .55); /* silkscreened part numbers; .40 measured 3.4:1 */
+  --panel: rgba(6, 10, 18, .97);       /* every housing's backing plate; hud.js housing() matches it */
   /* One tight shadow, not a bloom. Spent only where it carries meaning: the boresight,
      a lock and a caution. Everything else is a crisp stroke. */
   --glow: drop-shadow(0 0 1.5px currentColor);
@@ -634,7 +634,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 .screen .panel:hover, .screen .panel:focus-within {
   font-size: 1.12em;
   border-color: rgba(140, 255, 193, .6);
-  background: rgba(6, 10, 18, .97);
+  background: var(--panel);
 }
 .screen .rows dd, .screen p, .screen li { transition: font-size .18s ease-out; }
 .screen a { transition: font-size .15s ease-out, background-color .15s ease-out; display: inline-block; }
@@ -670,7 +670,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
      width, as the SVG instruments above it -- see the two-column block there */
   width: 232px;
   z-index: var(--z-nav);
-  background: rgba(6, 10, 18, .97);
+  background: var(--panel);
   border: none;
   padding: 14px 14px 20px;   /* G_PAD in js/hud.js: same text inset as every other panel */
   color: var(--ice);
@@ -678,7 +678,7 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   letter-spacing: .12em;
 }
 /* four corner brackets, 10px arms, same geometry as corners() draws in the SVG panels */
-.slew::before {
+.slew::before, .pop::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -751,22 +751,10 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   position: fixed;
   z-index: var(--z-nav);
   margin: 0;
-  background: rgba(6, 10, 18, .97);
+  background: var(--panel);
   color: var(--ice);
   font: 700 10px/1.45 'B612 Mono', monospace;
   letter-spacing: .1em;
-}
-.pop::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  --b: linear-gradient(var(--hud), var(--hud));
-  background:
-    var(--b) top left / 10px 1px no-repeat,     var(--b) top left / 1px 10px no-repeat,
-    var(--b) top right / 10px 1px no-repeat,    var(--b) top right / 1px 10px no-repeat,
-    var(--b) bottom left / 10px 1px no-repeat,  var(--b) bottom left / 1px 10px no-repeat,
-    var(--b) bottom right / 10px 1px no-repeat, var(--b) bottom right / 1px 10px no-repeat;
 }
 .pop[hidden] { display: none; }
 .comms { padding: 14px 14px 12px; }
