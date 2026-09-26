@@ -3,7 +3,7 @@
   'use strict';
   var mq = function (q) { return !!(window.matchMedia && matchMedia(q).matches); };
   window.BUNNYS = {
-    state: { yaw: 0, pitch: 0, booted: false },
+    state: { yaw: 0, pitch: 0, booted: false, dragging: false },
     reduce: mq('(prefers-reduced-motion: reduce)'),
     fine: mq('(pointer: fine)'),
     wrap360: function (a) { return ((a % 360) + 360) % 360; },

@@ -339,7 +339,7 @@
   document.addEventListener('mousedown', function (e) {
     if (!state.booted || e.button !== 0) return;
     if (e.target.closest && e.target.closest('#targets-nav, .hud-btn')) return;
-    dragging = true; velYaw = 0; dragDist = 0; lastDragX = e.clientX; lastDragY = e.clientY;
+    dragging = true; state.dragging = true; velYaw = 0; dragDist = 0; lastDragX = e.clientX; lastDragY = e.clientY;
     markInput();
   });
   document.addEventListener('mousemove', function (e) {
@@ -352,7 +352,7 @@
     lastDragX = e.clientX; lastDragY = e.clientY;
     markInput();
   });
-  addEventListener('mouseup', function () { dragging = false; });
+  addEventListener('mouseup', function () { dragging = false; state.dragging = false; });
   // A target label is a link, so a drag that starts AND ends on one still fires a click and
   // navigates away mid-turn. Swallow that click -- capture phase, so it lands before the
   // link's own handler. A real click never travels this far, and Enter is untouched.

@@ -9,6 +9,24 @@ async function ready(pg, ms = 4000) {
   }
   return false;
 }
+// Task 1: read the SPD bar's needle fraction and throttled readout straight off the
+// DOM (no globals exposed for it) -- invert drawBar's y = barH - frac*barH*2.
+function spdStateOf(pg) {
+  return pg.eval(`(() => {
+    const cap = Array.from(document.querySelectorAll('#hud text')).find(t => t.textContent === 'SPD');
+    const g = cap.parentNode, lines = g.querySelectorAll('line');
+    const barH = Math.abs(parseFloat(lines[0].getAttribute('y2')));
+    const frac = (barH - parseFloat(lines[1].getAttribute('y1'))) / (barH * 2);
+    return { frac, readout: g.querySelectorAll('text')[1].textContent };
+  })()`);
+}
+// the ladder group carries class="ladder" so tests can find it without a global
+function ladderRollOf(pg) {
+  return pg.eval(`(() => {
+    const m = /rotate\\(([-\\d.]+)/.exec(document.querySelector('.ladder').getAttribute('transform'));
+    return m ? parseFloat(m[1]) : 0;
+  })()`);
+}
 (async () => {
   const p = await launch({ width: 1440, height: 900 });
   await p.goto('index.html', 800);
@@ -64,6 +82,55 @@ async function ready(pg, ms = 4000) {
   check('unknown locks', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(900);
   check('unknown does not navigate', /index\.html$/.test(await p.eval('location.pathname')));
+
+  // Task 1: SPD and the pitch ladder are driven by a per-frame motion sampler off
+  // state.yaw/pitch (every input source), not the drag-only vx the view event carries.
+  const boreBefore = await p.eval("document.querySelector('.boresight').getAttribute('transform')");
+  // key() sends down+up together; hold D by dispatching the two events ourselves
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
+  let keySpd = { frac: 0, readout: '000' }, keyRoll = 0;
+  for (let i = 0; i < 20; i++) {
+    keySpd = await spdStateOf(p);
+    keyRoll = await ladderRollOf(p);
+    if (keySpd.frac > 0.3 && Math.abs(keyRoll) > 2) break;
+    await p.sleep(100);
+  }
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
+  check('SPD rises on held key', keySpd.frac > 0.3 && parseInt(keySpd.readout, 10) > 0, JSON.stringify(keySpd));
+  check('ladder tilts on held key', Math.abs(keyRoll) > 2, 'roll ' + keyRoll);
+
+  let restRoll = keyRoll, rollBack = false;
+  for (let i = 0; i < 20; i++) {
+    restRoll = await ladderRollOf(p);
+    if (Math.abs(restRoll) < 0.5) { rollBack = true; break; }
+    await p.sleep(100);
+  }
+  check('ladder returns within 2s of release', rollBack, 'roll ' + restRoll);
+
+  let restSpd = keySpd, spdBack = false;
+  for (let i = 0; i < 25; i++) {
+    restSpd = await spdStateOf(p);
+    if (restSpd.frac < 0.05) { spdBack = true; break; }
+    await p.sleep(100);
+  }
+  check('SPD falls back within 2.5s of release', spdBack, 'frac ' + restSpd.frac);
+
+  await p.mouse('mousePressed', 700, 450, 1);
+  let dragSpdMax = 0, dragRollMax = 0;
+  for (let k = 1; k <= 14; k++) {
+    await p.mouse('mouseMoved', 700 - 45 * k, 450, 1);
+    const s = await spdStateOf(p), r = await ladderRollOf(p);
+    if (s.frac > dragSpdMax) dragSpdMax = s.frac;
+    if (Math.abs(r) > Math.abs(dragRollMax)) dragRollMax = r;
+    await p.sleep(30);
+  }
+  await p.mouse('mouseReleased', 700 - 45 * 14, 450);
+  check('SPD reads higher on drag than key', dragSpdMax > keySpd.frac, `drag ${dragSpdMax} vs key ${keySpd.frac}`);
+  check('ladder tilts more on drag than key', Math.abs(dragRollMax) > Math.abs(keyRoll), `drag ${dragRollMax} vs key ${keyRoll}`);
+  await p.sleep(1200);
+  const boreAfter = await p.eval("document.querySelector('.boresight').getAttribute('transform')");
+  check('boresight untouched by motion sampler', boreBefore === boreAfter, `${boreBefore} vs ${boreAfter}`);
+
   check('no h-overflow', await p.eval('document.documentElement.scrollWidth <= innerWidth'));
   check('no JS errors', p.errors.length === 0, p.errors.join(' | '));
   await p.shot(path.join(__dirname, 'out/hub-1440.png'), false);
@@ -87,5 +154,11 @@ async function ready(pg, ms = 4000) {
     await r.sleep(100);
   }
   check('reduced motion: arrows still turn', Math.abs(rYaw) > 5, 'yaw ' + rYaw);
+  // Task 1: reduced motion pins the ladder to plain pitch tracking -- no spring roll
+  await r.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
+  await r.sleep(600);
+  const reducedRoll = await ladderRollOf(r);
+  await r.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
+  check('reduced motion: ladder roll stays 0', reducedRoll === 0, 'roll ' + reducedRoll);
   r.close();
 })();

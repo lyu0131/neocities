@@ -1413,35 +1413,41 @@
       if (hostileNow) dossier.setAttribute('opacity', 0);
       xf(warn, cx, clamp(H * 0.26, 90, 260));
       fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
-      if (ladder) xf(ladder, cx, cy, ' rotate(' + lastRoll.toFixed(2) + ')');
+      // ladder's own transform is re-applied by tick() every frame off the spring's
+      // current values, so a resize needs no extra push here
       if (fpm) xf(fpm, cx, cy);
     }
   }
 
-  var ladder = null, fpm = null, lastRoll = 0, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
+  var ladder = null, fpm = null, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
   // the alarm log's real measured bottom edge, set alongside idY/logY above; checked
   // against cy - 40 so the log always clears the reticle readouts (hx.left/hx.right).
   function logBottom() { return hxLogBottom; }
 
   if (!isPage) {
-    // -- pitch ladder: rungs regenerated around the current pitch, banks slightly with vx --
-    ladder = el('g');
+    // -- pitch ladder: rungs built once (house rule -- this runs beside a 360-element
+    // CSS-3D panorama, so no per-frame DOM churn), values rewritten per frame by
+    // updateLadder(). Roll/dx/dy are driven by a damped spring in tick() below, off
+    // real yaw/pitch rate rather than drag-only vx, so WASD and a held key bank it too.
+    ladder = el('g', { class: 'ladder' });
     svg.appendChild(ladder);
-    function drawLadder(pitch, roll) {
-      lastRoll = roll;
-      clear(ladder);
-      xf(ladder, W / 2, H / 2, ' rotate(' + roll.toFixed(2) + ')');
-      var scale = 14;
-      for (var r = -10; r <= 10; r += 5) {
-        if (r === 0) continue;
-        var y = -(r - pitch) * scale;
-        var w = r > 0 ? 90 : 60;
-        var line = el('line', { x1: -w, y1: y, x2: w, y2: y });
-        if (r < 0) line.setAttribute('stroke-dasharray', '6 6');
-        ladder.appendChild(line);
-        ladder.appendChild(el('line', { x1: -w, y1: y, x2: -w, y2: y + (r > 0 ? 8 : -8) }));
-        ladder.appendChild(el('line', { x1: w, y1: y, x2: w, y2: y + (r > 0 ? 8 : -8) }));
-      }
+    var ladderRungs = [-10, -5, 5, 10].map(function (r) {
+      var w = r > 0 ? 90 : 60, tick = r > 0 ? 8 : -8;
+      var rung = el('line', { x1: -w, y1: 0, x2: w, y2: 0 });
+      if (r < 0) rung.setAttribute('stroke-dasharray', '6 6');
+      var tickL = el('line', { x1: -w, y1: 0, x2: -w, y2: tick });
+      var tickR = el('line', { x1: w, y1: 0, x2: w, y2: tick });
+      ladder.appendChild(rung); ladder.appendChild(tickL); ladder.appendChild(tickR);
+      return { r: r, tick: tick, rung: rung, tickL: tickL, tickR: tickR };
+    });
+    function updateLadder(pitch, roll, dx, dy) {
+      ladderRungs.forEach(function (rg) {
+        var y = -(rg.r - pitch) * 14;
+        rg.rung.setAttribute('y1', y); rg.rung.setAttribute('y2', y);
+        rg.tickL.setAttribute('y1', y); rg.tickL.setAttribute('y2', y + rg.tick);
+        rg.tickR.setAttribute('y1', y); rg.tickR.setAttribute('y2', y + rg.tick);
+      });
+      xf(ladder, W / 2 + dx, H / 2 + dy, ' rotate(' + roll.toFixed(2) + ')');
     }
 
     // -- flight-path marker: lags the pointer via a CSS transition, recentres when idle --
@@ -1463,13 +1469,13 @@
 
     buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
     place();
-    drawHeading(0); drawLadder(0, 0); drawRadar(0);
+    drawHeading(0); updateLadder(0, 0, 0, 0); drawRadar(0);
 
     BUNNYS.on('view', function (d) {
       drawHeading(d.yaw);
-      drawLadder(d.pitch, clamp((d.vx || 0) * 1.2, -6, 6));
       drawRadar(d.yaw);
-      setBar(spd, clamp(Math.abs(d.vx || 0) / 6, 0, 1));
+      // SPD and the ladder's roll/dx/dy come from tick()'s motion sampler instead --
+      // vx here is drag-only and never carries a 0 once the view stops moving.
       setBar(alt, clamp((d.pitch + 12) / 24, 0, 1), (d.pitch >= 0 ? '+' : '') + Math.round(d.pitch));
     });
     BUNNYS.on('lock', function (d) {
@@ -1490,6 +1496,21 @@
     });
     wireModes();
 
+    // -- motion sampler: state.yaw/pitch is what every input source (drag, keys, wheel,
+    // slew, magnetism, tilt) eases into each frame, so sampling it here -- rather than
+    // the drag-only vx the view event carries -- is the one place all of them show up.
+    // Feeds the SPD bar and the ladder's banking spring, both in tick() below.
+    var prevYaw = BUNNYS.state.yaw, prevPitch = BUNNYS.state.pitch;
+    var SPD_TAU = 0.35, spdEma = 0, spdTextAt = 0;
+    var LADDER_OMEGA = 12, LADDER_ZETA = 0.55;
+    var ladderRoll = { cur: 0, vel: 0 }, ladderDx = { cur: 0, vel: 0 }, ladderDy = { cur: 0, vel: 0 };
+    // semi-implicit Euler step of a damped spring toward target, mutating axis in place
+    function springStep(axis, target, h) {
+      var acc = LADDER_OMEGA * LADDER_OMEGA * (target - axis.cur) - 2 * LADDER_ZETA * LADDER_OMEGA * axis.vel;
+      axis.vel += acc * h;
+      axis.cur += axis.vel * h;
+    }
+
     // gauges tick on their own clock; cheap, and pauses with the tab
     (function tick(now) {
       requestAnimationFrame(tick);
@@ -1504,6 +1525,40 @@
       drawAlarmFlash(t);
       drawDamage(t, dt);
       drawBar(spd, dt); drawBar(alt, dt);
+
+      // dt floored so a near-zero frame interval can't blow the rate up
+      var rdt = Math.max(dt, 1 / 240);
+      var yawRate = shortestDelta(prevYaw, BUNNYS.state.yaw) / rdt;
+      var pitchRate = (BUNNYS.state.pitch - prevPitch) / rdt;
+      prevYaw = BUNNYS.state.yaw; prevPitch = BUNNYS.state.pitch;
+
+      // SPD: smoothed angular speed through a saturating curve -- WASD's 70deg/s lands
+      // around 0.54, a fast drag saturates near 1, idle sway (~0.3deg/s) reads ~0
+      var speed = Math.sqrt(yawRate * yawRate + pitchRate * pitchRate);
+      spdEma += (speed - spdEma) * (1 - Math.exp(-dt / SPD_TAU));
+      var spdFrac = 1 - Math.exp(-spdEma / 90);
+      setBar(spd, spdFrac);
+      if (t - spdTextAt >= 200) { spdTextAt = t; spd.readout.textContent = pad3(spdFrac * 240); }
+
+      // ladder: a damped spring banks and drifts the rungs off yaw/pitch rate, so it
+      // overshoots slightly on release instead of snapping straight to a value. Reduced
+      // motion skips the spring outright and only tracks pitch.
+      if (BUNNYS.reduce) {
+        updateLadder(BUNNYS.state.pitch, 0, 0, 0);
+      } else {
+        var rollG = BUNNYS.state.dragging ? 0.09 : 0.05, rollCap = BUNNYS.state.dragging ? 13 : 7;
+        var rollTarget = clamp(yawRate * rollG, -rollCap, rollCap);
+        var dxTarget = clamp(-yawRate * 0.12, -16, 16);
+        var dyTarget = clamp(-pitchRate * 0.35, -10, 10);
+        // sub-step so a slow (deferred-rAF) frame can't overdrive the spring
+        var subDt = 1 / 30, steps = dt > subDt ? Math.ceil(dt / subDt) : 1, h = dt / steps;
+        for (var i = 0; i < steps; i++) {
+          springStep(ladderRoll, rollTarget, h);
+          springStep(ladderDx, dxTarget, h);
+          springStep(ladderDy, dyTarget, h);
+        }
+        updateLadder(BUNNYS.state.pitch, ladderRoll.cur, ladderDx.cur, ladderDy.cur);
+      }
     })();
   } else {
     // -- sub-pages: reduced set, driven by scroll --
