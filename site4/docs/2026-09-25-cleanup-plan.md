@@ -15,7 +15,7 @@
 Ranked biggest cut first (net about −800 lines possible, −70KB shipped, 0 dependencies):
 
 1. `img/ms/sl01-*.svg` + `decals.svg` (70KB) and `tools/ms-gen.js` (420 lines): no page loads them, and `hangar.html` inlines its own copy of the same art. **Gated**, see the last section.
-2. History-narrating comments: 255 of `hud.js`'s 1541 lines are whole-line comments. → Task 5
+2. History-narrating comments: 388 of `hud.js`'s 1788 lines are whole-line comments (re-audited 2026-09-26, after the SPD/ladder/ENVIRONMENT/COMMS/boot run added ~130). → Task 5
 3. `tests/a11y-audit.js` (224 lines): not in `run.js`, and it crashes at line 207. Six of its ten checks are already covered elsewhere. → Task 2
 4. Six hand-built housings (backing plate + brackets, three of them with a hand-built header) in `hud.js`. → Task 3
 5. The 8-layer bracket gradient written twice in CSS; the backing colour written nine times. → Tasks 3 and 4
@@ -58,7 +58,7 @@ Create `site4/tests/layout.test.js`:
 const path = require('path');
 const { launch, check } = require('./cdp');
 const SIZES = [[1920, 1080], [1440, 900], [1366, 768]];
-const LEFT = ['REACTOR STATUS', 'THRUSTER VECTOR', 'SENSOR ARRAY'];
+const LEFT = ['REACTOR STATUS', 'THRUSTER VECTOR', 'ENVIRONMENT', 'SENSOR ARRAY'];
 const RIGHT = ['DIAGNOSTIC MODE', 'COMBAT SYSTEM', 'HUD MODE', 'SLEW TO'];
 const PROBE = `(() => {
   const vis = e => { for (let n = e; n && n !== document; n = n.parentNode) {
@@ -198,6 +198,13 @@ Temporarily change `pg === 'hangar.html' || dups === ''` to `dups === ''`.
 Run: `node tests/pages.test.js`
 Expected: `FAIL hangar.html no duplicate ids` listing the part IDs. Revert the change.
 
+- [ ] **Step 3b: One rect-by-content helper in hub.test.js**
+
+`tests/hub.test.js` defines `rectExpr`/`rectOf` near the top and, further down, `panelSel`/`panelRect`, which
+re-implement the same find-an-element-then-`getBoundingClientRect` pattern for panels found by header text. Rewrite
+`panelRect(pg, title)` as a one-line call to `rectExpr(pg, panelSel(title))` (or equivalent) so there is one
+implementation, and delete whatever becomes unused. Run `node tests/hub.test.js` — same PASS count as before.
+
 - [ ] **Step 4: Delete the dead files**
 
 ```bash
@@ -212,8 +219,8 @@ Confirm nothing references the audit: `grep -rn "a11y-audit" site4 --include=*.j
 Run: `node tests/run.js` — expected: 0 FAIL.
 
 ```bash
-git add site4/tests/pages.test.js
-git commit -m "site4 tests: fold a11y-audit's four uncovered checks into pages.test, drop it"
+git add site4/tests/pages.test.js site4/tests/hub.test.js
+git commit -m "site4 tests: fold a11y-audit's four uncovered checks into pages.test, drop it; one rect helper"
 ```
 
 ---
@@ -430,6 +437,13 @@ and in `PANELS`, replace the three `fmt:` references:
              { key: 'HDPT', base: 0.83, drift: 0.15, fmt: function (v) { return Math.max(1, Math.round(v * 6)) + '/6'; } }] }
 ```
 
+- [ ] **Step 8b: Drop the redundant ENVIRONMENT stand-down guard**
+
+In `place()`'s left-column block the ENVIRONMENT stand-down condition reads `!thrusterFits || envY + env.h * colS > radarTop - 12`.
+`envY` is computed from THRUSTER's position, so whenever THRUSTER doesn't fit ENVIRONMENT's own ceiling check already fails —
+the `!thrusterFits ||` half is dead logic. Delete it (and `thrusterFits` if nothing else reads it). The existing
+hub.test ENVIRONMENT checks (visible at 1920×1080, hidden at 1440×900 while THRUSTER shows) cover it.
+
 - [ ] **Step 9: Confirm nothing still reads the old names**
 
 Run: `grep -nE "spec\.bg|spec\.cn|dmgBg|dmgCorners|g\.body|g\.frame|headRuleY|fmtVector|fmtLink|fmtHardpoint" site4/js/hud.js`
@@ -505,7 +519,7 @@ git commit -m "site4 css: one --panel token and one corner-bracket rule"
 
 ### Task 5: Comment diet: invariants stay, war stories go
 
-`hud.js` has 255 whole-line comments, `cockpit.js` 126 and `boot.js` 26. Many narrate how a bug was found ("used to be…", "was 194…", "Task 3 left…", "the owner asked…"). That history belongs in `git log` and `DESIGN.md`, which already hold it. Comments that state an invariant, or the non-obvious reason behind a line, stay. This task touches **only whole-line comments**, so a mechanical diff can prove no code moved.
+`hud.js` has 388 whole-line comments, `cockpit.js` 126 and `boot.js` 36 (counted 2026-09-26). Many narrate how a bug was found ("used to be…", "was 194…", "Task 3 left…", "the owner asked…"). That history belongs in `git log` and `DESIGN.md`, which already hold it. Comments that state an invariant, or the non-obvious reason behind a line, stay. This task touches **only whole-line comments**, so a mechanical diff can prove no code moved.
 
 **Files:**
 - Modify: `site4/js/hud.js`, `site4/js/cockpit.js`, `site4/js/boot.js`
@@ -580,9 +594,9 @@ The largest cut (−420 lines of `tools/ms-gen.js`, −70KB of `img/ms/*.svg`) w
 |---|---|---|---|
 | `tests/a11y-audit.js` | 224 lines, broken, unrun | gone (4 checks kept) | gone |
 | housing and header construction in `hud.js` | 6 + 3 hand-built | 1 `housing()`, 1 `header()` | same |
-| whole-line comments in `hud.js` / `cockpit.js` / `boot.js` | 255 / 126 / 26 | ≤ 60% of each | same |
+| whole-line comments in `hud.js` / `cockpit.js` / `boot.js` | 388 / 126 / 36 | ≤ 60% of each | same |
 | backing colour in CSS / brackets rule | 3 copies / 2 copies | 1 token / 1 rule | same |
 | layout rules the owner named | checked by hand | `tests/layout.test.js` | same |
 | `img/ms` + `ms-gen.js` | 70KB + 420 lines | unchanged | gone |
 
-Net: about −330 lines now, a new permanent layout test, and a further −420 lines and −70KB once the hangar is redrawn.
+Net: about −520 lines now, a new permanent layout test, and a further −420 lines and −70KB once the hangar is redrawn.
