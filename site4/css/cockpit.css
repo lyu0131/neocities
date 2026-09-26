@@ -325,18 +325,15 @@ a { color: inherit; }
 }
 #boot.boot-out { opacity: 0; pointer-events: none; }
 
-/* the splash: a firmware screen, brand first, THEN the log types in below -- boot.js
-   holds the log off until this fades, so the two are never on screen together. */
+/* the splash: a firmware screen, brand + bar, staying on screen for the whole boot while
+   the log types itself in below -- the owner wants the two running at the same time. */
 .boot-splash {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   width: min(560px, calc(100vw - 48px));
   text-align: center;
-  opacity: 1;
-  transition: opacity .2s ease; /* boot.js adds .boot-splash-out once the bar completes */
 }
-.boot-splash.boot-splash-out { opacity: 0; }
 .boot-mark {
   margin: 0;
   font: 700 clamp(44px, 9vw, 92px)/1 'B612', sans-serif;
@@ -374,8 +371,8 @@ a { color: inherit; }
                        the owner reported: the log used to start partway through a bar
                        that was already moving. */
 }
-/* 1.1s here is BAR_MS in boot.js -- one clock, boot.js alone decides when it starts. */
-#boot.is-booting .boot-bar i { animation: boot-fill 1.1s linear forwards; }
+/* 3s here is BAR_MS in boot.js -- one clock, boot.js alone decides when it starts. */
+#boot.is-booting .boot-bar i { animation: boot-fill 3s linear forwards; }
 @keyframes boot-fill { to { transform: scaleX(1); } }
 .boot-cursor { animation: boot-blink 1s steps(2, end) infinite; }
 @keyframes boot-blink { 50% { opacity: 0; } }

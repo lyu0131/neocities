@@ -63,21 +63,20 @@
   try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
   if (BUNNYS.reduce || already) { finish(true); return; }
 
-  // One clock, owned entirely by run(): the splash+bar play alone, then the log phase.
+  // One clock, owned entirely by run(): the bar and the log start together and finish
+  // together (the owner's ask, reversing this task's original splash-then-log order).
   // BAR_MS must match cockpit.css's `#boot.is-booting .boot-bar i` animation-duration.
-  var BAR_MS = 1100;
-  // Splash fade-out length; must match cockpit.css's .boot-splash transition. LOG_START
-  // adds a buffer past the fade so the log never starts while a sample could still catch
-  // the splash mid-fade (the owner's whole complaint was the two overlapping).
-  var FADE_MS = 200;
-  var LOG_START = BAR_MS + FADE_MS + 150;
-  var LOG_STEP = 130;
-  var FLICKER_AT = 1900;
-  var WHIP_AT = 2500;
-  var HUD_AT = 3300;
-  var LOCK_AT = 3500;
-  var CALLSIGN_AT = 3700;
-  var FINISH_AT = 4000;
+  var BAR_MS = 3000;
+  // 16 lines (indices 0-15) spread evenly across BAR_MS so line 0 lands at t=0 (with the
+  // bar) and line 15, DEPLOYMENT READY, lands at 15*LOG_STEP -- exactly BAR_MS, i.e. the
+  // moment the bar reaches 100%. 15 gaps between 16 lines, not 16, hence BAR_MS / 15.
+  var LOG_STEP = BAR_MS / 15;
+  var FLICKER_AT = 1050;
+  var WHIP_AT = 1750;
+  var HUD_AT = 2550;
+  var LOCK_AT = 3050;
+  var CALLSIGN_AT = 3300;
+  var FINISH_AT = 3800;
 
   try { run(); } catch (e) { finish(true); }
 
@@ -85,32 +84,22 @@
     document.addEventListener('keydown', onSkip);
     document.addEventListener('click', onSkip);
 
-    // t=0: the splash+bar play alone. Adding this class here -- not first paint -- is
+    // t=0: bar and log start together. Adding this class here -- not first paint -- is
     // the actual fix: the bar used to animate on the page's own paint clock while
     // everything else ran on this function's clock (which starts late, after hud.js,
-    // cockpit.js and the 60KB dmgmap.js have loaded), so the log used to start partway
-    // through a bar that was already moving.
+    // cockpit.js and the 60KB dmgmap.js have loaded), so the two used to desync. The
+    // splash (mark, SYSTEM BOOTING, bar, version) stays on screen for the whole boot --
+    // the owner wants the bar and the log running at the same time, not sequential.
     overlay.classList.add('is-booting');
-    var splash = overlay.querySelector('.boot-splash');
 
-    // t=BAR_MS: the bar completes. Fade the splash out; only once it's clear does the
-    // log phase start (below) -- the owner explicitly didn't want the two on screen
-    // together.
-    at(BAR_MS, function () {
-      if (splash) splash.classList.add('boot-splash-out');
-    });
-    at(LOG_START, function () {
-      if (splash) splash.style.display = 'none';
+    // t=0: blinking cursor, lower left (self-contained, no cockpit.css dependency)
+    var cursor = document.createElement('span');
+    cursor.className = 'boot-cursor';
+    cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
+    overlay.appendChild(cursor);
 
-      // blinking cursor, lower left (self-contained, no cockpit.css dependency)
-      var cursor = document.createElement('span');
-      cursor.className = 'boot-cursor';
-      cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
-      overlay.appendChild(cursor);
-    });
-
-    // Boot log, one line every LOG_STEP starting at LOG_START, so all 16 lines arrive
-    // while the scene effects below play out behind it.
+    // Boot log, one line every LOG_STEP starting at t=0, so line 0 lands with the bar
+    // and line 15 (DEPLOYMENT READY) lands as the bar hits 100% -- see LOG_STEP above.
     var LOG = [
       'BUNNyS OS 2.6.1 // SYSTEM BOOT',
       'CORE BLOCK ........... LOCKED',
@@ -130,7 +119,7 @@
       'DEPLOYMENT READY'
     ];
     LOG.forEach(function (line, i) {
-      at(LOG_START + i * LOG_STEP, function () {
+      at(i * LOG_STEP, function () {
         var idx = lines.length;
         lines.push(line.indexOf('{P}') > -1 ? line.replace('{P}', '12') : line);
         render();
