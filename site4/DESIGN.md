@@ -121,12 +121,19 @@ it straddles their band (UNIT DATA above, ARMAMENT below). Either way it never c
 Where neither fits (below ~1400px wide) the set stands down and the dossier card takes over.
 
 ### Popups and HUD MODE
-Two popup slots sit in the open sky either side of `TARGET ID`, top-aligned with it:
-incoming **comms** on the left, the **status toast** on the right. They are bounded by the
-columns when the band clears the SPD/ALT captions (`POP_H` is the tallest a popup gets) and
-by the bars when it does not; too narrow either way, and they share the centre slot, which
-is stood down (and emptied) while a hostile set is up. Comms arrive every 30-50s, a hostile
-lock sends its own, and the lines never name the hostile unit outside `HX_DATA`.
+Incoming **comms** sits beside the SPD bar: centred on it (vertical centre at `cy`, via
+`top: cy; transform: translateY(-50%)`, so no height guess is needed) whenever the band to
+the reticle readouts or the dossier card, whichever is tighter, is wide enough; too narrow
+for that and it slides up the bar instead, bottom-anchored 12px above the readouts; the
+centre slot under `TARGET ID` — shared with the **status toast**, stood down (and emptied)
+while a hostile set is up — is the last resort, same as the toast's own. The **status
+toast** keeps its slot in the open sky right of `TARGET ID`, top-aligned with it, bounded by
+the columns when the band clears the SPD/ALT captions (`POP_H` is the tallest a popup gets)
+and by the bars when it does not. `popSlot()` carries a `vmode` (`'mid'`/`'bottom'`/top-
+aligned) for how the anchor point is used, and a `tryOnly` flag so a caller can attempt a
+second band before falling back to the centre slot, the way comms tries beside the bar, then
+sliding up it, before sharing `TARGET ID`'s row. Comms arrive every 30-50s, a hostile lock
+sends its own, and the lines never name the hostile unit outside `HX_DATA`.
 
 `HUD MODE` holds four controls, each confirmed by the toast: `DECLUTTER` strips the
 secondary instruments and keeps the flight HUD; `NIGHT VIS` greens the scene through two
@@ -142,15 +149,29 @@ art there only ever showed through as stray fragments.
 
 ## Cautions and alarms
 One scheduler, two modes, keyed off `hxOn`:
-- **general** (no hostile lock): the wide banner at `clamp(H*0.26, 90, 260)`, 9-25s cadence.
-  `CAUTIONS` entries are `[text, zoneId]`, so each flashes its damage-map zone **amber**.
+- **general** (no hostile lock): the wide banner, 9-25s cadence. `CAUTIONS` entries are
+  `[text, zoneId]`, so each flashes its damage-map zone **amber**.
 - **hostile**: the banner is suppressed and the 3-slot alarm log under `TARGET ID` takes
   over. `HOSTILE_ALARMS` are `[text, zoneId]`; each flashes its zone **red**, which also
   eases the damage map to front-on and holds it.
 
-Every mode switch must hide the banner **and** clear the pending timer — its 4.2s hold
-means it can already be on screen when a lock lands. That overlap was a real bug: the
-banner is at least 560px wide and the `TARGET ID` box ends near `0.25H`.
+The banner has its own slot directly below `TARGET ID` and its alarm log (box top =
+`hxLogBottom + 12`) — `place()` positions it there regardless of which mode is currently
+showing, so it never shares ground with the hostile set. That slot needs the box (60 tall)
+to clear the pitch ladder's rung at rest, `hxLogBottom + 12 + 60 <= cy - 148` (a margin, not
+a bare fit: the ladder's own rungs can sway ±10px and roll up to ±13°). Too short a screen
+for that and it falls back to `TARGET ID`'s own slot (`idY - HX_PAD`) instead, which the
+hostile set never occupies while the banner can fire; in that fallback the toast, and
+comms' own centre fallback if it's in use, stack below the banner's bottom rather than
+sharing its row, so neither can land under it.
+
+Every mode switch must still hide the banner **and** clear the pending timer — its 4.2s
+hold means it can already be on screen when a lock lands, and a general caution has no
+place showing during an active one.
+
+The part-number stencil under the banner's caption sits at `x = halfW - G_PAD` (the same
+inset every other panel's stencil uses) and `y = 25`, clear of `warnInner`'s bottom (18,
+raised from the old 24 so the outline itself has headroom) and the box's own bottom (30).
 
 Alarm and caution strings are **<=34 characters**: `hxFit` never re-runs after build.
 

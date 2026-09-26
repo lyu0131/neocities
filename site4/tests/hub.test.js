@@ -27,6 +27,57 @@ function ladderRollOf(pg) {
     return m ? parseFloat(m[1]) : 0;
   })()`);
 }
+// Task 3: COMMS beside the SPD bar, the caution banner under TARGET ID's alarm log.
+// rectExpr takes a JS expression (not just a selector) so it can also pick an element
+// out by its content, the way panelSel() below already does for the left-column panels.
+function rectExpr(pg, expr) {
+  return pg.eval(`(() => { const e = ${expr}; if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; })()`);
+}
+function rectOf(pg, sel) { return rectExpr(pg, `document.querySelector(${JSON.stringify(sel)})`); }
+function overlaps(a, b) { return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }
+// hx.left/hx.right/hx.id/hxLog all carry class="hostile" with no id of their own --
+// find the one that owns the given label text.
+function hostileGroupWith(pg, label) {
+  return rectExpr(pg, `[...document.querySelectorAll('#hud > g.hostile')].find(g =>
+    [...g.querySelectorAll('text')].some(t => t.textContent === ${JSON.stringify(label)}))`);
+}
+function spdInsetOf(pg) {
+  return pg.eval(`(() => {
+    const cap = [...document.querySelectorAll('#hud text')].find(t => t.textContent === 'SPD');
+    const m = /translate\\(([-\\d.]+)/.exec(cap.parentNode.getAttribute('transform'));
+    return m ? parseFloat(m[1]) : 0;
+  })()`);
+}
+// warnBox and warnInner are plain, unclassed <rect>s (first two direct children of
+// .warn, in build order); warnPN is the only .stencil text inside .warn. box/pn are
+// real rendered boxes (rect edges are exact, so left/right clearance is meaningful
+// off them); innerBottom/boxBottom/pnY compare the SVG *coordinates* instead of
+// rendered glyph ink -- at a 7px font-size the caption's cap-height alone spans most
+// of the 12px gap between warnInner's bottom and the box's, so ink-to-ink clearance
+// is not what "N px clear" means here; the coordinates are what layoutWarn() controls.
+function warnGeom(pg) {
+  return pg.eval(`(() => {
+    const g = document.querySelector('#hud .warn');
+    const pick = el => { const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; };
+    const rects = g.querySelectorAll(':scope > rect');
+    const box = rects[0], inner = rects[1], pn = g.querySelector('.stencil');
+    return {
+      box: pick(box), pn: pick(pn),
+      innerBottom: parseFloat(inner.getAttribute('y')) + parseFloat(inner.getAttribute('height')),
+      boxBottom: parseFloat(box.getAttribute('y')) + parseFloat(box.getAttribute('height')),
+      pnY: parseFloat(pn.getAttribute('y'))
+    };
+  })()`);
+}
+// Forces the banner on screen deterministically instead of waiting on its 9-25s timer --
+// place() sizes and positions it regardless of opacity, so this is enough to test geometry.
+function forceBanner(pg, text) {
+  return pg.eval(`(() => { const g = document.querySelector('#hud .warn');
+    g.setAttribute('opacity', 1); g.querySelector('.warn-text').textContent = ${JSON.stringify(text)}; })()`);
+}
 (async () => {
   const p = await launch({ width: 1440, height: 900 });
   await p.goto('index.html', 800);
@@ -242,4 +293,68 @@ function ladderRollOf(pg) {
   check('ENVIRONMENT hidden at 1440x900', !!envSmall && envSmall.opacity === '0', JSON.stringify(envSmall));
   check('THRUSTER VECTOR still shown at 1440x900', !!thrSmall && thrSmall.opacity !== '0', JSON.stringify(thrSmall));
   s.close();
+
+  // Task 3: COMMS beside the SPD bar, centred on it at 1920x1080; the caution banner
+  // gets its own slot below TARGET ID's alarm log, and its stencil no longer overlaps
+  // the box edges. The banner is forced visible through the DOM rather than waiting on
+  // its 9-25s timer -- place() sizes/positions it regardless of opacity.
+  const t3 = await launch({ width: 1920, height: 1080, reduce: true });
+  await t3.goto('index.html', 900);
+  await bootedReduced(t3);
+  await t3.eval("document.querySelector('[data-mode=comms]').click()");
+  await forceBanner(t3, 'PROPELLANT RESERVE LOW');
+  await t3.sleep(150);
+  const inset1920 = await spdInsetOf(t3);
+  const comms1920 = await rectOf(t3, '#comms');
+  const banner1920 = await warnGeom(t3);
+  const log1920 = await rectOf(t3, '#hud .hx-log');
+  const vh1920 = await t3.eval('innerHeight');
+  check('COMMS sits right of the SPD bar at 1920x1080', comms1920.left >= inset1920 + 20,
+    `left ${comms1920 && comms1920.left} vs inset+20 ${inset1920 + 20}`);
+  check('COMMS is vertically centred on the SPD bar at 1920x1080',
+    !!comms1920 && Math.abs((comms1920.top + comms1920.bottom) / 2 - vh1920 / 2) <= 4,
+    `mid ${comms1920 && (comms1920.top + comms1920.bottom) / 2} vs ${vh1920 / 2}`);
+  check('COMMS and the forced-visible banner do not overlap at 1920x1080',
+    !overlaps(comms1920, banner1920.box), JSON.stringify({ comms: comms1920, banner: banner1920.box }));
+  check("banner sits at/below TARGET ID's alarm log at 1920x1080",
+    banner1920.box.top >= log1920.bottom - 0.5,
+    `banner.top ${banner1920.box.top} vs log.bottom ${log1920.bottom}`);
+  check("banner stencil's y clears warnInner's bottom by >=4 (SVG coordinates)",
+    banner1920.pnY - banner1920.innerBottom >= 4,
+    `pnY ${banner1920.pnY} vs innerBottom ${banner1920.innerBottom}`);
+  check('banner stencil clears the box bottom by >=4 (SVG coordinates) and the left/right edges by >=4px (rendered)',
+    banner1920.boxBottom - banner1920.pnY >= 4 &&
+    banner1920.pn.left - banner1920.box.left >= 4 &&
+    banner1920.box.right - banner1920.pn.right >= 4,
+    JSON.stringify(banner1920));
+  check('no h-overflow with COMMS open and banner forced at 1920x1080',
+    await t3.eval('document.documentElement.scrollWidth <= innerWidth'));
+  await t3.shot(path.join(__dirname, 'out/task3-1920.png'), false);
+  t3.close();
+
+  // At 1440x900 the centred band is too narrow (POP_MIN), so COMMS slides up the bar
+  // instead -- check it clears every neighbouring box in that mode.
+  const t3b = await launch({ width: 1440, height: 900, reduce: true });
+  await t3b.goto('index.html', 900);
+  await bootedReduced(t3b);
+  await t3b.eval("document.querySelector('[data-mode=comms]').click()");
+  await forceBanner(t3b, 'PROPELLANT RESERVE LOW');
+  await t3b.sleep(150);
+  const comms1440 = await rectOf(t3b, '#comms');
+  const readouts1440 = await hostileGroupWith(t3b, 'BEARING');
+  const targetId1440 = await hostileGroupWith(t3b, 'TARGET ID');
+  const dossier1440 = await rectOf(t3b, '#hud .dossier > rect');
+  const banner1440 = await warnGeom(t3b);
+  check('COMMS does not overlap the reticle readouts at 1440x900',
+    !overlaps(comms1440, readouts1440), JSON.stringify({ comms: comms1440, readouts: readouts1440 }));
+  check('COMMS does not overlap TARGET ID at 1440x900',
+    !overlaps(comms1440, targetId1440), JSON.stringify({ comms: comms1440, id: targetId1440 }));
+  check('COMMS does not overlap the dossier card at 1440x900',
+    !overlaps(comms1440, dossier1440), JSON.stringify({ comms: comms1440, dossier: dossier1440 }));
+  check('COMMS does not overlap the banner at 1440x900',
+    !overlaps(comms1440, banner1440.box), JSON.stringify({ comms: comms1440, banner: banner1440.box }));
+  check('no h-overflow with COMMS open and banner forced at 1440x900',
+    await t3b.eval('document.documentElement.scrollWidth <= innerWidth'));
+  await t3b.shot(path.join(__dirname, 'out/task3-1440.png'), false);
+  t3b.close();
 })();

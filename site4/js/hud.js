@@ -772,7 +772,8 @@
   var warnBox, warnInner, warnTri, warnTick, warnDot, warnCorners, warnPN;
   function buildWarn() {
     warnBox = el('rect', { y: -30, height: 60, fill: 'rgba(6,10,18,.86)' });
-    warnInner = el('rect', { y: -24, height: 48, opacity: .5 });
+    // bottom at 18, not 24: leaves the stencil line (below) room before this outline
+    warnInner = el('rect', { y: -24, height: 42, opacity: .5 });
     warnTri = el('path', {});
     warnTick = el('line', { y1: -10, y2: 2 });
     warnDot = el('circle', { cy: 8, r: 1.6 });
@@ -784,7 +785,9 @@
     warn.appendChild(warnTick);
     warn.appendChild(warnDot);
     warn.appendChild(warnText);
-    warnPN = stencil(warn, WARN_MIN_HALF - 8, 24, 'end', 'BNS-CTN-041A');
+    // G_PAD inset (matches every other panel's stencil) clears warnInner's bottom (18)
+    // and the box's own bottom (30); layoutWarn() keeps the same inset as halfW grows
+    warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 25, 'end', 'BNS-CTN-041A');
     layoutWarn(WARN_MIN_HALF);
     svg.appendChild(warn);
   }
@@ -803,7 +806,7 @@
     // right edge (less its inset); anchor the centred text at that span's midpoint
     var textZoneRight = halfW - WARN_PAD_R;
     warnText.setAttribute('x', ((triX1 + textZoneRight) / 2).toFixed(1));
-    warnPN.setAttribute('x', (halfW - 8).toFixed(1));
+    warnPN.setAttribute('x', (halfW - G_PAD).toFixed(1));
   }
   // grows the box to fit the current caution text (down to a viewport-clamped
   // maximum), and as a last resort compresses the glyphs so nothing can run past
@@ -843,8 +846,8 @@
     }, 9000 + Math.random() * 16000);
   }
   // hides the banner and drops whatever phase of scheduleCaution was pending -- called
-  // on every hostile mode switch, since the 4.2s hold means one can already be on
-  // screen (and about to overprint TARGET ID, see showHostile) when a lock lands.
+  // on every hostile mode switch, since the 4.2s hold means one can already be on screen
+  // when a lock lands, and a general caution has no place showing during an active one.
   function hideCaution() {
     clearTimeout(cautionTimer);
     warn.setAttribute('opacity', 0);
@@ -1121,20 +1124,33 @@
   var POP_MAX = 300, POP_MIN = 200, POP_H = 150;
   // Sizes a popup into the band [left, right]. Too narrow a band and it falls back to the
   // centre slot under the tape, stacked `drop` px down so comms and toast never share it.
-  function popSlot(node, left, right, top, alignEnd, drop) {
-    if (!node) return;
+  // vmode picks how `top` is used once the band fits: undefined anchors the top edge
+  // (legacy, and always what the centre-slot fallback uses); 'mid' centres the popup on
+  // `top` via translateY, so no height guess is needed; 'bottom' anchors the popup's
+  // bottom edge to `top` instead, same reason. Every branch sets top/bottom/transform
+  // itself, so a popup moved between modes across a resize never keeps a stale one.
+  // tryOnly skips the centre-slot fallback and returns false instead, so a caller can
+  // try a second band first (COMMS tries beside the SPD bar, then sliding up it, before
+  // finally sharing the centre slot). Return value: whether the band itself was used.
+  function popSlot(node, left, right, top, alignEnd, drop, vmode, tryOnly) {
+    if (!node) return false;
     var w = Math.min(POP_MAX, right - left);
     if (w >= POP_MIN) {
       node.style.left = (alignEnd ? right - w : left) + 'px';
-      node.style.top = top + 'px';
+      node.style.width = w + 'px';
+      node.style.top = vmode === 'bottom' ? 'auto' : top + 'px';
+      node.style.bottom = vmode === 'bottom' ? (H - top) + 'px' : 'auto';
+      node.style.transform = vmode === 'mid' ? 'translateY(-50%)' : 'none';
       node.dataset.centre = '';
-    } else {
-      w = Math.min(POP_MAX, W - 48);
-      node.style.left = (W / 2 - w / 2) + 'px';
-      node.style.top = (top + drop) + 'px';
-      node.dataset.centre = '1';   // shares TARGET ID's slot: stood down while it is up
+      return true;
     }
+    if (tryOnly) return false;
+    w = Math.min(POP_MAX, W - 48);
+    node.style.left = (W / 2 - w / 2) + 'px';
     node.style.width = w + 'px';
+    node.style.top = (top + drop) + 'px'; node.style.bottom = 'auto'; node.style.transform = 'none';
+    node.dataset.centre = '1';   // shares TARGET ID's slot: stood down while it is up
+    return false;
   }
   function blocked(node) { return node.dataset.centre === '1' && hxOn; }
 
@@ -1479,14 +1495,38 @@
             && hxArmsBottom + 14 <= statusY - 20             // over the status line
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, idY);
-      // Popup slots in the open sky either side of TARGET ID, top-aligned with it. On a
-      // tall screen the SPD/ALT captions (cy - barH - 12) start below the whole popup band,
-      // so the slots may reach out to the columns; on a short one the band would run into
-      // those captions, so the bars' own x becomes the bound. Too narrow either way, and
-      // the popup takes the centre slot instead.
-      var popTop = idY - HX_PAD, idHalf = hx.id.w / 2 + HX_PAD;
+      var idHalf = hx.id.w / 2 + HX_PAD;
+      // The caution banner sits directly under TARGET ID's alarm log whenever that
+      // leaves room over the pitch ladder's rest position (a margin, since the ladder
+      // sways live); too short a screen for that and it falls back to TARGET ID's own
+      // slot instead -- always empty when the banner can fire, since the hostile set
+      // and the banner never show at once (hideCaution() on every mode switch). When
+      // the banner takes that slot, the toast and COMMS' own centre fallback stack
+      // below its bottom (popTop) rather than sharing the row, so neither can land
+      // under it.
+      var warnFits = hxLogBottom + 12 + 60 <= cy - 148;
+      var warnTop = warnFits ? hxLogBottom + 12 : idY - HX_PAD;
+      var popTop = warnFits ? idY - HX_PAD : warnTop + 60 + 12;
       var clearOfBars = popTop + POP_H <= cy - barH - 24;
-      popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, popTop, true, 0);
+      // COMMS beside the SPD bar: centred on it when the band to the reticle readouts
+      // (or the dossier card, whichever is tighter) is wide enough; failing that,
+      // sliding up the bar instead, bottom-anchored 12px above the readouts; the
+      // shared centre slot only as a last resort. The left edge (inset + 24, clear of
+      // the SPD caption and needle) is the same in every band -- only the vertical
+      // anchor and the right bound change.
+      var commsLeft = inset + 24, lb = hx.left.getBBox();
+      var midRight = Math.min(cx - 92 + lb.x, cx - 220) - 16;
+      if (!popSlot(commsEl, commsLeft, midRight, cy, false, 0, 'mid', true)) {
+        var readTop = cy - 17 + lb.y;
+        if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true)) {
+          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, popTop, true, 0);
+        }
+      }
+      // The toast keeps its slot right of TARGET ID, top-aligned with it. On a tall
+      // screen the SPD/ALT captions (cy - barH - 12) start below the whole popup band,
+      // so the slot may reach out to the column; on a short one the band would run
+      // into those captions, so the bar's own x becomes the bound. Too narrow either
+      // way, and it takes the centre slot instead.
       // 132: a two-line transmission at full width is 121px tall, plus an 11px gap
       popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132);
       xf(hx.spec, specX, specY);
@@ -1499,7 +1539,7 @@
       var hostileNow = hxRoom && hxLockId === 't-unknown';
       showHostile(hostileNow);
       if (hostileNow) dossier.setAttribute('opacity', 0);
-      xf(warn, cx, clamp(H * 0.26, 90, 260));
+      xf(warn, cx, warnTop + 30); // +30: warnTop is the box's top edge, xf() wants its centre
       fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
       // ladder's own transform is re-applied by tick() every frame off the spring's
       // current values, so a resize needs no extra push here
