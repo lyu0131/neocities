@@ -80,7 +80,8 @@
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
 
-  // Built once; CSS owns size/background-image/background-size (--slice-w), this owns transform and background-position-x.
+  // Built once; CSS owns size/background-image/background-size (--slice-w), this owns transform and
+  // background-position-x.
   (function buildSphere() {
     var frag = document.createDocumentFragment();
     BANDS.forEach(function (b) {
@@ -95,14 +96,16 @@
   })();
 
 
-  // Sets R, and through R the whole sphere's scale; 0.27 of viewport height keeps the skyline framing consistent.
+  // Sets R, and through R the whole sphere's scale; 0.27 of viewport height keeps the skyline
+  // framing consistent.
   function readSliceW() {
     return Math.max(80, innerHeight * 0.27);
   }
 
   // radius R = sliceW / (2*tan(7.5deg)); slice i sits at rotateY(-i*15) translateZ(-R). Angles are
   // negated so increasing yaw slides the scene left and a target at +52deg appears to the RIGHT,
-  // matching the heading tape (scaleX(-1) would also fix handedness but mirrors the CSS label text).
+  // matching the heading tape (scaleX(-1) would also fix handedness but mirrors the CSS label
+  // text).
   // Each slice shows content centred at (i+0.5)*sliceW; the ring's own rotateY corrects for that
   // offset so the DESIGN.md yaw->x mapping (yaw 0 = x0, yaw 180 = x4800) holds exactly. The strip
   // must keep its natural aspect (5x width in height) or the scene distorts vertically.
@@ -119,13 +122,15 @@
       var cos = Math.cos(t.lat * Math.PI / 180);   // always positive: no band centre passes 90deg
       var tileH = 2 * R * Math.tan(t.h / 2 * Math.PI / 180);
       // The sphere's circumference shrinks across the band, so a quad's edge nearer the equator
-      // needs more width than its centre. Widen each quad to its widest edge, or bands gap at the poles.
+      // needs more width than its centre. Widen each quad to its widest edge, or bands gap at the
+      // poles.
       var edge = Math.min(Math.abs(t.band.top), Math.abs(t.band.bot));
       var over = Math.max(OVER, Math.cos(edge * Math.PI / 180) / cos * 1.03);
       // This quad shows image cell (i, j): scale the whole image by the cell count and offset to
       // that cell. Every tile is laid out at the equator's width and squeezed with scaleX rather
       // than resized by cos(lat), so background-size is identical across all bands and the browser
-      // rasterises pano.svg once instead of once per band -- the per-band alternative stalls the boot.
+      // rasterises pano.svg once instead of once per band -- the per-band alternative stalls the
+      // boot.
       t.el.style.width = (sliceW * over) + 'px';
       t.el.style.height = (tileH * OVER) + 'px';
       t.el.style.marginLeft = (-sliceW * over / 2) + 'px';
@@ -209,7 +214,8 @@
     }
   }
 
-  // Lock-on is one event-driven source of truth, so boot.js's MISSIONS lock ping drives the same bracket close-in as hover/focus.
+  // Lock-on is one event-driven source of truth, so boot.js's MISSIONS lock ping drives the same
+  // bracket close-in as hover/focus.
   var lockedId = null, hoverTarget = null, focusTarget = null, desiredLock = null;
   BUNNYS.on('lock', function (d) {
     if (lockedId && lockedId !== d.id) {
@@ -220,21 +226,25 @@
     if (lockedId) {
       var t = document.getElementById(lockedId);
       if (t) t.classList.add('is-locked');
-      // Must carry everything the dossier shows: svg#hud is aria-hidden, so this live region is the only route to that text for assistive tech.
+      // Must carry everything the dossier shows: svg#hud is aria-hidden, so this live region is the
+      // only route to that text for assistive tech.
       lockStatus.textContent = 'LOCK: ' + (d.label || '') + ' — ' + (d.readout || '')
         + (d.info ? ' — ' + d.info : '');
     } else {
       lockStatus.textContent = '';
     }
   });
-  // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings up its dossier.
+  // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings
+  // up its dossier.
   var boreTarget = null;
-  // Every target sits on the horizon, so a contact's elevation offset from the boresight is simply -pitch.
+  // Every target sits on the horizon, so a contact's elevation offset from the boresight is simply
+  // -pitch.
   function boreOffset(t, yaw, pitch) {
     return { yaw: shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0), pitch: -pitch };
   }
   function boreDist(o) { return Math.sqrt(o.yaw * o.yaw + o.pitch * o.pitch); }
-  // Acquisition uses true angular distance (yaw and pitch), not yaw alone, or the lock can sit well off the reticle.
+  // Acquisition uses true angular distance (yaw and pitch), not yaw alone, or the lock can sit well
+  // off the reticle.
   function updateBoresight(yaw, pitch) {
     var best = null, bestOff = BORE_DEG;
     targets.forEach(function (t) {
@@ -312,8 +322,10 @@
     markInput();
   });
   addEventListener('mouseup', function () { dragging = false; state.dragging = false; });
-  // A target label is a link, so a drag that starts and ends on one still fires a click and navigates
-  // away mid-turn. Swallow it past DRAG_SLOP, in the capture phase so it lands before the link's own handler.
+  // A target label is a link, so a drag that starts and ends on one still fires a click and
+  // navigates
+  // away mid-turn. Swallow it past DRAG_SLOP, in the capture phase so it lands before the link's
+  // own handler.
   document.addEventListener('click', function (e) {
     if (dragDist <= DRAG_SLOP) return;
     dragDist = 0;
@@ -327,7 +339,8 @@
     markInput();
   }, { passive: false });
 
-  // WASD mirrors the arrows; held keys turn continuously via the render loop's `held` while a single tap still steps.
+  // WASD mirrors the arrows; held keys turn continuously via the render loop's `held` while a
+  // single tap still steps.
   var held = {};
   var STEP = { left: -15, right: 15, up: 4, down: -4 };
   function keyRole(e) {
@@ -390,7 +403,8 @@
     });
   });
 
-  // state.booted goes true before boot-done fires, so a keypress can land in between and already be accepted; only re-sync when the user has not steered.
+  // state.booted goes true before boot-done fires, so a keypress can land in between and already be
+  // accepted; only re-sync when the user has not steered.
   BUNNYS.on('boot-done', function () {
     if (hadInput) return;
     targetYaw = state.yaw;
@@ -398,13 +412,15 @@
   });
 
   // The sphere has no depth, so a far target still projects through it, arriving mirrored -- at
-  // this field of view that can read as backwards text mid-screen. Hide it outright; backface-visibility
+  // this field of view that can read as backwards text mid-screen. Hide it outright;
+  // backface-visibility
   // alone would drop the box but leave the CSS ::after label painting.
   function updateBehind(yaw) {
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       var off = Math.abs(shortestDelta(yaw, dy));
-      // Cut at 80, not 90: the camera sits at the sphere's centre, so a contact at exactly 90deg sits in the camera plane, where the projection scale goes to infinity.
+      // Cut at 80, not 90: the camera sits at the sphere's centre, so a contact at exactly 90deg
+      // sits in the camera plane, where the projection scale goes to infinity.
       var hidden = off > 80;
       t.style.visibility = hidden ? 'hidden' : '';
       t.style.pointerEvents = hidden ? 'none' : '';

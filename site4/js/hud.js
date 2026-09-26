@@ -54,9 +54,11 @@
       ln.b.setAttribute('x2', x); ln.b.setAttribute('y2', (y + len * ln.sy).toFixed(1));
     });
   }
-  // Every HUD box stands on this: a backing plate plus corner brackets, so no box can drift from the others. size() re-fits both once a box knows its real height.
+  // Every HUD box stands on this: a backing plate plus corner brackets, so no box can drift from
+  // the others. size() re-fits both once a box knows its real height.
+  var PLATE_FILL = 'rgba(6,10,18,.97)';   // shared with the alarm-log rows' hand-rolled rect
   function housing(parent, x, y, w, h, len) {
-    var bg = el('rect', { class: 'plate', x: x, y: y, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' });
+    var bg = el('rect', { class: 'plate', x: x, y: y, width: w, height: h, rx: 3, fill: PLATE_FILL });
     var cn = corners(x, y, w, h, len);
     parent.appendChild(bg);
     parent.appendChild(cn);
@@ -66,7 +68,8 @@
       updateCorners(cn, x, y, w2, h2, len);
     } };
   }
-  // A column instrument's header -- title, rule, 12px ticks -- on the rhythm they all share: baseline G_PAD+11 below the housing top, rule 9px under it. Returns the rule's y.
+  // A column instrument's header -- title, rule, 12px ticks -- on the rhythm they all share:
+  // baseline G_PAD+11 below the housing top, rule 9px under it. Returns the rule's y.
   function header(parent, x0, x1, top, title) {
     var t = el('text', { x: x0, y: top + G_PAD + 11 });
     t.textContent = title;
@@ -82,7 +85,8 @@
     }
   }
   function stencil(container, x, y, anchor, text) {
-    // text-anchor goes through inline style, not just the attribute: the dossier's own `text { text-anchor: middle }` rule would otherwise win and re-centre it.
+    // text-anchor goes through inline style, not just the attribute: the dossier's own `text {
+    // text-anchor: middle }` rule would otherwise win and re-centre it.
     var t = el('text', {
       x: x, y: y, 'text-anchor': anchor, class: 'stencil',
       style: 'font-size:7px;opacity:.55;letter-spacing:.08em;text-anchor:' + anchor
@@ -91,7 +95,8 @@
     container.appendChild(t);
     return t;
   }
-  // Fictional identifiers, invented once and reused everywhere so they stay consistent across redraws.
+  // Fictional identifiers, invented once and reused everywhere so they stay consistent across
+  // redraws.
   var UNIT_SERIAL = 'RX-124', BLOCK_REV = 'BLOCK 04C';
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -157,7 +162,8 @@
     svg.appendChild(g);
     return { g: g, rule: rule, tick: tick, cap: t, readout: readout, frac: 0, want: 0, cur: null };
   }
-  // SPD and ALT are fed by drag velocity and pitch, both of which jump about; store the target and let a frame loop ease the needle onto it, so the bars glide.
+  // SPD and ALT are fed by drag velocity and pitch, both of which jump about; store the target and
+  // let a frame loop ease the needle onto it, so the bars glide.
   function setBar(b, frac01, text) {
     b.want = frac01;
     if (text != null) b.readout.textContent = text;
@@ -172,15 +178,18 @@
   var spd = bar('SPD'), alt = bar('ALT');
 
   // ---------------------------------------------------------------- radar scope
-  // Heading-up: straight ahead is at the top, so a bearing right of the nose plots right, agreeing with the heading tape and the scene.
+  // Heading-up: straight ahead is at the top, so a bearing right of the nose plots right, agreeing
+  // with the heading tape and the scene.
   var RAD = 108;   // with PAD 16 this makes the radar housing 248 -- exactly PANEL_W
   var radar = el('g', { class: 'radar' });
   var radarCone, blips = [];
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
-  // R_HEAD: the band above the scope holding the header and its rule, on the same header/rule/tick rhythm as buildPanel so SENSOR ARRAY lines up with the panels.
+  // R_HEAD: the band above the scope holding the header and its rule, on the same header/rule/tick
+  // rhythm as buildPanel so SENSOR ARRAY lines up with the panels.
   var PAD = 16, R_HEAD = 44;
-  // The scanning sweep: a rotating arm with a decaying phosphor trail, and blips that brighten as the arm passes their bearing then fade back down.
+  // The scanning sweep: a rotating arm with a decaying phosphor trail, and blips that brighten as
+  // the arm passes their bearing then fade back down.
   var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;
   var SWEEP_TRAIL = 6, SWEEP_STEP = 10; // SWEEP_TRAIL * SWEEP_STEP deg of decay behind the arm
   var SWEEP_BEAM = 4, SWEEP_DECAY = 900; // deg either side that "lights" a blip; ms to fade
@@ -300,12 +309,14 @@
              { key: 'THR-V', base: 0.50, drift: 0.30, fmt: function (v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; } },
              { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: function (v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; } },
              { key: 'HDPT', base: 0.83, drift: 0.15, fmt: function (v) { return Math.max(1, Math.round(v * 6)) + '/6'; } }] },
-    // Appended, not inserted: PANELS[0..2] keep the indices drawPanels()/place() key off of. rows: [] skips buildPanel's bar-row loop; this panel's body is its 'env' branch.
+    // Appended, not inserted: PANELS[0..2] keep the indices drawPanels()/place() key off of. rows:
+    // [] skips buildPanel's bar-row loop; this panel's body is its 'env' branch.
     { id: 'env', title: 'ENVIRONMENT', code: 'BNS-ENV-077W', extra: 'env', rows: [] }
   ];
   var sparkPts = [];
 
-  // A hairline down the middle of each gutter, which every instrument in that column centres on; panels paint over it, so it shows only in the gaps.
+  // A hairline down the middle of each gutter, which every instrument in that column centres on;
+  // panels paint over it, so it shows only in the gaps.
   var lane = el('g', { class: 'lane', opacity: 0 });
   var laneRuleL = el('line', { opacity: .22 });
   var laneRuleR = el('line', { opacity: .22 });
@@ -317,9 +328,11 @@
 
   function buildPanel(spec) {
     var g = el('g', { class: 'panel' });
-    // The group's origin is the housing's top-left corner, so place() positions a panel by the same x/y as any other box.
+    // The group's origin is the housing's top-left corner, so place() positions a panel by the same
+    // x/y as any other box.
     var x0 = G_PAD, x1 = PANEL_W - G_PAD, inner = x1 - x0;
-    // label | bar | value, with a 10px gutter each side of the bar; the value column is sized for the widest string it ever shows (STANDBY), not for a percentage.
+    // label | bar | value, with a 10px gutter each side of the bar; the value column is sized for
+    // the widest string it ever shows (STANDBY), not for a percentage.
     var labelW = 52, pctW = 64, barX = x0 + labelW, barW = inner - labelW - pctW - 10;
     spec.box = housing(g, 0, 0, PANEL_W, 10);
     var rowsY = header(g, x0, x1, 0, spec.title) + 17;
@@ -397,7 +410,8 @@
       }
       y += 36;
     } else if (spec.extra === 'env') {
-      // Fake weather rows on the same label/value rhythm as the bar rows (rows: [] left that loop with nothing to draw, so this branch is the whole panel).
+      // Fake weather rows on the same label/value rhythm as the bar rows (rows: [] left that loop
+      // with nothing to draw, so this branch is the whole panel).
       ['WX', 'WIND', 'PRECIP'].forEach(function (label, i) {
         var ry = y + i * rowH;
         var lbl = el('text', { x: x0, y: ry + 4 });
@@ -407,7 +421,8 @@
         spec[key] = el('text', { x: x1, y: ry + 4, 'text-anchor': 'end' });
         g.appendChild(spec[key]);
         if (label === 'WIND') {
-          // x is re-measured in drawPanels off the value text's own rendered width, since "240 12 KT" and "232 9 KT" differ in width; a fixed x would run into the digits.
+          // x is re-measured in drawPanels off the value text's own rendered width, since "240 12
+          // KT" and "232 9 KT" differ in width; a fixed x would run into the digits.
           spec.windArrow = el('path', { d: WIND_ARROW_D, fill: 'currentColor', stroke: 'none' });
           spec.windArrowY = ry + 1;
           g.appendChild(spec.windArrow);
@@ -415,7 +430,8 @@
       });
       y += 3 * rowH + 2;
 
-      // The clock is this panel's own instrument, like the reactor's trace or the thruster's cross -- the one reading here that isn't fake.
+      // The clock is this panel's own instrument, like the reactor's trace or the thruster's cross
+      // -- the one reading here that isn't fake.
       spec.clockTime = el('text', { x: x0, y: y + 14, style: 'font-size:16px' });
       g.appendChild(spec.clockTime);
       spec.clockDate = el('text', { x: x1, y: y + 14, 'text-anchor': 'end' });
@@ -441,7 +457,8 @@
         r.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
       });
       if (spec.extra === 'cross') {
-        // Drifts around the centre rather than tracking the view: this is the suit's thrust vector, not the camera.
+        // Drifts around the centre rather than tracking the view: this is the suit's thrust vector,
+        // not the camera.
         var a = clamp(Math.sin(now / 2600) * 0.8 + Math.sin(now / 910) * 0.3, -1, 1);
         var b = clamp(Math.cos(now / 3100) * 0.7 + Math.sin(now / 1270) * 0.3, -1, 1);
         spec.dot.setAttribute('cx', (spec.crossC[0] + a * spec.crossC[2]).toFixed(1));
@@ -454,7 +471,8 @@
           cell.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.16)');
         });
       } else if (spec.extra === 'env') {
-        // Weather is decoration, so it holds still under reduced motion; the clock below doesn't, since it's information.
+        // Weather is decoration, so it holds still under reduced motion; the clock below doesn't,
+        // since it's information.
         var hold = BUNNYS.reduce;
         var temp = 14.2 + (hold ? 0 : Math.sin(now / 5000) * 0.4);
         setText(spec.wx, 'LIGHT RAIN ' + temp.toFixed(1) + '°C');
@@ -464,7 +482,9 @@
         var windStr = windDeg.toFixed(0) + '° ' + windKt.toFixed(0) + ' KT';
         if (spec.wind.textContent !== windStr) {
           spec.wind.textContent = windStr;
-          // Positioned just left of the value text's rendered box, not a fixed offset (the string width varies). WIND_ARROW_R + 6 clears the arrow's own farthest point plus the text's clearance, guaranteeing the gap by construction.
+          // Positioned just left of the value text's rendered box, not a fixed offset (the string
+          // width varies). WIND_ARROW_R + 6 clears the arrow's own farthest point plus the text's
+          // clearance, guaranteeing the gap by construction.
           spec.windArrowX = spec.wind.getBBox().x - WIND_ARROW_R - 6;
         }
         spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX.toFixed(1) + ',' +
@@ -473,14 +493,17 @@
         var precip = 3.75 + (hold ? 0 : Math.sin(now / 3700 + 2) * 1.25);
         setText(spec.precip, precip.toFixed(1) + ' MM/H');
 
-        // The viewer's own clock; rewritten only when its string changes, so a steady second doesn't touch the DOM 60x/s.
+        // The viewer's own clock; rewritten only when its string changes, so a steady second
+        // doesn't touch the DOM 60x/s.
         var d = new Date();
         setText(spec.clockTime, pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()));
         setText(spec.clockDate, d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
       }
     });
 
-    // Sampled on a fixed 30ms clock, not once per frame: the 58-point buffer needs a fixed time window (1.7s) to show every drift band, and a frame-rate-tied sample rate would scroll the trace at whatever speed the machine runs at.
+    // Sampled on a fixed 30ms clock, not once per frame: the 58-point buffer needs a fixed time
+    // window (1.7s) to show every drift band, and a frame-rate-tied sample rate would scroll the
+    // trace at whatever speed the machine runs at.
     var rx = PANELS[0];
     if (now >= (drawPanels.nextPt || 0)) {
       drawPanels.nextPt = now + 30;
@@ -507,10 +530,12 @@
   // frames (one per 15 degrees) of 8 zone paths plus a per-frame paint order (zones overlap
   // in projection -- without reordering an arm paints over the torso). Read w/h/frame count
   // off the data at runtime, since the source mesh gets re-scaled from time to time; degrades
-  // to nothing if the data never loaded. DMG_W tracks PANEL_W, since this is a column instrument like any other.
+  // to nothing if the data never loaded. DMG_W tracks PANEL_W, since this is a column instrument
+  // like any other.
   var DMG_W = PANEL_W, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
   // Text needs a bigger inset than the art: the corner brackets occupy the first and last 10px
-  // of each edge, so text set at DMG_PAD reads as touching the box; G_PAD matches every other panel's text inset.
+  // of each edge, so text set at DMG_PAD reads as touching the box; G_PAD matches every other
+  // panel's text inset.
   var DMG_TEXT_PAD = G_PAD;
   var dmgBox, dmgHousing, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
@@ -522,12 +547,14 @@
     dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
     dmgHousing = housing(dmgBox, 0, 0, DMG_W, 10);
     dmgArtTop = header(dmgBox, DMG_TEXT_PAD, DMG_W - DMG_TEXT_PAD, 0, 'DIAGNOSTIC MODE') + 12;
-    // The scaled artwork: 8 zone paths, built once and never recreated -- drawDamage only rewrites their `d` and re-appends them in the current frame's paint order.
+    // The scaled artwork: 8 zone paths, built once and never recreated -- drawDamage only rewrites
+    // their `d` and re-appends them in the current frame's paint order.
     dmgArt = el('g', { class: 'dmg-art' });
     dmgBox.appendChild(dmgArt);
     dmgZones = {};
     D.zones.forEach(function (z) {
-      // Explicit fill attribute, not just a class: #hud path:not([fill]) forces fill:none on anything without one, which would blank every zone.
+      // Explicit fill attribute, not just a class: #hud path:not([fill]) forces fill:none on
+      // anything without one, which would blank every zone.
       var p = el('path', { class: 'dmg-zone', fill: 'rgba(140,255,193,.16)' });
       dmgArt.appendChild(p);
       dmgPaths.push(p);
@@ -540,18 +567,21 @@
   }
   // Sizes and positions the housing for the vertical space place() hands it, or stands it down
   // (opacity 0, rotation paused) when too tight. The housing shrink-wraps to the art rather than
-  // stretching to fill the range, anchored to the *bottom* so freed space opens above the map, not as a gap.
+  // stretching to fill the range, anchored to the *bottom* so freed space opens above the map, not
+  // as a gap.
   function layoutDamage(x, top, bottom, room, sc) {
     var D = window.BUNNYS_DMG;
     if (!D || !dmgBox) return;
     sc = sc || 1;
     var avail = (bottom - top) / sc;   // measure in the panel's own units, then scale once
-    // The art region is a square: its side is the housing's inner width, unless the column is too short, in which case it shrinks to whatever height is on offer.
+    // The art region is a square: its side is the housing's inner width, unless the column is too
+    // short, in which case it shrinks to whatever height is on offer.
     var side = Math.min(DMG_W - DMG_PAD * 2, avail - dmgArtTop - DMG_PAD);
     dmgOn = !!room && avail >= DMG_MIN_H && side >= DMG_MIN_SIDE;
     dmgBox.setAttribute('opacity', dmgOn ? 1 : 0);
     if (!dmgOn) return;
-    // Fit the artwork on whichever axis constrains it; don't assume portrait, since the source mesh can be either taller or wider than square.
+    // Fit the artwork on whichever axis constrains it; don't assume portrait, since the source mesh
+    // can be either taller or wider than square.
     var scale = Math.min(side / D.w, side / D.h);
     var artW = D.w * scale, artH = D.h * scale;
     var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
@@ -570,7 +600,8 @@
     for (var i = 0; i < dmgPaths.length; i++) dmgPaths[i].setAttribute('d', f.d[i]);
     for (var j = 0; j < f.order.length; j++) dmgArt.appendChild(dmgPaths[f.order[j]]);
   }
-  // Public entry point, called when a zone is hit; no-ops cleanly if the damage map never built (no window.BUNNYS_DMG).
+  // Public entry point, called when a zone is hit; no-ops cleanly if the damage map never built (no
+  // window.BUNNYS_DMG).
   function setZone(id, state) {
     if (!dmgZones) return;
     var z = dmgZones[id];
@@ -611,11 +642,13 @@
   }
 
   // ---------------------------------------------------------------- target dossier
-  // Filled whenever a target is acquired -- by hover, keyboard focus, or boresight; cockpit.js decides, this only renders.
+  // Filled whenever a target is acquired -- by hover, keyboard focus, or boresight; cockpit.js
+  // decides, this only renders.
   var dossier = el('g', { class: 'dossier', opacity: 0 });
   var dosLabel = el('text', { x: 0, y: 8, class: 'dos-title' });
   var dosRead = el('text', { x: 0, y: 30, class: 'dim' });
-  // `#hud .dossier text` forces text-anchor:middle in cockpit.css; only an inline style (not a bare attribute) beats that rule, so start/end alignment must be set inline.
+  // `#hud .dossier text` forces text-anchor:middle in cockpit.css; only an inline style (not a bare
+  // attribute) beats that rule, so start/end alignment must be set inline.
   var DOS_CAP_STYLE = 'font-size:10px;letter-spacing:.12em;opacity:.75;text-anchor:';
   var dosCap = el('text', { x: -200, y: -20, class: 'dos-cap', style: DOS_CAP_STYLE + 'start' });
   var dosSeq = el('text', { x: 200, y: -20, 'text-anchor': 'end', class: 'dos-seq', style: DOS_CAP_STYLE + 'end' });
@@ -648,14 +681,17 @@
     dosRead.textContent = d.readout || '';
     var lines = (d.brief || '').split('|');
     dosBrief.forEach(function (t, i) { t.textContent = lines[i] || ''; });
-    // A target with an approach (href) reads as friendly/known; the unknown target (no href) never resolves an IFF handshake.
+    // A target with an approach (href) reads as friendly/known; the unknown target (no href) never
+    // resolves an IFF handshake.
     var iff = d.href ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
     dosHint.textContent = (d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED') + ' — ' + iff;
     if (d.id !== dosLastId) {
-      // Acquiring for the same 350ms the target's own bracket close-in takes (see .target transition in cockpit.css), then locked.
+      // Acquiring for the same 350ms the target's own bracket close-in takes (see .target
+      // transition in cockpit.css), then locked.
       dosLastId = d.id;
       dosSeq.textContent = 'LOCK SEQUENCE: ACQUIRING';
-      // `#hud text { fill: currentColor }` beats a plain fill attribute, so this colour (like the text-anchor above) must go through inline style too.
+      // `#hud text { fill: currentColor }` beats a plain fill attribute, so this colour (like the
+      // text-anchor above) must go through inline style too.
       dosSeq.style.fill = 'var(--amber, #FFB02E)';
       dosSeq.classList.add('is-acquiring'); dosSeq.classList.remove('is-locked');
       clearTimeout(dosSeqTimer);
@@ -670,7 +706,8 @@
 
   // ---------------------------------------------------------------- caution banner
   // Fires at random intervals, holds a few seconds, clears itself. Fictional faults.
-  // [text, zoneId|null] -- a caution that names a zone flashes it amber on the damage map (setZone(zone,'caution')); the rest are just banner text.
+  // [text, zoneId|null] -- a caution that names a zone flashes it amber on the damage map
+  // (setZone(zone,'caution')); the rest are just banner text.
   var CAUTIONS = [
     ['PARTICLE INTERFERENCE RISING', null],
     ['COOLANT LOOP 2 OFF NOMINAL', null],
@@ -695,15 +732,18 @@
   var warnText = el('text', { y: 8 - WARN_CAP_LIFT, 'text-anchor': 'middle', class: 'warn-text' });
   // The box spans -halfW..halfW so xf(warn, cx, ...) keeps it centred. The triangle sits a fixed
   // inset (WARN_PAD) off the box's *left* edge, so both move outward together as halfW grows --
-  // see layoutWarn(), which derives the text anchor from that geometry, not a hand-guessed constant.
+  // see layoutWarn(), which derives the text anchor from that geometry, not a hand-guessed
+  // constant.
   var WARN_MIN_HALF = 280, WARN_PAD = 32, WARN_TRI_W = 40, WARN_PAD_R = 0, WARN_MARGIN = 16;
   // The triangle's apex is fixed at -22 (2px inside warnInner's fixed top, -24); only its base
-  // rises, to WARN_TRI_BASE, shortening it rather than shifting it, clearing warnInner's raised bottom by >=2px.
+  // rises, to WARN_TRI_BASE, shortening it rather than shifting it, clearing warnInner's raised
+  // bottom by >=2px.
   var WARN_TRI_BASE = 8;
   var warnBox, warnInner, warnTri, warnTick, warnDot, warnCorners, warnPN;
   function buildWarn() {
     warnBox = el('rect', { y: -30, height: 60, fill: 'rgba(6,10,18,.86)' });
-    // Top fixed at -24 (5.25px inside warnBox's top, incl. this rect's 1.5px stroke); only the bottom rises, via a shorter height, so it never pushes past warnBox's edge.
+    // Top fixed at -24 (5.25px inside warnBox's top, incl. this rect's 1.5px stroke); only the
+    // bottom rises, via a shorter height, so it never pushes past warnBox's edge.
     warnInner = el('rect', { y: -24, height: 42 - WARN_CAP_LIFT, opacity: .5 });
     warnTri = el('path', {});
     warnTick = el('line', { y1: -10 - WARN_CAP_LIFT, y2: 2 - WARN_CAP_LIFT });
@@ -716,12 +756,15 @@
     warn.appendChild(warnTick);
     warn.appendChild(warnDot);
     warn.appendChild(warnText);
-    // G_PAD inset matches every other panel's stencil; y=23 sits in the room freed below warnInner's raised bottom (both checked against getBBox() ink -- see tests/hub.test.js's warnGeom()).
+    // G_PAD inset matches every other panel's stencil; y=23 sits in the room freed below
+    // warnInner's raised bottom (both checked against getBBox() ink -- see tests/hub.test.js's
+    // warnGeom()).
     warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 23, 'end', 'BNS-CTN-041A');
     layoutWarn(WARN_MIN_HALF);
     svg.appendChild(warn);
   }
-  // Positions every x-dependent part of the banner from a single half-width, so growing or shrinking the box can never throw the triangle, text anchor and frame out of sync.
+  // Positions every x-dependent part of the banner from a single half-width, so growing or
+  // shrinking the box can never throw the triangle, text anchor and frame out of sync.
   function layoutWarn(halfW) {
     warnBox.setAttribute('x', (-halfW).toFixed(1)); warnBox.setAttribute('width', (halfW * 2).toFixed(1));
     warnInner.setAttribute('x', (-halfW + 6).toFixed(1)); warnInner.setAttribute('width', (halfW * 2 - 12).toFixed(1));
@@ -730,12 +773,14 @@
     warnTri.setAttribute('d', 'M' + triX0.toFixed(1) + ',' + WARN_TRI_BASE + ' L' + triMidX.toFixed(1) + ',-22 L' + triX1.toFixed(1) + ',' + WARN_TRI_BASE + ' Z');
     warnTick.setAttribute('x1', triMidX.toFixed(1)); warnTick.setAttribute('x2', triMidX.toFixed(1));
     warnDot.setAttribute('cx', triMidX.toFixed(1));
-    // The caption's free span runs from the triangle's right edge to the box's right edge (less its inset); anchor the centred text at that span's midpoint.
+    // The caption's free span runs from the triangle's right edge to the box's right edge (less its
+    // inset); anchor the centred text at that span's midpoint.
     var textZoneRight = halfW - WARN_PAD_R;
     warnText.setAttribute('x', ((triX1 + textZoneRight) / 2).toFixed(1));
     warnPN.setAttribute('x', (halfW - G_PAD).toFixed(1));
   }
-  // Grows the box to fit the current text (to a viewport-clamped maximum), and as a last resort compresses the glyphs so nothing runs past the box's edge even at 375px.
+  // Grows the box to fit the current text (to a viewport-clamped maximum), and as a last resort
+  // compresses the glyphs so nothing runs past the box's edge even at 375px.
   function fitWarn() {
     warnText.removeAttribute('textLength'); warnText.removeAttribute('lengthAdjust');
     var natural = warnText.getComputedTextLength ? warnText.getComputedTextLength() : 0;
@@ -800,7 +845,8 @@
     ret: [['RNG', '01.42 KM', 1], ['REL VEL', '-032 M/S', 1], ['BEARING', null, 1],
           ['ALT', '041 M', 1], ['LOCK', null, 2], ['IFF', 'HOSTILE', 2]]
   };
-  // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style: `#hud text { fill: var(--ice) }` beats a presentation attribute.
+  // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style: `#hud text
+  // { fill: var(--ice) }` beats a presentation attribute.
   var HX_INK = ['rgba(221,231,238,.45)', 'var(--ice)', 'var(--lock)'];
   var HX_PAD = 11, HX_ROW = 15, HX_HEAD = 15;
 
@@ -850,7 +896,8 @@
     g.pairs.forEach(function (p) {
       var lw = 0, vw = 0;
       try { lw = p.l.getComputedTextLength(); vw = p.v.getComputedTextLength(); } catch (e) { return; }
-      // A wrapped row puts its value on its own line, so it only has to be as wide as the longer of the two rather than both plus a gap.
+      // A wrapped row puts its value on its own line, so it only has to be as wide as the longer of
+      // the two rather than both plus a gap.
       need = Math.max(need, p.wrap ? Math.max(lw, vw) : (p.dot ? 13 : 0) + lw + HX_GAP + vw);
     });
     need = Math.ceil(need);
@@ -912,7 +959,8 @@
 
   function hxFitAll() {
     [hx.id, hx.spec, hx.arms, hx.warn].forEach(function (g) { hxFit(g); });
-    // UNIT DATA and ARMAMENT stack beside the contact as one column: one width, so their edges line up the way every other column in the HUD does.
+    // UNIT DATA and ARMAMENT stack beside the contact as one column: one width, so their edges line
+    // up the way every other column in the HUD does.
     var w = Math.max(hx.spec.w, hx.arms.w);
     hxFit(hx.spec, w); hxFit(hx.arms, w);
   }
@@ -920,7 +968,8 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
     hxFitAll(); place();
     // The wind arrow's x is cached until spec.wind's string changes (see drawPanels); if it was
-    // measured before webfonts resolved it used fallback metrics, so clear the cache to force a remeasure.
+    // measured before webfonts resolved it used fallback metrics, so clear the cache to force a
+    // remeasure.
     var envSpec = PANELS[3];
     if (envSpec && envSpec.wind) envSpec.wind.textContent = '';
   });
@@ -949,7 +998,7 @@
     for (var i = 0; i < HX_LOG_ROWS; i++) {
       var g = el('g', { class: 'hx-log-row' }), y = i * HX_LOG_ROW_H;
       var rect = el('rect', { x: -HX_PAD, y: y, width: hxLogW + HX_PAD * 2, height: HX_LOG_ROW_H,
-                              fill: 'rgba(6,10,18,.97)' });
+                              fill: PLATE_FILL });
       g.appendChild(rect);
       var text = el('text', { x: 0, y: y + HX_LOG_ROW_H - 5,
                               style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
@@ -959,13 +1008,15 @@
     }
     svg.appendChild(hxLog);
   })();
-  // Re-syncs the row backgrounds to TARGET ID's current width -- called from place(), not per frame, the same way hxFit only runs at build and once fonts land.
+  // Re-syncs the row backgrounds to TARGET ID's current width -- called from place(), not per
+  // frame, the same way hxFit only runs at build and once fonts land.
   function hxLogSetWidth(w) {
     hxLogW = w;
     hxLogRow.forEach(function (r) { r.rect.setAttribute('width', w + HX_PAD * 2); });
   }
   // Repaints the 3 fixed rows from hxLogQueue (newest first); visible only while hostile
-  // *and* holding a live alarm, or it shows as an empty flashing box before the first alarm arrives.
+  // *and* holding a live alarm, or it shows as an empty flashing box before the first alarm
+  // arrives.
   function hxLogPaint() {
     hxLog.setAttribute('opacity', hxOn && hxLogQueue.length ? 1 : 0);
     hxLogRow.forEach(function (r, i) {
@@ -984,7 +1035,8 @@
     hxLogQueue.length = Math.min(hxLogQueue.length, HX_LOG_ROWS);
     hxLogPaint();
     if (alarm[1]) setZone(alarm[1], 'hit');
-    // Entries are shared by reference, so an untracked expiry could splice an identical fresh alarm. Track it; hxLogReset() clears it.
+    // Entries are shared by reference, so an untracked expiry could splice an identical fresh
+    // alarm. Track it; hxLogReset() clears it.
     hxLogLife.push(setTimeout(function () {
       var idx = hxLogQueue.indexOf(alarm);
       if (idx !== -1) { hxLogQueue.splice(idx, 1); hxLogPaint(); }
@@ -1012,7 +1064,8 @@
   // ----------------------------------------------- HUD MODE, comms and status toast
   var modeEl = document.getElementById('hudmode');
   var commsEl = document.getElementById('comms'), toastEl = document.getElementById('toast');
-  // Cockpit chatter from the suit's own world; the hostile unit is never named outside HX_DATA -- it is "the contact at 180" here.
+  // Cockpit chatter from the suit's own world; the hostile unit is never named outside HX_DATA --
+  // it is "the contact at 180" here.
   var COMMS = [
     ['HQ-7', 'Patrol route confirmed. Hold bearing 180 and report any contact.'],
     ['HANGAR CONTROL', 'Bay 3 is clear. RX-124 is cleared for redeployment.'],
@@ -1021,7 +1074,8 @@
     ['LINEAR SEAT', 'Pilot biometrics nominal. Cockpit pressure holding.'],
     ['HQ-7', 'Deployment ready on your mark. All systems nominal.']
   ];
-  // POP_H: the tallest a popup gets (a three-line transmission at the narrowest slot measured 136px), so place() can tell whether the band clears the SPD/ALT captions.
+  // POP_H: the tallest a popup gets (a three-line transmission at the narrowest slot measured
+  // 136px), so place() can tell whether the band clears the SPD/ALT captions.
   var POP_MAX = 300, POP_MIN = 200, POP_H = 150;
   // The narrower floor a band beside a bar may use instead of POP_MIN, for a band whose own
   // position already keeps it clear of the ladder (see the comms/toast call sites), so
@@ -1081,7 +1135,8 @@
     clearInterval(commsType);
     if (BUNNYS.reduce) out.textContent = msg;
     else {
-      // Typed out like a teleprinter; the full line is set as the accessible name first so a screen reader isn't fed it a character at a time.
+      // Typed out like a teleprinter; the full line is set as the accessible name first so a screen
+      // reader isn't fed it a character at a time.
       out.setAttribute('aria-label', msg);
       var n = 0;
       out.textContent = '';
@@ -1150,7 +1205,8 @@
     if (on) hxSince = performance.now();
     hxAll.forEach(function (g) { g.setAttribute('opacity', on ? 1 : 0); });
     // Every mode switch hides the general banner and drops its pending timer: a hostile lock
-    // hands alerts to the log instead, and the banner's 4.2s hold could leave it on screen, wide enough to overprint TARGET ID.
+    // hands alerts to the log instead, and the banner's 4.2s hold could leave it on screen, wide
+    // enough to overprint TARGET ID.
     hideCaution();
     if (on) {
       // a popup parked in the centre slot is sitting where TARGET ID is about to appear
@@ -1160,7 +1216,8 @@
     }
     else { hxLogStop(); scheduleCaution(); }
   }
-  // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than sitting at a fixed number beside a status line that already says LOCKED.
+  // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than sitting at a
+  // fixed number beside a status line that already says LOCKED.
   function drawHostile(now) {
     if (!hxOn) return;
     if (hxBearing) hxBearing.textContent = pad3(HX_YAW);
@@ -1210,7 +1267,8 @@
     });
     svg.appendChild(footWrap);
   }
-  // Spread across the foot, but only across the span the corner instruments leave free (radar bottom left, slew panel bottom right).
+  // Spread across the foot, but only across the span the corner instruments leave free (radar
+  // bottom left, slew panel bottom right).
   function layoutFoot(left, right, y) {
     var span = right - left;
     footOn = span > 340;
@@ -1261,7 +1319,8 @@
       b.readout.setAttribute('y', barH + 26);
       // the needle is redrawn from b.cur each frame, so resizing needs no re-set here
     });
-    // Keep the bars clear of the left instrument column, and mirror them so the pair stays symmetric about the centre.
+    // Keep the bars clear of the left instrument column, and mirror them so the pair stays
+    // symmetric about the centre.
     var colRight = 22 + (RAD + PAD) * 2;
     var inset = isPage ? clamp(W * 0.05, 52, 120) : clamp(colRight + 54, 60, W * 0.28);
     xf(spd.g, inset, cy);
@@ -1270,7 +1329,8 @@
     if (!isPage) {
       // the scope needs real estate; drop it on small screens rather than crush it
       var room = W > 760 && H > 520;
-      // the heading tape's own housing reaches wide enough to run into both columns below about W=1222, so anything under it has to clear this, not just a fixed margin.
+      // the heading tape's own housing reaches wide enough to run into both columns below about
+      // W=1222, so anything under it has to clear this, not just a fixed margin.
       var tapeBottom = Math.max(40, H * 0.055) + 42;
 
       // Two columns, each centred on the middle of its own gutter -- the band between the
@@ -1301,14 +1361,16 @@
       xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
       var thrusterY = colTop + reactor.h * colS + 14;
       xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
-      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the radar first), then THRUSTER.
+      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
+      // radar first), then THRUSTER.
       var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 12;
       if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
       var envY = thrusterY + thruster.h * colS + 14;
       xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
       if (envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
 
-      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven onto the same lane and width here rather than in the stylesheet.
+      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
+      // onto the same lane and width here rather than in the stylesheet.
       var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
       if (slewEl && room) {
         slewEl.style.left = colRx + 'px';
@@ -1325,7 +1387,8 @@
         modeR = modeEl.getBoundingClientRect();
       }
       // The slew panel's media query hides it below 860px/520px, and a hidden element's rect
-      // is all zeros -- fall back to a fixed foot margin. The map takes the largest square that still leaves COMBAT SYSTEM room above the slew panel.
+      // is all zeros -- fall back to a fixed foot margin. The map takes the largest square that
+      // still leaves COMBAT SYSTEM room above the slew panel.
       var rightFloor = modeR ? (modeR.top - 14) : slewVisible ? (slewR.top - 14) : (H - 26);
       layoutDamage(colRx, colTop, rightFloor - combat.h * colS - 14, room, colS);
       var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
@@ -1358,7 +1421,8 @@
         specY = cy - 128;
         armsY = specY + hx.spec.h + 16;
       } else {
-        // Narrower: the pair straddles the readouts' band instead -- UNIT DATA above, ARMAMENT below, flush to the right column.
+        // Narrower: the pair straddles the readouts' band instead -- UNIT DATA above, ARMAMENT
+        // below, flush to the right column.
         specX = rightLimit - boxW + HX_PAD;
         specY = readTop - 14 - hx.spec.h + HX_PAD;
         armsY = readBot + 14 + HX_PAD;
@@ -1396,7 +1460,8 @@
       // last resort. The left edge (inset + 24, clear of the SPD caption and needle) is the
       // same in every band -- only the vertical anchor and the right bound change.
       var commsLeft = inset + 24, lb = hx.left.getBBox();
-      // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX independently.
+      // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX
+      // independently.
       var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
       // hx.left and hx.right are one shared row layout (same y per index, mirrored x -- see
       // buildHostile), so readTop from either bbox is the same value: reuse the one already
@@ -1499,7 +1564,8 @@
     BUNNYS.on('lock', function (d) {
       status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
       setDossier(d);
-      // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised the card, so this lowers it again.
+      // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised
+      // the card, so this lowers it again.
       hxLockId = d.id || null;
       var hostile = hxRoom && hxLockId === 't-unknown';
       showHostile(hostile);
@@ -1557,7 +1623,8 @@
       if (t - spdTextAt >= 200) { spdTextAt = t; setText(spd.readout, pad3(spdFrac * 240)); }
 
       // A damped spring banks and drifts the rungs off yaw/pitch rate, so release overshoots
-      // slightly instead of snapping to a value. Reduced motion skips the spring and tracks pitch only.
+      // slightly instead of snapping to a value. Reduced motion skips the spring and tracks pitch
+      // only.
       if (BUNNYS.reduce) {
         updateLadder(BUNNYS.state.pitch, 0, 0, 0);
       } else {

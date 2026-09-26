@@ -19,7 +19,8 @@ const PROBE = `(() => {
   const all = [
     ...cols.map(g => box(g === radar ? 'SENSOR ARRAY' : titled(g).textContent, rectOf(g))),
     box('SLEW TO', document.getElementById('slew')), box('HUD MODE', document.getElementById('hudmode')),
-    box('COMMS', document.getElementById('comms')), box('TOAST', document.getElementById('toast')),
+    box('COMMS', document.getElementById('comms')), box('DOSSIER', document.querySelector('#hud > g.dossier > rect.plate')),
+    box('TOAST', document.getElementById('toast')),
     ...[...hud.querySelectorAll(':scope > g.hostile')].map((g, i) =>
       rectOf(g) ? box('hx:' + g.querySelector('text').textContent, rectOf(g)) : box('readouts' + i, g))
   ].filter(Boolean);
@@ -50,6 +51,11 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       const r = JSON.parse(await p.eval(PROBE));
       const tag = `layout ${w}x${h} ${state}:`;
       const names = r.all.map(b => b.name);
+      if (state === 'locked' && w >= 1440) {
+        const hostileNames = ['hx:TARGET ID', 'hx:UNIT DATA', 'hx:ARMAMENT DETECTED'];
+        const missingHostile = hostileNames.filter(n => !names.includes(n));
+        check(`${tag} hostile set up`, missingHostile.length === 0, missingHostile.join(', '));
+      }
       // Check that required panels are present (not just missing silently)
       if (w === 1920 && h === 1080) {
         const required = ['REACTOR STATUS', 'THRUSTER VECTOR', 'ENVIRONMENT', 'SENSOR ARRAY', 'DIAGNOSTIC MODE', 'COMBAT SYSTEM', 'HUD MODE', 'SLEW TO'];

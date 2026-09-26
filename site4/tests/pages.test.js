@@ -30,6 +30,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
   for (const pg of ['index.html', ...PAGES]) {
     await p.goto(pg, 900);
     check(`${pg} lang="en"`, await p.eval("document.documentElement.lang === 'en'"));
+    check(`${pg} has one h1`, await p.eval("document.querySelectorAll('h1').length === 1"));
     const dups = await p.eval("(()=>{const s=new Set(),d=new Set();document.querySelectorAll('[id]').forEach(e=>s.has(e.id)?d.add(e.id):s.add(e.id));return [...d].join(',')})()");
     // hangar's three inline views share part ids ON PURPOSE today: its callouts light the
     // part in every view with [id=...]. That goes with the Woundwort redraw (see the

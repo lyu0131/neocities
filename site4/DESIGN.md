@@ -43,7 +43,7 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 - Targets sit around y 700–1050 in panorama space.
 
 ## Tests
-`node tests/run.js` runs all of them, or run `tests/svg.test.js [pano|frame|hud|ms]`, `tests/hub.test.js` or `tests/pages.test.js` separately. Screenshots go to `tests/out/`, which is git-ignored.
+`node tests/run.js` runs all of them, or run `tests/svg.test.js [pano|frame|hud|ms]`, `tests/hub.test.js`, `tests/pages.test.js` or `tests/layout.test.js` separately. `tests/layout.test.js` holds the one-edge, one-inset, no-overlap, panel-presence, one-plate and `--panel` rules. Screenshots go to `tests/out/`, which is git-ignored.
 
 ## Hub controls
 Drag, wheel, arrow keys **and WASD** (A/D yaw, W/S pitch; held keys turn continuously),
@@ -119,7 +119,10 @@ text at a `G_PAD` (14) inset. The old 9px baseline set the caps against the top 
 Both rhythms are enforced in code, not just by convention: every box's backing plate and
 corner brackets come from one `housing()` helper and every column header from one `header()`
 helper, so no box can drift from the others — including the hostile contact boxes, which
-share the same plate style (rx 3) as everything else.
+share the same plate style (rx 3) as everything else. Two deliberate exceptions don't go
+through `housing()`: the caution banner (hud.js ~744) is a translucent `.86` plate resized
+from its own centre, not from a fixed corner; and the alarm-log rows (hud.js ~1000) are flat
+row strips, not a housing box, though they share `housing()`'s `PLATE_FILL` constant.
 
 The four meter panels share `buildPanel(spec)` but each carries its own extra instrument,
 so they do not read as one panel repeated: the reactor's P-INT trace and bus lamps, the
