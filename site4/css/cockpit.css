@@ -438,7 +438,10 @@ a { color: inherit; }
   #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
   .target { transition: none; }
   #boot { transition: none; }
-  .boot-bar i { animation: none; transform: scaleX(1); }
+  /* !important: #boot.is-booting .boot-bar i (1,2,1) otherwise outranks this plain
+     .boot-bar i (0,1,1) and would re-enable the fill animation if .is-booting were ever
+     present while reduced motion is active -- same reason the .is-inv rules need it. */
+  .boot-bar i { animation: none !important; transform: scaleX(1); }
   .boot-cursor { animation: none; }
   #frame.seam-glow { animation: none; filter: none; }
 }

@@ -260,13 +260,19 @@ function forceBanner(pg, text) {
   check('reduced motion: booted at once', await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
   // Task 4: #boot is already gone by now (finish(true) removes it synchronously before
   // run() ever adds .is-booting), so there's no live bar left to sample. Probe the CSS
-  // rule itself with a detached element that matches the same selector.
-  check('reduced motion: bar not animated', await r.eval(`(() => {
+  // itself -- and specifically under #boot.is-booting, since that's a higher-specificity
+  // selector (1,2,1) than the reduced-motion query's plain `.boot-bar i` (0,1,1) and so
+  // would otherwise win and re-enable the animation if .is-booting were ever present
+  // while reduced motion is active. Today that combination can't happen (run(), the only
+  // thing that adds .is-booting, never executes when BUNNYS.reduce is true -- boot.js),
+  // but the CSS on its own must not depend on that: this checks the rule, not the gate.
+  check('reduced motion: is-booting cannot re-enable the bar animation', await r.eval(`(() => {
+    const boot = document.createElement('div'); boot.id = 'boot'; boot.className = 'is-booting';
+    const bar = document.createElement('div'); bar.className = 'boot-bar';
     const i = document.createElement('i');
-    const div = document.createElement('div'); div.className = 'boot-bar'; div.appendChild(i);
-    document.body.appendChild(div);
+    bar.appendChild(i); boot.appendChild(bar); document.body.appendChild(boot);
     const name = getComputedStyle(i).animationName;
-    div.remove();
+    boot.remove();
     return name === 'none';
   })()`));
   // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
