@@ -49,6 +49,16 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       if (state === 'locked') { await p.eval("BUNNYS.emit('face', {yaw:180})"); await p.sleep(2500); }
       const r = JSON.parse(await p.eval(PROBE));
       const tag = `layout ${w}x${h} ${state}:`;
+      const names = r.all.map(b => b.name);
+      // Check that required panels are present (not just missing silently)
+      if (w === 1920 && h === 1080) {
+        const required = ['REACTOR STATUS', 'THRUSTER VECTOR', 'ENVIRONMENT', 'SENSOR ARRAY', 'DIAGNOSTIC MODE', 'COMBAT SYSTEM', 'HUD MODE', 'SLEW TO'];
+        const missing = required.filter(name => !names.includes(name));
+        check(`${tag} all 8 column instruments present`, missing.length === 0, missing.join(', '));
+      }
+      const anchors = ['REACTOR STATUS', 'SENSOR ARRAY', 'DIAGNOSTIC MODE', 'SLEW TO'];
+      const missingAnchors = anchors.filter(name => !names.includes(name));
+      check(`${tag} column anchors present (top and bottom)`, missingAnchors.length === 0, missingAnchors.join(', '));
       check(`${tag} no two boxes overlap`, r.hits.length === 0, r.hits.join(', '));
       check(`${tag} left column shares one edge`, edges(r.all, LEFT).length === 1, edges(r.all, LEFT).join(' | '));
       check(`${tag} right column shares one edge`, edges(r.all, RIGHT).length === 1, edges(r.all, RIGHT).join(' | '));
