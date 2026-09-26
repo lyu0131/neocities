@@ -11,11 +11,8 @@
   var raf = null;
   var done = false;
 
-  // .hud-draw is a ONE-SHOT intro: it animates every stroke inside #hud. hud.js rebuilds
-  // the heading tape's ticks on every view event (the ladder's rungs are built once and
-  // only their values rewritten), so if the class is left on, each newly created tick
-  // re-matches the rule and restarts the 1.1s draw-in -- the tape then looks like it is
-  // perpetually reloading. Drop it once it ends.
+  // .hud-draw is one-shot: hud.js adds heading-tape ticks on every view event, and any
+  // tick created while the class is still on replays the draw-in, so it must come off.
   function drawHudOnce() {
     var hud = document.getElementById('hud');
     if (!hud) return;
@@ -30,7 +27,6 @@
 
   function onSkip() { finish(true); }
 
-  // t=FINISH_AT (or immediately): hand the page over to cockpit.js/fx.js
   function finish(instant) {
     if (done) return;
     done = true;
@@ -57,20 +53,16 @@
   }
 
   var already = false;
-  // Only skip when arriving back from one of our own pages. Gating on the session key
-  // alone meant the sequence played once per tab and never again on reload, which reads
-  // as "the boot does not work".
+  // Skip only when returning from our own pages; sessionStorage alone would also skip
+  // the intro on a plain reload from an external referrer.
   var fromInside = /\/(pilot|missions|hangar|index)\.html/.test(document.referrer || '');
   try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
   if (BUNNYS.reduce || already) { finish(true); return; }
 
-  // One clock, owned entirely by run(): the bar and the log start together and finish
-  // together (the owner's ask, reversing this task's original splash-then-log order).
   // BAR_MS must match cockpit.css's `#boot.is-booting .boot-bar i` animation-duration.
   var BAR_MS = 3000;
-  // 16 lines (indices 0-15) spread evenly across BAR_MS so line 0 lands at t=0 (with the
-  // bar) and line 15, DEPLOYMENT READY, lands at 15*LOG_STEP -- exactly BAR_MS, i.e. the
-  // moment the bar reaches 100%. 15 gaps between 16 lines, not 16, hence BAR_MS / 15.
+  // 16 log lines but 15 gaps between them, so line 15 (DEPLOYMENT READY) lands exactly
+  // at BAR_MS -- the moment the bar reaches 100%.
   var LOG_STEP = BAR_MS / 15;
   var FLICKER_AT = 1050;
   var WHIP_AT = 1750;
@@ -85,22 +77,15 @@
     document.addEventListener('keydown', onSkip);
     document.addEventListener('click', onSkip);
 
-    // t=0: bar and log start together. Adding this class here -- not first paint -- is
-    // the actual fix: the bar used to animate on the page's own paint clock while
-    // everything else ran on this function's clock (which starts late, after hud.js,
-    // cockpit.js and the 60KB dmgmap.js have loaded), so the two used to desync. The
-    // splash (mark, SYSTEM BOOTING, bar, version) stays on screen for the whole boot --
-    // the owner wants the bar and the log running at the same time, not sequential.
+    // Added here, not at first paint, so the bar and the log both run on this
+    // function's clock and stay in sync with each other.
     overlay.classList.add('is-booting');
 
-    // t=0: blinking cursor, lower left (self-contained, no cockpit.css dependency)
     var cursor = document.createElement('span');
     cursor.className = 'boot-cursor';
     cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
     overlay.appendChild(cursor);
 
-    // Boot log, one line every LOG_STEP starting at t=0, so line 0 lands with the bar
-    // and line 15 (DEPLOYMENT READY) lands as the bar hits 100% -- see LOG_STEP above.
     var LOG = [
       'BUNNyS OS 2.6.1 // SYSTEM BOOT',
       'CORE BLOCK ........... LOCKED',
@@ -139,14 +124,11 @@
       })();
     }
 
-    // FLICKER_AT-WHIP_AT: monitor panels flicker on in scattered order
     at(FLICKER_AT, function () {
-      // the frame seams glow green as the panels light, then settle (css owns the look)
       var frameEl = document.getElementById('frame');
       if (frameEl) frameEl.classList.add('seam-glow');
-      // Only the image bands, and only some of them. A filter animation forces the tile's
-      // big background to re-rasterise, so running it across all ~360 slices stalled the
-      // main thread for most of this window. A scattered subset reads the same.
+      // Only a scattered subset of slices, never all ~360: animating a filter across
+      // the whole tile stalls the main thread, and a partial scatter reads the same.
       var slices = Array.prototype.slice.call(
         document.querySelectorAll('.pano-slice:not(.pole-top):not(.pole-bot)'));
       var order = slices.map(function (_, i) { return i; });
@@ -166,12 +148,9 @@
       });
     });
 
-    // WHIP_AT-HUD_AT: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it
-    // while booted is false).
     at(WHIP_AT, function () {
-      // No motion blur: blur() on .pano-ring re-rasterises the whole 360-tile sphere every
-      // frame of the spin, and it was the single worst stall in the sequence. A 300deg/s
-      // whip already reads as fast without it.
+      // No blur() on .pano-ring: it re-rasterises the whole 360-tile sphere every frame
+      // and stalls the main thread; a 300deg/s whip already reads as fast without it.
       var t0 = performance.now(), dur = 800;
       function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
       function step(now) {
@@ -183,13 +162,11 @@
       raf = requestAnimationFrame(step);
     });
 
-    // HUD_AT-LOCK_AT: HUD draw-in
     at(HUD_AT, function () {
       var hud = document.getElementById('hud');
       drawHudOnce();
     });
 
-    // LOCK_AT-FINISH_AT: lock ping on MISSIONS, callsign flash, then fade
     at(LOCK_AT, function () {
       BUNNYS.emit('face', { yaw: 0 });
       var t = document.getElementById('t-missions');

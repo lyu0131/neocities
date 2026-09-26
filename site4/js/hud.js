@@ -29,9 +29,8 @@
   function cardinal(h) { return h === 0 ? 'N' : h === 90 ? 'E' : h === 180 ? 'S' : h === 270 ? 'W' : null; }
   function xf(g, x, y, extra) { g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' + (extra || '')); }
 
-  // -- mechanical framing: registration-mark corner brackets, ruler tick scales and
-  // stencilled part-number captions, shared by every panel so they read as machined
-  // housings rather than floating rectangles. Fictional but fixed, not per-frame. --
+  // Registration-mark corner brackets, ruler tick scales and stencilled part-number captions,
+  // shared by every panel so they read as machined housings. Fictional but fixed, not per-frame.
   function corners(x0, y0, w, h, len) {
     len = len || 10;
     var g = el('g', { class: 'brackets' });
@@ -55,8 +54,7 @@
       ln.b.setAttribute('x2', x); ln.b.setAttribute('y2', (y + len * ln.sy).toFixed(1));
     });
   }
-  // Every HUD box stands on this: a backing plate plus corner brackets, so no box can drift
-  // from the others. size() re-fits both once a box knows its real height.
+  // Every HUD box stands on this: a backing plate plus corner brackets, so no box can drift from the others. size() re-fits both once a box knows its real height.
   function housing(parent, x, y, w, h, len) {
     var bg = el('rect', { class: 'plate', x: x, y: y, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' });
     var cn = corners(x, y, w, h, len);
@@ -68,8 +66,7 @@
       updateCorners(cn, x, y, w2, h2, len);
     } };
   }
-  // A column instrument's header -- title, rule, 12px ticks -- on the rhythm they all share:
-  // baseline G_PAD+11 below the housing top, rule 9px under it. Returns the rule's y.
+  // A column instrument's header -- title, rule, 12px ticks -- on the rhythm they all share: baseline G_PAD+11 below the housing top, rule 9px under it. Returns the rule's y.
   function header(parent, x0, x1, top, title) {
     var t = el('text', { x: x0, y: top + G_PAD + 11 });
     t.textContent = title;
@@ -85,8 +82,7 @@
     }
   }
   function stencil(container, x, y, anchor, text) {
-    // text-anchor goes through inline style, not just the attribute: the dossier's
-    // own `text { text-anchor: middle }` rule would otherwise win and re-centre it
+    // text-anchor goes through inline style, not just the attribute: the dossier's own `text { text-anchor: middle }` rule would otherwise win and re-centre it.
     var t = el('text', {
       x: x, y: y, 'text-anchor': anchor, class: 'stencil',
       style: 'font-size:7px;opacity:.55;letter-spacing:.08em;text-anchor:' + anchor
@@ -95,8 +91,7 @@
     container.appendChild(t);
     return t;
   }
-  // fictional identifiers, invented once and reused everywhere so they stay
-  // consistent across redraws instead of drifting per frame
+  // Fictional identifiers, invented once and reused everywhere so they stay consistent across redraws.
   var UNIT_SERIAL = 'RX-124', BLOCK_REV = 'BLOCK 04C';
 
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -114,10 +109,9 @@
   function drawHeading(yaw) {
     clear(hdgTicks);
     var span = 60, step = 5, px = 6.2;
-    // Ticks belong to absolute headings and the tape slides past them. Generating them at
-    // offsets from the rounded heading made a tick's value round(yaw) + d, so the 15-degree
-    // labels only existed when round(yaw) was itself a multiple of 5: the numbers vanished
-    // from the tape completely for four headings out of every five while turning.
+    // Ticks belong to absolute headings and the tape slides past them; generating them as
+    // offsets from the rounded heading instead would drop the 15-degree labels for four
+    // headings out of every five while turning.
     var first = Math.ceil((yaw - span) / step) * step;
     for (var a = first; a <= yaw + span; a += step) {
       var heading = wrap360(a);
@@ -163,8 +157,7 @@
     svg.appendChild(g);
     return { g: g, rule: rule, tick: tick, cap: t, readout: readout, frac: 0, want: 0, cur: null };
   }
-  // SPD and ALT are fed by drag velocity and pitch, both of which jump about. Store the
-  // target and let a frame loop ease the needle onto it, so the bars glide.
+  // SPD and ALT are fed by drag velocity and pitch, both of which jump about; store the target and let a frame loop ease the needle onto it, so the bars glide.
   function setBar(b, frac01, text) {
     b.want = frac01;
     if (text != null) b.readout.textContent = text;
@@ -179,18 +172,15 @@
   var spd = bar('SPD'), alt = bar('ALT');
 
   // ---------------------------------------------------------------- radar scope
-  // Heading-up: straight ahead is at the top, and a bearing to the right of the
-  // nose plots to the right, so it agrees with the heading tape and the scene.
+  // Heading-up: straight ahead is at the top, so a bearing right of the nose plots right, agreeing with the heading tape and the scene.
   var RAD = 108;   // with PAD 16 this makes the radar housing 248 -- exactly PANEL_W
   var radar = el('g', { class: 'radar' });
   var radarCone, blips = [];
   var targets = Array.prototype.slice.call(document.querySelectorAll('.target'));
 
-  // R_HEAD: the band above the scope holding the header and its rule, on the same
-  // header/rule/tick rhythm as buildPanel so SENSOR ARRAY lines up with the panels
+  // R_HEAD: the band above the scope holding the header and its rule, on the same header/rule/tick rhythm as buildPanel so SENSOR ARRAY lines up with the panels.
   var PAD = 16, R_HEAD = 44;
-  // the scanning sweep: a rotating arm with a decaying phosphor trail behind it,
-  // and blips that brighten as the arm passes their bearing then fade back down
+  // The scanning sweep: a rotating arm with a decaying phosphor trail, and blips that brighten as the arm passes their bearing then fade back down.
   var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;
   var SWEEP_TRAIL = 6, SWEEP_STEP = 10; // SWEEP_TRAIL * SWEEP_STEP deg of decay behind the arm
   var SWEEP_BEAM = 4, SWEEP_DECAY = 900; // deg either side that "lights" a blip; ms to fade
@@ -280,24 +270,16 @@
   }
 
   // ------------------------------------------------------- instrument panels
-  // Three panels, one builder, ONE width. This used to be a single hardcoded COMBAT
-  // SYSTEM whose width fell out of its own content (204) while the damage map was 194 and
-  // the slew panel 194 -- three widths across two columns, which is what made the columns
-  // read as misaligned however carefully each box was positioned. PANEL_W is now the width
-  // every column instrument is drawn at, and place() scales a whole column down together
-  // when the gutter is too narrow for it, so the edges stay flush at every size.
-  //
-  // Each panel also carries its OWN extra instrument, so three boxes of bars don't read as
-  // one panel repeated: the reactor gets the interference trace and the bus lamps, the
-  // thrusters an attitude cross, the combat panel its hardpoint cells.
+  // Every column instrument is PANEL_W wide, and place() scales a whole column together,
+  // so each column keeps one edge at every size (tests/layout.test.js holds it to that).
+  // Each panel also carries its own extra instrument -- reactor trace and bus lamps,
+  // thruster attitude cross, combat hardpoint cells -- so three boxes of bars don't
+  // read as one panel repeated.
   var PANEL_W = 248, G_PAD = 14, rowH = 17;
   var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM', 'AUX', 'CORE']; // AUXILIARY BUS, CORE BLOCK
-  // ENVIRONMENT's wind arrow: shape and radius live together so a future edit to one
-  // is a prompt to check the other. The tip that points at the compass heading is
-  // M0,-5; WIND_ARROW_R is this shape's farthest vertex from its own rotation origin
-  // instead -- the back corner at (3.5,4): sqrt(3.5^2+4^2) -- a polygon never reaches
-  // farther from its origin than its farthest vertex, at any rotation, so this is a
-  // true upper bound on how far the arrow can swing toward the value text next to it.
+  // Shape and radius live together: WIND_ARROW_R is the shape's farthest vertex from its
+  // own rotation origin (the back corner at (3.5,4)), which is a true upper bound on how
+  // far the arrow can swing toward the value text at any rotation -- keep them in sync.
   var WIND_ARROW_D = 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z';
   var WIND_ARROW_R = Math.sqrt(3.5 * 3.5 + 4 * 4);
   var PANELS = [
@@ -318,17 +300,12 @@
              { key: 'THR-V', base: 0.50, drift: 0.30, fmt: function (v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; } },
              { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: function (v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; } },
              { key: 'HDPT', base: 0.83, drift: 0.15, fmt: function (v) { return Math.max(1, Math.round(v * 6)) + '/6'; } }] },
-    // Appended, not inserted -- PANELS[0..2] above keep the indices drawPanels() and
-    // place() already key off of. rows: [] skips the bar-row loop in buildPanel below;
-    // this panel's whole body is its own 'env' branch instead.
+    // Appended, not inserted: PANELS[0..2] keep the indices drawPanels()/place() key off of. rows: [] skips buildPanel's bar-row loop; this panel's body is its 'env' branch.
     { id: 'env', title: 'ENVIRONMENT', code: 'BNS-ENV-077W', extra: 'env', rows: [] }
   ];
   var sparkPts = [];
 
-  // The two column lanes: a hairline down the middle of each gutter, which every
-  // instrument in that column is centred on. Structure rather than decoration -- the
-  // panels sit on top of it, so it shows only in the gaps and ties a column of separate
-  // boxes into one line of instruments.
+  // A hairline down the middle of each gutter, which every instrument in that column centres on; panels paint over it, so it shows only in the gaps.
   var lane = el('g', { class: 'lane', opacity: 0 });
   var laneRuleL = el('line', { opacity: .22 });
   var laneRuleR = el('line', { opacity: .22 });
@@ -340,11 +317,9 @@
 
   function buildPanel(spec) {
     var g = el('g', { class: 'panel' });
-    // the group's origin is the housing's top-left corner, so place() positions a panel by
-    // the same x/y it would use for any other box -- no padding offset to remember
+    // The group's origin is the housing's top-left corner, so place() positions a panel by the same x/y as any other box.
     var x0 = G_PAD, x1 = PANEL_W - G_PAD, inner = x1 - x0;
-    // label | bar | value, with a 10px gutter each side of the bar. The value column is
-    // sized for the widest string it ever shows (STANDBY), not for a percentage.
+    // label | bar | value, with a 10px gutter each side of the bar; the value column is sized for the widest string it ever shows (STANDBY), not for a percentage.
     var labelW = 52, pctW = 64, barX = x0 + labelW, barW = inner - labelW - pctW - 10;
     spec.box = housing(g, 0, 0, PANEL_W, 10);
     var rowsY = header(g, x0, x1, 0, spec.title) + 17;
@@ -422,8 +397,7 @@
       }
       y += 36;
     } else if (spec.extra === 'env') {
-      // three fake weather rows on the bar rows' own label/value rhythm -- rows: []
-      // left spec.rows.forEach above with nothing to draw, so this is the whole panel
+      // Fake weather rows on the same label/value rhythm as the bar rows (rows: [] left that loop with nothing to draw, so this branch is the whole panel).
       ['WX', 'WIND', 'PRECIP'].forEach(function (label, i) {
         var ry = y + i * rowH;
         var lbl = el('text', { x: x0, y: ry + 4 });
@@ -433,10 +407,7 @@
         spec[key] = el('text', { x: x1, y: ry + 4, 'text-anchor': 'end' });
         g.appendChild(spec[key]);
         if (label === 'WIND') {
-          // tip points at the compass heading the wind comes from. x is re-measured in
-          // drawPanels off the value text's own rendered width -- "240 12 KT" and
-          // "232 9 KT" aren't the same width, and pctW (sized for a percentage) is
-          // narrower than either, so a fixed x here would run the arrow into the digits
+          // x is re-measured in drawPanels off the value text's own rendered width, since "240 12 KT" and "232 9 KT" differ in width; a fixed x would run into the digits.
           spec.windArrow = el('path', { d: WIND_ARROW_D, fill: 'currentColor', stroke: 'none' });
           spec.windArrowY = ry + 1;
           g.appendChild(spec.windArrow);
@@ -444,8 +415,7 @@
       });
       y += 3 * rowH + 2;
 
-      // the clock: this panel's own instrument, the way the reactor has its trace and
-      // the thruster its cross -- and the one reading here that isn't fake
+      // The clock is this panel's own instrument, like the reactor's trace or the thruster's cross -- the one reading here that isn't fake.
       spec.clockTime = el('text', { x: x0, y: y + 14, style: 'font-size:16px' });
       g.appendChild(spec.clockTime);
       spec.clockDate = el('text', { x: x1, y: y + 14, 'text-anchor': 'end' });
@@ -471,8 +441,7 @@
         r.fill.setAttribute('fill', v < 0.2 ? 'var(--lock, #FF3347)' : 'currentColor');
       });
       if (spec.extra === 'cross') {
-        // drifts around the centre rather than tracking the view: this is the suit's
-        // thrust vector, not the camera
+        // Drifts around the centre rather than tracking the view: this is the suit's thrust vector, not the camera.
         var a = clamp(Math.sin(now / 2600) * 0.8 + Math.sin(now / 910) * 0.3, -1, 1);
         var b = clamp(Math.cos(now / 3100) * 0.7 + Math.sin(now / 1270) * 0.3, -1, 1);
         spec.dot.setAttribute('cx', (spec.crossC[0] + a * spec.crossC[2]).toFixed(1));
@@ -485,8 +454,7 @@
           cell.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.16)');
         });
       } else if (spec.extra === 'env') {
-        // fake weather: drifting sines like the bar rows above, held still under
-        // reduced motion since it's decoration, not the clock below (that's information)
+        // Weather is decoration, so it holds still under reduced motion; the clock below doesn't, since it's information.
         var hold = BUNNYS.reduce;
         var temp = 14.2 + (hold ? 0 : Math.sin(now / 5000) * 0.4);
         setText(spec.wx, 'LIGHT RAIN ' + temp.toFixed(1) + '°C');
@@ -496,12 +464,7 @@
         var windStr = windDeg.toFixed(0) + '° ' + windKt.toFixed(0) + ' KT';
         if (spec.wind.textContent !== windStr) {
           spec.wind.textContent = windStr;
-          // just left of the value text's own rendered box, not a fixed offset --
-          // "232 9 KT" and "248 15 KT" aren't the same width. WIND_ARROW_R clears the
-          // shape's own farthest point from its rotation origin at any heading; the
-          // +6 beyond that is the clearance still owed to the text, so together they
-          // guarantee a real gap by construction instead of by the current numbers
-          // happening not to collide
+          // Positioned just left of the value text's rendered box, not a fixed offset (the string width varies). WIND_ARROW_R + 6 clears the arrow's own farthest point plus the text's clearance, guaranteeing the gap by construction.
           spec.windArrowX = spec.wind.getBBox().x - WIND_ARROW_R - 6;
         }
         spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX.toFixed(1) + ',' +
@@ -510,21 +473,14 @@
         var precip = 3.75 + (hold ? 0 : Math.sin(now / 3700 + 2) * 1.25);
         setText(spec.precip, precip.toFixed(1) + ' MM/H');
 
-        // the viewer's own clock, not a prop -- rewritten only when its string changes,
-        // same as the fake rows above, so a steady second doesn't touch the DOM 60x/s
+        // The viewer's own clock; rewritten only when its string changes, so a steady second doesn't touch the DOM 60x/s.
         var d = new Date();
         setText(spec.clockTime, pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()));
         setText(spec.clockDate, d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
       }
     });
 
-    // A live interference trace, not a clean waveform: a slow drift, three beating
-    // harmonics that never line up, and a noise floor that occasionally bursts. The
-    // spikes clip against the clamp below, which is what interference should look like.
-    // Sample on a fixed 30ms clock, not once per frame. Per frame the 58-point buffer held
-    // under a second of signal, so the slow components just slid the whole trace up and
-    // down instead of shaping it -- and the trace scrolled at whatever frame rate the
-    // machine happened to run at. At 30ms the window is 1.7s, so every band below shows.
+    // Sampled on a fixed 30ms clock, not once per frame: the 58-point buffer needs a fixed time window (1.7s) to show every drift band, and a frame-rate-tied sample rate would scroll the trace at whatever speed the machine runs at.
     var rx = PANELS[0];
     if (now >= (drawPanels.nextPt || 0)) {
       drawPanels.nextPt = now + 30;
@@ -547,18 +503,14 @@
   }
 
   // ---------------------------------------------------------------- damage map
-  // A rotating diagram of the suit, baked into js/dmgmap.js by tools/gen_dmgmap.py as
-  // 24 frames (one per 15 degrees) of 8 zone paths plus a per-frame paint order (zones
-  // overlap in projection -- without reordering an arm paints over the torso). Read
-  // w/h/frame count off the data at runtime: the source mesh has already been
-  // re-scaled once and will be again. Degrades to nothing if the data never loaded.
-  // DMG_W tracks PANEL_W: the damage map is a column instrument like any other, and it
-  // being 194 while COMBAT SYSTEM was 204 is half of why the columns looked ragged.
+  // A rotating diagram of the suit, baked into js/dmgmap.js by tools/gen_dmgmap.py as 24
+  // frames (one per 15 degrees) of 8 zone paths plus a per-frame paint order (zones overlap
+  // in projection -- without reordering an arm paints over the torso). Read w/h/frame count
+  // off the data at runtime, since the source mesh gets re-scaled from time to time; degrades
+  // to nothing if the data never loaded. DMG_W tracks PANEL_W, since this is a column instrument like any other.
   var DMG_W = PANEL_W, DMG_PAD = 10, DMG_MIN_H = 110, DMG_MIN_SIDE = 90;
-  // Text needs a bigger inset than the art does: the corner brackets occupy the first and
-  // last 10px of each edge, so header and stencil set at DMG_PAD sat exactly flush against
-  // them and read as touching the box. G_PAD matches the other panels' text inset exactly,
-  // so all four headers start on the same line as each other.
+  // Text needs a bigger inset than the art: the corner brackets occupy the first and last 10px
+  // of each edge, so text set at DMG_PAD reads as touching the box; G_PAD matches every other panel's text inset.
   var DMG_TEXT_PAD = G_PAD;
   var dmgBox, dmgHousing, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
@@ -570,14 +522,12 @@
     dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
     dmgHousing = housing(dmgBox, 0, 0, DMG_W, 10);
     dmgArtTop = header(dmgBox, DMG_TEXT_PAD, DMG_W - DMG_TEXT_PAD, 0, 'DIAGNOSTIC MODE') + 12;
-    // the scaled artwork: 8 zone paths, built once and never recreated -- drawDamage
-    // only rewrites their `d` and re-appends them in the current frame's paint order
+    // The scaled artwork: 8 zone paths, built once and never recreated -- drawDamage only rewrites their `d` and re-appends them in the current frame's paint order.
     dmgArt = el('g', { class: 'dmg-art' });
     dmgBox.appendChild(dmgArt);
     dmgZones = {};
     D.zones.forEach(function (z) {
-      // explicit fill attribute, not just a class: #hud path:not([fill]) forces
-      // fill:none on anything that doesn't carry one, which would blank every zone
+      // Explicit fill attribute, not just a class: #hud path:not([fill]) forces fill:none on anything without one, which would blank every zone.
       var p = el('path', { class: 'dmg-zone', fill: 'rgba(140,255,193,.16)' });
       dmgArt.appendChild(p);
       dmgPaths.push(p);
@@ -588,28 +538,20 @@
     svg.appendChild(dmgBox);
     setFrame(0);
   }
-  // sizes and positions the housing for the vertical space place() hands it, or
-  // stands it down cleanly (opacity 0, rotation paused) when that space is too tight.
-  // The housing shrink-wraps to the art instead of stretching to fill whatever range
-  // place() hands over -- a tall mostly-empty box read as unfinished. Anchored to the
-  // *bottom* of that range (flush above COMBAT SYSTEM) so anything the shrink frees up
-  // opens as blank scene above the map, under the tape, rather than as a gap between
-  // the two panels.
+  // Sizes and positions the housing for the vertical space place() hands it, or stands it down
+  // (opacity 0, rotation paused) when too tight. The housing shrink-wraps to the art rather than
+  // stretching to fill the range, anchored to the *bottom* so freed space opens above the map, not as a gap.
   function layoutDamage(x, top, bottom, room, sc) {
     var D = window.BUNNYS_DMG;
     if (!D || !dmgBox) return;
     sc = sc || 1;
     var avail = (bottom - top) / sc;   // measure in the panel's own units, then scale once
-    // The art region is a SQUARE, by request -- a tall box with a small suit adrift in it
-    // read as unfinished. Its side is the housing's inner width, unless the column is too
-    // short for that, in which case it shrinks to whatever height is on offer.
+    // The art region is a square: its side is the housing's inner width, unless the column is too short, in which case it shrinks to whatever height is on offer.
     var side = Math.min(DMG_W - DMG_PAD * 2, avail - dmgArtTop - DMG_PAD);
     dmgOn = !!room && avail >= DMG_MIN_H && side >= DMG_MIN_SIDE;
     dmgBox.setAttribute('opacity', dmgOn ? 1 : 0);
     if (!dmgOn) return;
-    // Fit the artwork inside that square on whichever axis constrains it. Do NOT assume
-    // portrait: the source mesh is re-scaled from time to time and the art has already
-    // been both taller and wider than square.
+    // Fit the artwork on whichever axis constrains it; don't assume portrait, since the source mesh can be either taller or wider than square.
     var scale = Math.min(side / D.w, side / D.h);
     var artW = D.w * scale, artH = D.h * scale;
     var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
@@ -628,8 +570,7 @@
     for (var i = 0; i < dmgPaths.length; i++) dmgPaths[i].setAttribute('d', f.d[i]);
     for (var j = 0; j < f.order.length; j++) dmgArt.appendChild(dmgPaths[f.order[j]]);
   }
-  // public entry point -- Task 3 calls this when a zone is hit. No-ops cleanly if
-  // the damage map never built (no window.BUNNYS_DMG).
+  // Public entry point, called when a zone is hit; no-ops cleanly if the damage map never built (no window.BUNNYS_DMG).
   function setZone(id, state) {
     if (!dmgZones) return;
     var z = dmgZones[id];
@@ -670,14 +611,11 @@
   }
 
   // ---------------------------------------------------------------- target dossier
-  // Filled whenever a target is acquired -- by hover, by keyboard focus, or by putting
-  // the boresight on it. cockpit.js decides; this only renders.
+  // Filled whenever a target is acquired -- by hover, keyboard focus, or boresight; cockpit.js decides, this only renders.
   var dossier = el('g', { class: 'dossier', opacity: 0 });
   var dosLabel = el('text', { x: 0, y: 8, class: 'dos-title' });
   var dosRead = el('text', { x: 0, y: 30, class: 'dim' });
-  // `#hud .dossier text` forces text-anchor:middle in cockpit.css; an inline style
-  // beats that stylesheet rule (a bare attribute would not), so the start/end
-  // alignment has to be set inline here to actually take effect
+  // `#hud .dossier text` forces text-anchor:middle in cockpit.css; only an inline style (not a bare attribute) beats that rule, so start/end alignment must be set inline.
   var DOS_CAP_STYLE = 'font-size:10px;letter-spacing:.12em;opacity:.75;text-anchor:';
   var dosCap = el('text', { x: -200, y: -20, class: 'dos-cap', style: DOS_CAP_STYLE + 'start' });
   var dosSeq = el('text', { x: 200, y: -20, 'text-anchor': 'end', class: 'dos-seq', style: DOS_CAP_STYLE + 'end' });
@@ -710,17 +648,14 @@
     dosRead.textContent = d.readout || '';
     var lines = (d.brief || '').split('|');
     dosBrief.forEach(function (t, i) { t.textContent = lines[i] || ''; });
-    // IFF STATUS: a target with an approach (href) reads as a friendly/known contact;
-    // the unknown target (no href) never resolves an IFF handshake
+    // A target with an approach (href) reads as friendly/known; the unknown target (no href) never resolves an IFF handshake.
     var iff = d.href ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
     dosHint.textContent = (d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED') + ' — ' + iff;
     if (d.id !== dosLastId) {
-      // LOCK SEQUENCE: acquiring for the same 350ms the target's own bracket
-      // close-in takes (see .target transition in cockpit.css), then locked
+      // Acquiring for the same 350ms the target's own bracket close-in takes (see .target transition in cockpit.css), then locked.
       dosLastId = d.id;
       dosSeq.textContent = 'LOCK SEQUENCE: ACQUIRING';
-      // `#hud text { fill: currentColor }` beats a plain fill attribute, same as the
-      // text-anchor issue above, so the colour has to go through inline style too
+      // `#hud text { fill: currentColor }` beats a plain fill attribute, so this colour (like the text-anchor above) must go through inline style too.
       dosSeq.style.fill = 'var(--amber, #FFB02E)';
       dosSeq.classList.add('is-acquiring'); dosSeq.classList.remove('is-locked');
       clearTimeout(dosSeqTimer);
@@ -735,8 +670,7 @@
 
   // ---------------------------------------------------------------- caution banner
   // Fires at random intervals, holds a few seconds, clears itself. Fictional faults.
-  // [text, zoneId|null] -- a caution that names a zone flashes it amber on the damage
-  // map (setZone(zone,'caution')); the rest are just banner text, same as before.
+  // [text, zoneId|null] -- a caution that names a zone flashes it amber on the damage map (setZone(zone,'caution')); the rest are just banner text.
   var CAUTIONS = [
     ['PARTICLE INTERFERENCE RISING', null],
     ['COOLANT LOOP 2 OFF NOMINAL', null],
@@ -751,37 +685,25 @@
     ['SYSTEM OVERRIDE ENGAGED', null]
   ];
   var warn = el('g', { class: 'warn', opacity: 0 });
-  // WARN_CAP_LIFT raises the tick/dot/caption together, off the box's own bottom
-  // (fixed at 30 -- xf(warn,...) keys the under-TARGET-ID placement off that, see
-  // place()), to help free room below warnInner for the part-number stencil.
-  // warnInner's *top* and the triangle's *apex* do NOT move: both already sat at the
-  // minimum safe 2-4px clearance from their own fixed reference (warnInner's top from
-  // warnBox's top; the triangle's apex from warnInner's top), so lifting either would
-  // just push the overlap up a level -- which is exactly what shifting them by
-  // WARN_CAP_LIFT did the first time (warnInner's own stroke ended up outside warnBox).
-  // Only warnInner's *bottom*, and the triangle's *base*, rise -- both rects/paths get
-  // shorter, not translated -- to clear the stencil's needed room without disturbing
-  // either fixed top edge.
+  // WARN_CAP_LIFT raises the tick/dot/caption together, off the box's own bottom (fixed at
+  // 30 -- place() keys the under-TARGET-ID placement off that), to free room below warnInner
+  // for the part-number stencil. warnInner's *top* and the triangle's *apex* do NOT move --
+  // both already sit at minimum safe clearance from their own fixed reference, so translating
+  // them would push the overlap up a level instead. Only warnInner's *bottom* and the
+  // triangle's *base* rise, by shortening those shapes, never by translating them.
   var WARN_CAP_LIFT = 7;
   var warnText = el('text', { y: 8 - WARN_CAP_LIFT, 'text-anchor': 'middle', class: 'warn-text' });
-  // The box spans -halfW..halfW so xf(warn, cx, ...) keeps it centred. The triangle
-  // sits a fixed inset (WARN_PAD) off the box's *left* edge, so as halfW grows to
-  // fit longer text both the triangle and the text's free span move outward together
-  // and stay in step -- see layoutWarn(), which derives the text anchor from that
-  // geometry instead of a hand-guessed constant.
+  // The box spans -halfW..halfW so xf(warn, cx, ...) keeps it centred. The triangle sits a fixed
+  // inset (WARN_PAD) off the box's *left* edge, so both move outward together as halfW grows --
+  // see layoutWarn(), which derives the text anchor from that geometry, not a hand-guessed constant.
   var WARN_MIN_HALF = 280, WARN_PAD = 32, WARN_TRI_W = 40, WARN_PAD_R = 0, WARN_MARGIN = 16;
-  // The triangle's apex is fixed at -22 (exactly 2px inside warnInner's own fixed top,
-  // -24). Only its base rises, from the original 14 to WARN_TRI_BASE, shortening the
-  // triangle rather than shifting it, so it still clears warnInner's (independently
-  // raised) bottom by >=2px.
+  // The triangle's apex is fixed at -22 (2px inside warnInner's fixed top, -24); only its base
+  // rises, to WARN_TRI_BASE, shortening it rather than shifting it, clearing warnInner's raised bottom by >=2px.
   var WARN_TRI_BASE = 8;
   var warnBox, warnInner, warnTri, warnTick, warnDot, warnCorners, warnPN;
   function buildWarn() {
     warnBox = el('rect', { y: -30, height: 60, fill: 'rgba(6,10,18,.86)' });
-    // top fixed at -24 (5.25px inside warnBox's own top, including this rect's own
-    // 1.5px stroke) -- only the bottom rises, via a shorter height, freeing room for
-    // the stencil below without pushing the top past warnBox's edge (the bug this
-    // replaces: shifting the whole rect, including its top, by WARN_CAP_LIFT).
+    // Top fixed at -24 (5.25px inside warnBox's top, incl. this rect's 1.5px stroke); only the bottom rises, via a shorter height, so it never pushes past warnBox's edge.
     warnInner = el('rect', { y: -24, height: 42 - WARN_CAP_LIFT, opacity: .5 });
     warnTri = el('path', {});
     warnTick = el('line', { y1: -10 - WARN_CAP_LIFT, y2: 2 - WARN_CAP_LIFT });
@@ -794,17 +716,12 @@
     warn.appendChild(warnTick);
     warn.appendChild(warnDot);
     warn.appendChild(warnText);
-    // G_PAD inset (matches every other panel's stencil) clears the box's right edge by
-    // 14px; y=23 sits in the room freed below warnInner's (raised) bottom, both
-    // checked against real getBBox() ink, not these raw coordinates -- see
-    // tests/hub.test.js's warnGeom().
+    // G_PAD inset matches every other panel's stencil; y=23 sits in the room freed below warnInner's raised bottom (both checked against getBBox() ink -- see tests/hub.test.js's warnGeom()).
     warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 23, 'end', 'BNS-CTN-041A');
     layoutWarn(WARN_MIN_HALF);
     svg.appendChild(warn);
   }
-  // positions every x-dependent part of the banner from a single half-width, so
-  // growing/shrinking the box (to fit text, or to fit a narrow viewport) can never
-  // throw the triangle, the text anchor or the frame out of sync with each other
+  // Positions every x-dependent part of the banner from a single half-width, so growing or shrinking the box can never throw the triangle, text anchor and frame out of sync.
   function layoutWarn(halfW) {
     warnBox.setAttribute('x', (-halfW).toFixed(1)); warnBox.setAttribute('width', (halfW * 2).toFixed(1));
     warnInner.setAttribute('x', (-halfW + 6).toFixed(1)); warnInner.setAttribute('width', (halfW * 2 - 12).toFixed(1));
@@ -813,15 +730,12 @@
     warnTri.setAttribute('d', 'M' + triX0.toFixed(1) + ',' + WARN_TRI_BASE + ' L' + triMidX.toFixed(1) + ',-22 L' + triX1.toFixed(1) + ',' + WARN_TRI_BASE + ' Z');
     warnTick.setAttribute('x1', triMidX.toFixed(1)); warnTick.setAttribute('x2', triMidX.toFixed(1));
     warnDot.setAttribute('cx', triMidX.toFixed(1));
-    // the caption's free span runs from the triangle's right edge to the box's own
-    // right edge (less its inset); anchor the centred text at that span's midpoint
+    // The caption's free span runs from the triangle's right edge to the box's right edge (less its inset); anchor the centred text at that span's midpoint.
     var textZoneRight = halfW - WARN_PAD_R;
     warnText.setAttribute('x', ((triX1 + textZoneRight) / 2).toFixed(1));
     warnPN.setAttribute('x', (halfW - G_PAD).toFixed(1));
   }
-  // grows the box to fit the current caution text (down to a viewport-clamped
-  // maximum), and as a last resort compresses the glyphs so nothing can run past
-  // the box's edge even on a 375px screen
+  // Grows the box to fit the current text (to a viewport-clamped maximum), and as a last resort compresses the glyphs so nothing runs past the box's edge even at 375px.
   function fitWarn() {
     warnText.removeAttribute('textLength'); warnText.removeAttribute('lengthAdjust');
     var natural = warnText.getComputedTextLength ? warnText.getComputedTextLength() : 0;
@@ -835,11 +749,10 @@
       warnText.setAttribute('lengthAdjust', 'spacingAndGlyphs');
     }
   }
-  // One scheduler, two modes, keyed off hxOn (not hxLockId): in general mode this runs
-  // its own 9-25s cadence same as before; in hostile mode showHostile() below simply
-  // never lets it fire, because the alarm log owns alerts while a lock is up. cautionTimer
-  // is reused for both the "waiting" and "holding" phases so a mode switch can always
-  // cancel whichever is pending with one clearTimeout.
+  // One scheduler, two modes, keyed off hxOn: in general mode this runs its own 9-25s cadence,
+  // while hostile mode (showHostile() below) never lets it fire, since the alarm log owns
+  // alerts while a lock is up. cautionTimer is reused for both phases so a mode switch can
+  // always cancel whichever is pending with one clearTimeout.
   var cautionTimer = null;
   function scheduleCaution() {
     cautionTimer = setTimeout(function () {
@@ -856,9 +769,8 @@
       }, 4200);
     }, 9000 + Math.random() * 16000);
   }
-  // hides the banner and drops whatever phase of scheduleCaution was pending -- called
-  // on every hostile mode switch, since the 4.2s hold means one can already be on screen
-  // when a lock lands, and a general caution has no place showing during an active one.
+  // Hides the banner and drops whatever phase of scheduleCaution was pending; called on every
+  // hostile mode switch, since the 4.2s hold means one can already be on screen when a lock lands.
   function hideCaution() {
     clearTimeout(cautionTimer);
     warn.setAttribute('opacity', 0);
@@ -867,10 +779,9 @@
 
 
   // ---------------------------------------------------------------- hostile contact
-  // A hostile contact does not get the single dossier card the friendly ones do. It gets
-  // its own set of framed boxes: who it is, readouts flanking the reticle, a spec block,
-  // what it is carrying, and a warning about the one system that can reach you. Content
-  // is fixed, so it is built once; only BEARING and LOCK are live.
+  // A hostile contact gets its own set of framed boxes instead of the single dossier card:
+  // who it is, readouts flanking the reticle, a spec block, what it carries, and a warning.
+  // Content is fixed, so it is built once; only BEARING and LOCK are live.
   var HX_YAW = 180;
   var HX_DATA = {
     mark: ['TARGET // MS-07B-3', 'GOUF CUSTOM'],
@@ -889,8 +800,7 @@
     ret: [['RNG', '01.42 KM', 1], ['REL VEL', '-032 M/S', 1], ['BEARING', null, 1],
           ['ALT', '041 M', 1], ['LOCK', null, 2], ['IFF', 'HOSTILE', 2]]
   };
-  // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style:
-  // the stylesheet's own `#hud text { fill: var(--ice) }` beats a presentation attribute.
+  // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style: `#hud text { fill: var(--ice) }` beats a presentation attribute.
   var HX_INK = ['rgba(221,231,238,.45)', 'var(--ice)', 'var(--lock)'];
   var HX_PAD = 11, HX_ROW = 15, HX_HEAD = 15;
 
@@ -906,7 +816,7 @@
     svg.appendChild(g);
     return g;
   }
-  // a label/value row; dot draws the armament state pip the owner's mock asks for
+  // a label/value row; dot draws the armament state pip
   function hxRow(g, label, value, state, dot, wrap) {
     var y = g.y;
     var l = el('text', { x: dot ? 13 : 0, y: y, style: 'font-size:10px;letter-spacing:.1em;fill:var(--hud);text-anchor:start' });
@@ -930,10 +840,9 @@
     if (g.stamp && !g.stampEl) g.stampEl = stencil(g, g.w, g.y - HX_ROW + 13, 'end', g.stamp);
     else if (g.stampEl) g.stampEl.setAttribute('x', g.w);
   }
-  // Grow a housing to whatever its widest label/value pair actually measures. Guessing the
-  // width by eye put REACTOR straight through MINOVSKY ULTRACOMPACT FUSION, and the same
-  // for two of the armament rows. Re-run once the webfont lands, since the fallback
-  // metrics differ from B612 Mono's.
+  // Grow a housing to whatever its widest label/value pair actually measures -- a guessed
+  // width can run text like MINOVSKY ULTRACOMPACT FUSION straight through the box. Re-run
+  // once the webfont lands, since the fallback metrics differ from B612 Mono's.
   var HX_GAP = 16;
   // minW lets two boxes that stack in one column be fitted to one shared width
   function hxFit(g, minW) {
@@ -941,8 +850,7 @@
     g.pairs.forEach(function (p) {
       var lw = 0, vw = 0;
       try { lw = p.l.getComputedTextLength(); vw = p.v.getComputedTextLength(); } catch (e) { return; }
-      // a wrapped row puts its value on its own line, so it only has to be as wide as
-      // the longer of the two rather than both plus a gap
+      // A wrapped row puts its value on its own line, so it only has to be as wide as the longer of the two rather than both plus a gap.
       need = Math.max(need, p.wrap ? Math.max(lw, vw) : (p.dot ? 13 : 0) + lw + HX_GAP + vw);
     });
     need = Math.ceil(need);
@@ -1004,28 +912,23 @@
 
   function hxFitAll() {
     [hx.id, hx.spec, hx.arms, hx.warn].forEach(function (g) { hxFit(g); });
-    // UNIT DATA and ARMAMENT stack beside the contact as one column: one width, so
-    // their edges line up the way every other column in the HUD does
+    // UNIT DATA and ARMAMENT stack beside the contact as one column: one width, so their edges line up the way every other column in the HUD does.
     var w = Math.max(hx.spec.w, hx.arms.w);
     hxFit(hx.spec, w); hxFit(hx.arms, w);
   }
   hxFitAll();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
     hxFitAll(); place();
-    // the wind arrow's x is measured off spec.wind's own rendered width (see
-    // drawPanels), cached until the string next changes. If that first measurement
-    // landed before this promise resolved, it used the fallback font's metrics, not
-    // B612 Mono's -- clearing the cached string forces a remeasure on the next frame
+    // The wind arrow's x is cached until spec.wind's string changes (see drawPanels); if it was
+    // measured before webfonts resolved it used fallback metrics, so clear the cache to force a remeasure.
     var envSpec = PANELS[3];
     if (envSpec && envSpec.wind) envSpec.wind.textContent = '';
   });
 
   // ---------------------------------------------------------------- hostile alarm log
-  // A 3-slot log under TARGET ID. Built once, per the house rule -- hxLogFire() below
-  // only ever rewrites a row's text/classes/opacity, never creates new elements. Each
-  // row is its own <g> with its own background <rect> so the .hx-alarm flash (which
-  // animates rect/text inside that class) has something to invert; without a per-row
-  // rect only the text would flash and the row would read as broken.
+  // A 3-slot log under TARGET ID, built once: hxLogFire() below only ever rewrites a row's
+  // text/classes/opacity. Each row is its own <g> with its own background <rect> so the
+  // .hx-alarm flash (which inverts rect/text inside that class) has something to invert.
   var HOSTILE_ALARMS = [
     ['HEAT ROD CONTACT // L ARM', 'arm-l'],
     ['75MM GATLING FIRE // R LEG', 'leg-r'],
@@ -1056,15 +959,13 @@
     }
     svg.appendChild(hxLog);
   })();
-  // re-syncs the row backgrounds to TARGET ID's current width -- called from place(),
-  // not per frame, the same way hxFit only ever runs at build and again once fonts land
+  // Re-syncs the row backgrounds to TARGET ID's current width -- called from place(), not per frame, the same way hxFit only runs at build and once fonts land.
   function hxLogSetWidth(w) {
     hxLogW = w;
     hxLogRow.forEach(function (r) { r.rect.setAttribute('width', w + HX_PAD * 2); });
   }
-  // repaints the 3 fixed rows from hxLogQueue (newest first); the log itself is only
-  // visible while hostile *and* holding at least one live alarm -- otherwise it would
-  // show as an empty flashing box in the ~0.6s before the first alarm arrives
+  // Repaints the 3 fixed rows from hxLogQueue (newest first); visible only while hostile
+  // *and* holding a live alarm, or it shows as an empty flashing box before the first alarm arrives.
   function hxLogPaint() {
     hxLog.setAttribute('opacity', hxOn && hxLogQueue.length ? 1 : 0);
     hxLogRow.forEach(function (r, i) {
@@ -1083,8 +984,7 @@
     hxLogQueue.length = Math.min(hxLogQueue.length, HX_LOG_ROWS);
     hxLogPaint();
     if (alarm[1]) setZone(alarm[1], 'hit');
-    // HOSTILE_ALARMS entries are shared by reference, so an untracked expiry from an earlier
-    // lock would find and splice an identical fresh alarm. Track it; hxLogReset() clears it.
+    // Entries are shared by reference, so an untracked expiry could splice an identical fresh alarm. Track it; hxLogReset() clears it.
     hxLogLife.push(setTimeout(function () {
       var idx = hxLogQueue.indexOf(alarm);
       if (idx !== -1) { hxLogQueue.splice(idx, 1); hxLogPaint(); }
@@ -1104,18 +1004,15 @@
   }
   function hxLogStop() { hxLogReset(); }
 
-  // Inverse-video alarm flash, driven from tick() rather than from CSS. The box and the ink
-  // used to be two separate CSS animations, and each starts its own clock when its element
-  // is attached -- re-appending a rect left them up to ~1.9s apart, so the pair spent much
-  // of the cycle red-on-red or dark-on-dark, invisible exactly when it matters most.
-  // One clock cannot drift against itself.
+  // Inverse-video alarm flash, driven from tick() rather than CSS: two separate CSS animations
+  // for the box and the ink would each start their own clock on attach, so re-appending a
+  // rect could leave them out of phase -- one shared clock can't drift against itself.
   var ALARM_HALF = 400;
 
   // ----------------------------------------------- HUD MODE, comms and status toast
   var modeEl = document.getElementById('hudmode');
   var commsEl = document.getElementById('comms'), toastEl = document.getElementById('toast');
-  // Cockpit chatter from the suit's own world. Nothing here is about the owner, and the
-  // hostile unit is never named outside HX_DATA -- it is "the contact at 180" here.
+  // Cockpit chatter from the suit's own world; the hostile unit is never named outside HX_DATA -- it is "the contact at 180" here.
   var COMMS = [
     ['HQ-7', 'Patrol route confirmed. Hold bearing 180 and report any contact.'],
     ['HANGAR CONTROL', 'Bay 3 is clear. RX-124 is cleared for redeployment.'],
@@ -1124,37 +1021,27 @@
     ['LINEAR SEAT', 'Pilot biometrics nominal. Cockpit pressure holding.'],
     ['HQ-7', 'Deployment ready on your mark. All systems nominal.']
   ];
-  // POP_H: the tallest a popup gets -- a three-line transmission at the narrowest slot
-  // measured 136px -- so place() can tell whether the band clears the SPD/ALT captions
+  // POP_H: the tallest a popup gets (a three-line transmission at the narrowest slot measured 136px), so place() can tell whether the band clears the SPD/ALT captions.
   var POP_MAX = 300, POP_MIN = 200, POP_H = 150;
-  // The narrower floor a band beside a bar may use instead of POP_MIN, when that band's
-  // own position already keeps it clear of the ladder (see the comms/toast call sites) so
-  // POP_MIN's extra room is only there for legibility, not to dodge an overlap. Measured,
-  // not guessed: rendering COMMS' longest stock line ("Patrol route confirmed. Hold
-  // bearing 180 and report any contact.") at shrinking widths, the text still wraps
-  // cleanly (no word wider than the box) down to 104px -- narrower and a word starts
-  // running past the box edge, which is where "legible" actually stops, not some fraction
-  // of POP_MIN. 120 keeps a margin above that measured floor. It only ever softens the
-  // *band* check; the shared centre slot (genuinely centred over the ladder) still needs
-  // POP_MIN's own room.
+  // The narrower floor a band beside a bar may use instead of POP_MIN, for a band whose own
+  // position already keeps it clear of the ladder (see the comms/toast call sites), so
+  // POP_MIN's extra room is only for legibility, not to dodge an overlap. Measured, not
+  // guessed: COMMS' longest stock line still wraps cleanly down to 104px width; 120 keeps a
+  // margin above that floor. The shared centre slot still needs POP_MIN's own room.
   var POP_MIN_SLIDE = 120;
-  // How far the pitch ladder's rungs can reach from the vertical centre in the worst
-  // case: 140 at rest (the r=10 rung, see updateLadder below) lifted to ~157 by a 13deg
-  // roll, plus up to 10px of dx/dy sway -- the same worst case DESIGN.md's warnFits
-  // margin already budgets for the identical rungs. Used once, as a last-resort dodge
-  // when COMMS' centre-slot fallback would otherwise land on top of them (see place()).
+  // How far the pitch ladder's rungs can reach from the vertical centre in the worst case:
+  // 140 at rest lifted to ~157 by a 13deg roll, plus up to 10px of dx/dy sway -- the same
+  // worst case DESIGN.md's warnFits margin budgets for. Used once, as a last-resort dodge
+  // when COMMS' centre-slot fallback would otherwise land on top of the rungs (see place()).
   var LADDER_SPAN = 167;
   // Sizes a popup into the band [left, right]. Too narrow a band and it falls back to the
   // centre slot under the tape, stacked `drop` px down so comms and toast never share it.
-  // vmode picks how `top` is used once the band fits: undefined anchors the top edge
-  // (legacy, and always what the centre-slot fallback uses); 'mid' centres the popup on
-  // `top` via translateY, so no height guess is needed; 'bottom' anchors the popup's
-  // bottom edge to `top` instead, same reason. Every branch sets top/bottom/transform
-  // itself, so a popup moved between modes across a resize never keeps a stale one.
-  // tryOnly skips the centre-slot fallback and returns false instead, so a caller can
-  // try a second band first (COMMS tries beside the SPD bar, then sliding up it, before
-  // finally sharing the centre slot). minW overrides POP_MIN for this call only (see
-  // POP_MIN_SLIDE). Return value: whether the band itself was used.
+  // vmode picks how `top` is used: undefined anchors the top edge (always what the centre
+  // slot uses); 'mid' centres via translateY so no height guess is needed; 'bottom' anchors
+  // the bottom edge instead. Every branch sets top/bottom/transform itself, so a popup moved
+  // between modes across a resize never keeps a stale one. tryOnly skips the centre-slot
+  // fallback and returns false, so a caller can try a second band first. minW overrides
+  // POP_MIN for this call only. Return value: whether the band itself was used.
   function popSlot(node, left, right, top, alignEnd, drop, vmode, tryOnly, minW) {
     if (!node) return false;
     var w = Math.min(POP_MAX, right - left);
@@ -1194,8 +1081,7 @@
     clearInterval(commsType);
     if (BUNNYS.reduce) out.textContent = msg;
     else {
-      // typed out like a teleprinter; the full line is set as the accessible name first
-      // so a screen reader is not fed it a character at a time
+      // Typed out like a teleprinter; the full line is set as the accessible name first so a screen reader isn't fed it a character at a time.
       out.setAttribute('aria-label', msg);
       var n = 0;
       out.textContent = '';
@@ -1263,10 +1149,8 @@
     hxOn = on;
     if (on) hxSince = performance.now();
     hxAll.forEach(function (g) { g.setAttribute('opacity', on ? 1 : 0); });
-    // Every mode switch hides the general banner and drops its pending timer outright
-    // (Part B): a hostile lock hands alerts to the log instead, and the banner's own
-    // 4.2s hold means one can already be on screen, wide enough to overprint TARGET ID,
-    // when a lock lands.
+    // Every mode switch hides the general banner and drops its pending timer: a hostile lock
+    // hands alerts to the log instead, and the banner's 4.2s hold could leave it on screen, wide enough to overprint TARGET ID.
     hideCaution();
     if (on) {
       // a popup parked in the centre slot is sitting where TARGET ID is about to appear
@@ -1276,8 +1160,7 @@
     }
     else { hxLogStop(); scheduleCaution(); }
   }
-  // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than
-  // sitting at a fixed number next to a status line that already says LOCKED.
+  // BEARING reads the contact's real bearing; LOCK counts the sequence in rather than sitting at a fixed number beside a status line that already says LOCKED.
   function drawHostile(now) {
     if (!hxOn) return;
     if (hxBearing) hxBearing.textContent = pad3(HX_YAW);
@@ -1290,9 +1173,8 @@
 
 
   // ---------------------------------------------------------------- foot bars
-  // A row of live readouts across the foot of the canopy. img/frame.svg used to carry a
-  // single painted gauge here, but painted art cannot move -- so the whole row lives in
-  // the HUD instead and is driven from the same tick() loop as the gauges.
+  // A row of live readouts across the foot of the canopy: painted art (img/frame.svg)
+  // cannot move, so the row lives in the HUD, driven from the same tick() loop as the gauges.
   // label, base level, drift amount, period ms
   var FOOT = [
     ['PROP', 0.78, 0.07, 3100],
@@ -1328,8 +1210,7 @@
     });
     svg.appendChild(footWrap);
   }
-  // Spread across the foot, but only across the span the corner instruments leave free --
-  // the radar occupies the bottom left and the slew panel the bottom right.
+  // Spread across the foot, but only across the span the corner instruments leave free (radar bottom left, slew panel bottom right).
   function layoutFoot(left, right, y) {
     var span = right - left;
     footOn = span > 340;
@@ -1380,8 +1261,7 @@
       b.readout.setAttribute('y', barH + 26);
       // the needle is redrawn from b.cur each frame, so resizing needs no re-set here
     });
-    // keep the bars clear of the left instrument column, and mirror them so the
-    // pair stays symmetric about the centre
+    // Keep the bars clear of the left instrument column, and mirror them so the pair stays symmetric about the centre.
     var colRight = 22 + (RAD + PAD) * 2;
     var inset = isPage ? clamp(W * 0.05, 52, 120) : clamp(colRight + 54, 60, W * 0.28);
     xf(spd.g, inset, cy);
@@ -1390,17 +1270,11 @@
     if (!isPage) {
       // the scope needs real estate; drop it on small screens rather than crush it
       var room = W > 760 && H > 520;
-      // the heading tape's own housing reaches wide enough to run into both columns
-      // below about W=1222, so anything sitting under it has to clear this, not just
-      // a fixed margin
+      // the heading tape's own housing reaches wide enough to run into both columns below about W=1222, so anything under it has to clear this, not just a fixed margin.
       var tapeBottom = Math.max(40, H * 0.055) + 42;
 
-      // -- two columns, each centred on the middle of its own gutter --
-      // The gutter is the band between the screen edge and the SPD (or ALT) bar. Its
-      // midline is the lane every box in that column centres on, so a column reads as one
-      // line of instruments instead of a stack that each found its own margin. Every
-      // column instrument is PANEL_W wide and the whole column scales together when the
-      // gutter is too narrow, so their edges stay flush at every viewport size.
+      // Two columns, each centred on the middle of its own gutter -- the band between the
+      // screen edge and the SPD/ALT bar -- so a column reads as one line of instruments.
       var colW = Math.min(PANEL_W, inset - 30);
       var colS = colW / PANEL_W;
       var laneL = inset / 2, laneR = W - inset / 2;
@@ -1427,18 +1301,14 @@
       xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
       var thrusterY = colTop + reactor.h * colS + 14;
       xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
-      // stand-down order under a short column: ENVIRONMENT gives way first (it sits
-      // lowest, so it hits the radar first), then THRUSTER -- each stands down rather
-      // than running into the radar below it
+      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the radar first), then THRUSTER.
       var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 12;
       if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
       var envY = thrusterY + thruster.h * colS + 14;
       xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
       if (envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
 
-      // RIGHT column, top to bottom: DIAGNOSTIC MODE, COMBAT SYSTEM, SLEW TO.
-      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it
-      // is driven onto the same lane and the same width here rather than in the stylesheet.
+      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven onto the same lane and width here rather than in the stylesheet.
       var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
       if (slewEl && room) {
         slewEl.style.left = colRx + 'px';
@@ -1454,11 +1324,8 @@
         modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
         modeR = modeEl.getBoundingClientRect();
       }
-      // the slew panel's own media query hides it below 860px wide / 520px tall, and a
-      // hidden element's rect is all zeros -- fall back to a fixed foot margin
-      // Stacked from the TOP, mirroring the left column: DIAGNOSTIC MODE at colTop,
-      // COMBAT SYSTEM straight under it, SLEW TO pinned to the foot. The map takes the
-      // largest square that still leaves COMBAT SYSTEM room above the slew panel.
+      // The slew panel's media query hides it below 860px/520px, and a hidden element's rect
+      // is all zeros -- fall back to a fixed foot margin. The map takes the largest square that still leaves COMBAT SYSTEM room above the slew panel.
       var rightFloor = modeR ? (modeR.top - 14) : slewVisible ? (slewR.top - 14) : (H - 26);
       layoutDamage(colRx, colTop, rightFloor - combat.h * colS - 14, room, colS);
       var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
@@ -1468,23 +1335,18 @@
       var slewLeft = slewVisible ? slewR.left : (W - 22);
       layoutFoot(laneL + colW / 2 + 26, slewLeft - 26, statusY + 16);
 
-      // Low, not mid-screen: at 0.62 the card sat straight over the enemy suit's head and
-      // torso, which is the one contact big enough to be worth looking at. Keep it under
-      // the reticle but down in the lower third, still clear of the status line.
-      // Derived, not dialled in: the card's own box height decides how high it has to
-      // sit. A fixed fraction put it over the enemy suit's head at tall sizes and through
-      // the status line at short ones. Sit it low, but never closer than 18px to the line.
+      // Low in the frame, clear of the reticle and any contact under it, but never closer
+      // than 18px to the status line -- derived from the card's own box height, not a
+      // fixed fraction, since a fixed fraction runs through the status line at short sizes.
       var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
       var dosY = clamp(H * 0.74, 200, statusY - 18 - dosBot);
       xf(dossier, cx, dosY);
 
-      // The hostile set fills the whole frame, so it has to be placed round the two things
-      // beside the contact, not in a column: UNIT DATA and ARMAMENT read as belonging to
-      // the suit you are looking at, and both side columns stay free for your own
-      // instruments. If the pair will not fit, the set stands down and the plain dossier
-      // card covers the contact instead.
-      // Measured, not guessed: the ALT / LOCK / IFF readouts' own box decides where the
-      // pair may go. An hx box spans x-HX_PAD .. x+w+HX_PAD, hence the HX_PAD terms.
+      // UNIT DATA and ARMAMENT are placed beside the contact, not in a column, so they read
+      // as belonging to the suit and both side columns stay free for your own instruments.
+      // If the pair won't fit, it stands down and the plain dossier card covers the contact
+      // instead. Position is measured off the ALT/LOCK/IFF readouts' own box (which spans
+      // x-HX_PAD .. x+w+HX_PAD, hence the HX_PAD terms), not guessed.
       var rb = hx.right.getBBox();
       var readR = cx + 92 + rb.x + rb.width;
       var readTop = cy - 17 + rb.y, readBot = readTop + rb.height;
@@ -1496,17 +1358,16 @@
         specY = cy - 128;
         armsY = specY + hx.spec.h + 16;
       } else {
-        // narrower: the pair straddles the readouts' band instead -- UNIT DATA above it,
-        // ARMAMENT below it -- flush to the right column, so it still never covers them
+        // Narrower: the pair straddles the readouts' band instead -- UNIT DATA above, ARMAMENT below, flush to the right column.
         specX = rightLimit - boxW + HX_PAD;
         specY = readTop - 14 - hx.spec.h + HX_PAD;
         armsY = readBot + 14 + HX_PAD;
       }
       var specLeft = specX - HX_PAD, specTop = specY - HX_PAD;
       hxArmsBottom = armsY - HX_PAD + hx.arms.h;
-      // TARGET ID's own top and bottom, and the alarm log flush beneath it -- computed
-      // here (not inside logBottom()) so the hxRoom check below and the xf() calls
-      // further down share one set of numbers and can't drift apart.
+      // TARGET ID's own top/bottom and the alarm log flush beneath it are computed here
+      // (not inside logBottom()) so the hxRoom check below and the xf() calls further
+      // down share one set of numbers and can't drift apart.
       var idY = Math.max(112, H * 0.135);
       var idBottom = idY - HX_PAD + hx.id.h;
       var logY = idBottom + HX_LOG_GAP;
@@ -1519,43 +1380,32 @@
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, idY);
       var idHalf = hx.id.w / 2 + HX_PAD;
-      // The caution banner sits directly under TARGET ID's alarm log whenever that
-      // leaves room over the pitch ladder's rest position (a margin, since the ladder
-      // sways live); too short a screen for that and it falls back to TARGET ID's own
-      // slot instead -- always empty when the banner can fire, since the hostile set
-      // and the banner never show at once (hideCaution() on every mode switch). When
-      // the banner takes that slot, the toast and COMMS' own centre fallback stack
-      // below its bottom (popTop) rather than sharing the row, so neither can land
-      // under it.
+      // The caution banner sits directly under TARGET ID's alarm log whenever that leaves
+      // room over the pitch ladder's rest position (a margin, since the ladder sways live);
+      // too short a screen and it falls back to TARGET ID's own slot instead, always empty
+      // when the banner can fire since hideCaution() clears it on every mode switch. When the
+      // banner takes that slot, the toast and COMMS' centre fallback stack below its bottom
+      // (popTop) instead of sharing the row.
       var warnFits = hxLogBottom + 12 + 60 <= cy - 148;
       var warnTop = warnFits ? hxLogBottom + 12 : idY - HX_PAD;
       var popTop = warnFits ? idY - HX_PAD : warnTop + 60 + 12;
       var clearOfBars = popTop + POP_H <= cy - barH - 24;
-      // COMMS beside the SPD bar: centred on it when the band to the reticle readouts
-      // (or the dossier card, whichever is tighter) is wide enough; failing that,
-      // sliding up the bar instead, bottom-anchored 12px above the readouts; the
-      // shared centre slot only as a last resort. The left edge (inset + 24, clear of
-      // the SPD caption and needle) is the same in every band -- only the vertical
-      // anchor and the right bound change.
+      // COMMS beside the SPD bar: centred on it when the band to the reticle readouts (or the
+      // dossier card, whichever is tighter) is wide enough; failing that, sliding up the bar
+      // instead, bottom-anchored 12px above the readouts; the shared centre slot only as a
+      // last resort. The left edge (inset + 24, clear of the SPD caption and needle) is the
+      // same in every band -- only the vertical anchor and the right bound change.
       var commsLeft = inset + 24, lb = hx.left.getBBox();
-      // dossier's left edge, read off the box the same way place() already reads dosBox's
-      // y/height for dosBot -- was a hard-coded -220 that silently drifted from padX
-      // (hud.js:699) the moment either one changed alone
+      // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX independently.
       var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
-      // hx.left and hx.right are one shared row layout (same y per index, mirrored x --
-      // see buildHostile), so readTop from either bbox is the same value: reuse the one
-      // already computed above from rb instead of shadowing it with a second var readTop,
-      // which used to silently overwrite that outer binding
+      // hx.left and hx.right are one shared row layout (same y per index, mirrored x -- see
+      // buildHostile), so readTop from either bbox is the same value: reuse the one already
+      // computed above from rb rather than shadowing it with a second binding.
       if (!popSlot(commsEl, commsLeft, midRight, cy, false, 0, 'mid', true)) {
         if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true, POP_MIN_SLIDE)) {
-          // Last resort: the shared centre slot is centred on cx, same as the ladder, so
-          // no width can dodge it -- only its vertical anchor can. popTop (right under the
-          // banner's own fallback row) only clears the ladder on a tall enough screen; on
-          // one short enough that even the narrow bands above failed (comms and the ladder
-          // are the only two things that ever fight for this exact spot), push the anchor
-          // past the ladder's own worst-case reach instead -- LADDER_SPAN mirrors the
-          // margin the banner's warnFits already budgets for the same rungs (rest 140 off
-          // cy, +13deg roll lifting that to ~157, +10px sway).
+          // Last resort: the shared centre slot is centred on cx, same as the ladder, so no
+          // width can dodge it -- only its vertical anchor can. If popTop would still overlap
+          // the rungs, push the anchor past LADDER_SPAN, the ladder's own worst-case reach.
           var commsFallbackTop = popTop;
           if (commsFallbackTop < cy + LADDER_SPAN && commsFallbackTop + POP_H > cy - LADDER_SPAN) {
             commsFallbackTop = cy + LADDER_SPAN + 12;
@@ -1563,17 +1413,11 @@
           popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, commsFallbackTop, true, 0);
         }
       }
-      // The toast keeps its slot right of TARGET ID, top-aligned with it. On a tall
-      // screen the SPD/ALT captions (cy - barH - 12) start below the whole popup band,
-      // so the slot may reach out to the column; on a short one the band would run
-      // into those captions, so the bar's own x becomes the bound. Too narrow either
-      // way, and it takes the centre slot instead.
-      // 132: a two-line transmission at full width is 121px tall, plus an 11px gap.
-      // POP_MIN_SLIDE (not POP_MIN): this band's left edge already starts at
-      // cx + idHalf + 24, well clear of the ladder's rungs (cx +/- 90) whatever its own
-      // width ends up being, so a narrower band here still can't drop the toast onto the
-      // ladder the way the centre slot does -- only the shared centre slot needs POP_MIN's
-      // room to stay legible, since it is the one placement that's centred on the ladder.
+      // The toast keeps its slot right of TARGET ID, top-aligned with it; too narrow at any
+      // size, and it takes the centre slot instead. 132: a two-line transmission at full
+      // width is 121px tall, plus an 11px gap. POP_MIN_SLIDE, not POP_MIN: this band's left
+      // edge already starts well clear of the ladder's rungs, so a narrower band here still
+      // can't drop the toast onto them the way the centre slot does.
       popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132, undefined, false, POP_MIN_SLIDE);
       xf(hx.spec, specX, specY);
       xf(hx.arms, specX, armsY);
@@ -1599,10 +1443,10 @@
   function logBottom() { return hxLogBottom; }
 
   if (!isPage) {
-    // -- pitch ladder: rungs built once (house rule -- this runs beside a 360-element
-    // CSS-3D panorama, so no per-frame DOM churn), values rewritten per frame by
-    // updateLadder(). Roll/dx/dy are driven by a damped spring in tick() below, off
-    // real yaw/pitch rate rather than drag-only vx, so WASD and a held key bank it too.
+    // Pitch ladder: rungs built once (this runs beside a 360-element CSS-3D panorama, so no
+    // per-frame DOM churn), values rewritten per frame by updateLadder(). Roll/dx/dy come
+    // from a damped spring in tick() below, off real yaw/pitch rate rather than drag-only
+    // vx, so WASD and a held key bank it too.
     ladder = el('g', { class: 'ladder' });
     svg.appendChild(ladder);
     var ladderRungs = [-10, -5, 5, 10].map(function (r) {
@@ -1655,8 +1499,7 @@
     BUNNYS.on('lock', function (d) {
       status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
       setDossier(d);
-      // A hostile contact gets its own boxes instead of the generic card, so the two never
-      // stack. setDossier() has just raised the card, so this has to lower it again after.
+      // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised the card, so this lowers it again.
       hxLockId = d.id || null;
       var hostile = hxRoom && hxLockId === 't-unknown';
       showHostile(hostile);
@@ -1670,10 +1513,9 @@
     });
     wireModes();
 
-    // -- motion sampler: state.yaw/pitch is what every input source (drag, keys, wheel,
-    // slew, magnetism, tilt) eases into each frame, so sampling it here -- rather than
-    // the drag-only vx the view event carries -- is the one place all of them show up.
-    // Feeds the SPD bar and the ladder's banking spring, both in tick() below.
+    // state.yaw/pitch is what every input source (drag, keys, wheel, slew, magnetism, tilt)
+    // eases into each frame, so sampling it here -- not the drag-only vx the view event
+    // carries -- is the one place all of them show up. Feeds SPD and the ladder's spring below.
     var prevYaw = BUNNYS.state.yaw, prevPitch = BUNNYS.state.pitch;
     var SPD_TAU = 0.35, spdEma = 0, spdTextAt = 0;
     var LADDER_OMEGA = 12, LADDER_ZETA = 0.55;
@@ -1714,9 +1556,8 @@
       setBar(spd, spdFrac);
       if (t - spdTextAt >= 200) { spdTextAt = t; setText(spd.readout, pad3(spdFrac * 240)); }
 
-      // ladder: a damped spring banks and drifts the rungs off yaw/pitch rate, so it
-      // overshoots slightly on release instead of snapping straight to a value. Reduced
-      // motion skips the spring outright and only tracks pitch.
+      // A damped spring banks and drifts the rungs off yaw/pitch rate, so release overshoots
+      // slightly instead of snapping to a value. Reduced motion skips the spring and tracks pitch only.
       if (BUNNYS.reduce) {
         updateLadder(BUNNYS.state.pitch, 0, 0, 0);
       } else {

@@ -14,19 +14,18 @@
   var tiltBtn = document.getElementById('tilt');
 
   var SLICES = 24, SLICE_DEG = 15, HALF_SLICE = SLICE_DEG / 2;
-  // The world is a sphere, not a ring: the strip is tessellated into LAT_BANDS rows of
-  // SLICES quads, each tilted to its own latitude. pano.svg is equirectangular at
-  // 360deg / 9600px, so one pixel is DEG_PER_PX of arc in BOTH axes and the vertical
-  // mapping falls out of the horizon row -- no extra distortion term needed.
+  // The world is a sphere: the strip tessellates into LAT_BANDS rows of SLICES quads, each
+  // tilted to its own latitude. pano.svg is equirectangular at 360deg/9600px, so DEG_PER_PX
+  // is the same arc-per-pixel on both axes -- no extra distortion term for the vertical mapping.
   var LAT_BANDS = 8, IMG_W = 9600, IMG_H = 2000, HORIZON_Y = 1150;
   var DEG_PER_PX = 360 / IMG_W;
   var BAND_PX = IMG_H / LAT_BANDS, BAND_DEG = BAND_PX * DEG_PER_PX;
   function bandTopLat(j) { return (HORIZON_Y - j * BAND_PX) * DEG_PER_PX; }
   function bandMidLat(j) { return bandTopLat(j) - BAND_DEG / 2; }
   var tiles = [];
-  // Bands run from the zenith to the nadir so the world closes into a real sphere.
-  // The image only covers the middle ones (row >= 0); paintCap() fills the rest.
-  // Flat caps were what made it still read as a ring: a disc does not converge.
+  // Bands run zenith to nadir so the world closes into a true sphere -- a flat disc cap
+  // doesn't converge and reads as a ring instead. The image covers only the middle rows
+  // (row >= 0); paintCap() fills the rest.
   var BANDS = [];
   (function buildBands() {
     var imgTop = HORIZON_Y * DEG_PER_PX, imgBot = (HORIZON_Y - IMG_H) * DEG_PER_PX;
@@ -39,22 +38,17 @@
   var sliceW = 0, R = 0, PERSP = 0;
   var OVER = 1.04;   // quads are chords, so overlap slightly or the seams show
 
-  // The strip spans 43.1deg up and 31.9deg down; cap tiles close the sphere past that.
-  // They used to fall through to the CSS background at its natural size, so every cap
-  // band redrew the image's own top-left corner -- concentric rings of city glow
-  // overhead, and sky pixels on the floor. paintCap() paints them instead: one ramp
-  // evaluated at each tile's true top and bottom latitude, so neighbouring bands agree
+  // Cap tiles close the sphere past the strip's 43.1deg/31.9deg range. paintCap() evaluates
+  // one ramp at each tile's true top and bottom latitude, so neighbouring bands agree
   // exactly at the seam and the 4% overlap matches whichever quad wins.
   var CAP_TOP = HORIZON_Y * DEG_PER_PX, CAP_BOT = (HORIZON_Y - IMG_H) * DEG_PER_PX;
-  // sampled off the rendered strip's first and last row, averaged across all 9600px
   var SKY_EDGE = [7, 12, 22], ZENITH = [3, 5, 11];
   var SEA_EDGE = [9, 16, 31], NADIR = [4, 7, 14];
   var CLOUD_LOW = [86, 63, 52];     // sodium bounce off the city, caught on the underside
   var CLOUD_HIGH = [84, 96, 115];   // starlight only, up near the zenith
-  // x, y, rx, ry as % of the whole 360deg cap strip, then peak alpha. Masses are defined
-  // in strip space and sliced per tile exactly as the panorama is, so one cloud spans
-  // several quads with no seam through it. x stays clear of 0 and 100: background-repeat
-  // puts the neighbouring copy there, so a mass crossing the edge is cut, not wrapped.
+  // x, y, rx, ry as % of the whole cap strip, then peak alpha, sliced per tile like the
+  // panorama so one cloud spans several quads with no seam. x avoids 0/100: that's where
+  // background-repeat's neighbouring copy sits, so a mass crossing the edge is cut, not wrapped.
   var CLOUDS = [[11, 50, 10, 40, .30], [24, 42, 6, 34, .20], [37, 56, 10, 42, .34],
                 [50, 46, 7, 36, .24], [63, 54, 11, 44, .31], [77, 44, 6, 32, .19],
                 [90, 52, 9, 40, .26]];
@@ -71,10 +65,10 @@
     return lat >= 0 ? lerpRGB(SKY_EDGE, ZENITH, capT(lat)) : lerpRGB(SEA_EDGE, NADIR, capT(lat));
   }
 
-  // .pano-ring sits at z~0 (its children are pushed back via translateZ), so its own flat
-  // box is nearer the camera than everything inside it and swallows hover/click before they
-  // reach .target — CSS gives .target pointer-events:auto for exactly this pairing, so ring
-  // (and slices, which inherit) need pointer-events:none.
+  // .pano-ring sits at z~0 while its children are pushed back via translateZ, so its own flat
+  // box is nearer the camera and swallows hover/click before they reach .target. CSS gives
+  // .target pointer-events:auto for exactly this pairing, so ring (and slices, which inherit)
+  // need pointer-events:none.
   ring.style.pointerEvents = 'none';
 
   var SNAP_DEG = 14;         // magnetism reaches this far from a contact
@@ -86,9 +80,7 @@
   var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
 
-  // build the 24 slices once, ahead of the existing .target children. CSS owns their
-  // size, background-image and background-size (via --slice-w); we only own transform
-  // and background-position-x.
+  // Built once; CSS owns size/background-image/background-size (--slice-w), this owns transform and background-position-x.
   (function buildSphere() {
     var frag = document.createDocumentFragment();
     BANDS.forEach(function (b) {
@@ -103,55 +95,37 @@
   })();
 
 
-  // One longitude segment's width on screen. It sets R, and through R the scale of
-  // the whole sphere. 0.27 of the viewport height reproduces the framing the cylinder
-  // had, so the skyline sits where it always did.
+  // Sets R, and through R the whole sphere's scale; 0.27 of viewport height keeps the skyline framing consistent.
   function readSliceW() {
     return Math.max(80, innerHeight * 0.27);
   }
 
-  // radius R = sliceW / (2*tan(7.5deg)); slice i sits at rotateY(-i*15) translateZ(-R).
-  // The angles are negated so that increasing yaw (turning right) slides the scene left
-  // and a target at +52deg appears to the RIGHT, matching the heading tape. Mirroring the
-  // ring with scaleX(-1) would also fix the handedness but reverses the CSS label text.
-  // and shows pano content [i*sliceW, (i+1)*sliceW), so it's centred on content
-  // (i+0.5)*sliceW — the ring's own rotateY corrects for that half-slice offset so
-  // the DESIGN.md yaw->x mapping (yaw 0 = x0, yaw 180 = x4800) holds exactly.
-  // The strip must keep its natural aspect or the whole scene distorts: 24 slices of
-  // 400 panorama units span the full 9600, so a slice is 400x2000 and its height is
-  // exactly 5x its width. Oversizing it to cover more pitch stretched everything
-  // vertically -- which made the suit and the skyline render about two thirds of
-  // their true width. The floor and ceiling caps cover the pitch range instead.
+  // radius R = sliceW / (2*tan(7.5deg)); slice i sits at rotateY(-i*15) translateZ(-R). Angles are
+  // negated so increasing yaw slides the scene left and a target at +52deg appears to the RIGHT,
+  // matching the heading tape (scaleX(-1) would also fix handedness but mirrors the CSS label text).
+  // Each slice shows content centred at (i+0.5)*sliceW; the ring's own rotateY corrects for that
+  // offset so the DESIGN.md yaw->x mapping (yaw 0 = x0, yaw 180 = x4800) holds exactly. The strip
+  // must keep its natural aspect (5x width in height) or the scene distorts vertically.
   function layout() {
     sliceW = readSliceW();
     R = sliceW / (2 * Math.tan(HALF_SLICE * Math.PI / 180));
-    // CSS puts the camera at z = +perspective, but .pano-ring's origin -- the sphere's
-    // centre -- sits at z = 0, so the camera was standing OUTSIDE the sphere by that much.
-    // That is what made the projection wrong: a 15deg slice did not subtend 15deg, the
-    // field of view came out at 237deg instead of the 100deg intended, and winding the
-    // perspective up to compensate only flattened the scene toward orthographic. Push the
-    // ring forward by the perspective distance so the sphere's centre lands on the camera,
-    // and R = sliceW / (2 tan 7.5) means exactly what it says again.
+    // CSS puts the camera at z = +perspective, but .pano-ring's origin -- the sphere's centre --
+    // sits at z = 0. Push the ring forward by PERSP so the sphere's centre lands on the camera;
+    // otherwise each slice subtends the wrong angle and R = sliceW / (2 tan 7.5) stops being true.
     PERSP = parseFloat(getComputedStyle(pano).perspective) || 0;
     var imgH = 2 * R * Math.tan(BAND_DEG / 2 * Math.PI / 180);
 
     tiles.forEach(function (t) {
       var cos = Math.cos(t.lat * Math.PI / 180);   // always positive: no band centre passes 90deg
       var tileH = 2 * R * Math.tan(t.h / 2 * Math.PI / 180);
-      // A quad is one fixed width, but the sphere's circumference shrinks across the
-      // band, so its edge nearer the equator needs more width than its centre does.
-      // Sizing every quad off its centre latitude left wedge-shaped gaps between bands,
-      // widening toward the poles. Widen each quad to cover its widest edge; the texture
-      // scale stays tied to w, so this only bleeds into the neighbour, never stretches.
+      // The sphere's circumference shrinks across the band, so a quad's edge nearer the equator
+      // needs more width than its centre. Widen each quad to its widest edge, or bands gap at the poles.
       var edge = Math.min(Math.abs(t.band.top), Math.abs(t.band.bot));
       var over = Math.max(OVER, Math.cos(edge * Math.PI / 180) / cos * 1.03);
-      // texture: this quad shows image cell (i, j), so scale the whole image by the
-      // cell count and offset to that cell
-      // Lay every tile out at the equator's width and squeeze it with scaleX rather than
-      // sizing it by cos(lat). The rendered geometry is identical, but background-size is
-      // then the same for all eight image bands, so the browser rasterises pano.svg once
-      // instead of once per band. Eight multi-thousand-pixel vector rasters cost 5.5s of
-      // dropped frames across the boot on a throttled CPU -- that was the "stuck" boot.
+      // This quad shows image cell (i, j): scale the whole image by the cell count and offset to
+      // that cell. Every tile is laid out at the equator's width and squeezed with scaleX rather
+      // than resized by cos(lat), so background-size is identical across all bands and the browser
+      // rasterises pano.svg once instead of once per band -- the per-band alternative stalls the boot.
       t.el.style.width = (sliceW * over) + 'px';
       t.el.style.height = (tileH * OVER) + 'px';
       t.el.style.marginLeft = (-sliceW * over / 2) + 'px';
@@ -171,8 +145,7 @@
     placeTargets(state.yaw, state.pitch);
   }
 
-  // Cap tiles carry no image: a latitude ramp continuing the strip's own edge colour and,
-  // overhead, cloud masses laid out across the full 360deg and sliced per tile.
+  // Cap tiles carry no source image: a latitude-colour ramp plus cloud masses sliced per tile.
   function paintCap(t, w, xOff) {
     var half = t.h * OVER / 2;
     var img = [], size = [], pos = [];
@@ -195,17 +168,10 @@
     t.el.style.backgroundPosition = pos.join(',');
   }
 
-  // Targets are billboards: they sit at their true bearing but always face the camera.
-  // Tangent to the sphere they turned away the moment you were not dead on them, and the
-  // ring's own rotateX(pitch) tipped them further, so a contact you were looking straight
-  // at still pointed off somewhere else. Undoing the ring's rotation AFTER the translate
-  // leaves the box square to the screen while the translate still fixes where it sits.
-  // A billboard is square to the screen, so its far end swings back toward the sphere by
-  // half its width times the sine of the off-axis angle -- and the readout label under the
-  // box is about 240px wide. At the old 40px standoff that end punched through the
-  // panorama and the scene painted over it, cutting the readout off on a diagonal. Stand
-  // each contact far enough forward to clear the surface, then scale it back down so the
-  // boxes still read the size the 40px standoff gave them.
+  // Targets are billboards, square to the screen so they always face the camera: undoing the
+  // ring's rotation AFTER the translate does that while the translate still fixes where it sits.
+  // A square billboard's far end swings back toward the sphere by half its width times the sine
+  // of the off-axis angle, so STANDOFF clears the surface and scale (k below) brings it back down.
   var STANDOFF = 150;
   function placeTargets(yaw, pitch) {
     var off = Math.min(STANDOFF, R * 0.22);   // a short window shrinks R; never crowd the camera
@@ -243,8 +209,7 @@
     }
   }
 
-  // -- lock-on: a single event-driven source of truth so boot.js's own bunnys:lock
-  // (the MISSIONS lock ping) drives the same bracket close-in as hover/focus does --
+  // Lock-on is one event-driven source of truth, so boot.js's MISSIONS lock ping drives the same bracket close-in as hover/focus.
   var lockedId = null, hoverTarget = null, focusTarget = null, desiredLock = null;
   BUNNYS.on('lock', function (d) {
     if (lockedId && lockedId !== d.id) {
@@ -255,26 +220,21 @@
     if (lockedId) {
       var t = document.getElementById(lockedId);
       if (t) t.classList.add('is-locked');
-      // must carry everything the dossier shows: svg#hud is aria-hidden, so this
-      // live region is the only route to that text for assistive tech
+      // Must carry everything the dossier shows: svg#hud is aria-hidden, so this live region is the only route to that text for assistive tech.
       lockStatus.textContent = 'LOCK: ' + (d.label || '') + ' — ' + (d.readout || '')
         + (d.info ? ' — ' + d.info : '');
     } else {
       lockStatus.textContent = '';
     }
   });
-  // Putting the boresight on a target acquires it, the same as hovering or tabbing to
-  // it: turn until it sits under the centre reticle and its dossier comes up.
+  // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings up its dossier.
   var boreTarget = null;
-  // Angular offset of a contact from the boresight, in BOTH axes. Every target sits on
-  // the horizon, so its elevation offset is simply the current pitch.
+  // Every target sits on the horizon, so a contact's elevation offset from the boresight is simply -pitch.
   function boreOffset(t, yaw, pitch) {
     return { yaw: shortestDelta(yaw, parseFloat(t.dataset.yaw) || 0), pitch: -pitch };
   }
   function boreDist(o) { return Math.sqrt(o.yaw * o.yaw + o.pitch * o.pitch); }
-  // Acquire on true angular distance. Measuring yaw alone meant a contact stayed "locked"
-  // while the reticle sat well above or below it -- the lock read as unreliable because
-  // the bracket was nowhere near the thing it claimed to be holding.
+  // Acquisition uses true angular distance (yaw and pitch), not yaw alone, or the lock can sit well off the reticle.
   function updateBoresight(yaw, pitch) {
     var best = null, bestOff = BORE_DEG;
     targets.forEach(function (t) {
@@ -309,7 +269,6 @@
     t.addEventListener('click', function () { fire(t); });
   });
 
-  // turn to face a target by yaw, in degrees
   function turnTo(yawDeg) { targetYaw = wrap360(yawDeg); markInput(); }
   BUNNYS.on('face', function (d) { turnTo(d.yaw); });
 
@@ -353,9 +312,8 @@
     markInput();
   });
   addEventListener('mouseup', function () { dragging = false; state.dragging = false; });
-  // A target label is a link, so a drag that starts AND ends on one still fires a click and
-  // navigates away mid-turn. Swallow that click -- capture phase, so it lands before the
-  // link's own handler. A real click never travels this far, and Enter is untouched.
+  // A target label is a link, so a drag that starts and ends on one still fires a click and navigates
+  // away mid-turn. Swallow it past DRAG_SLOP, in the capture phase so it lands before the link's own handler.
   document.addEventListener('click', function (e) {
     if (dragDist <= DRAG_SLOP) return;
     dragDist = 0;
@@ -369,8 +327,7 @@
     markInput();
   }, { passive: false });
 
-  // WASD mirrors the arrows. Held keys turn continuously (the render loop reads `held`),
-  // while a single tap still steps, so both a tap and a hold feel right.
+  // WASD mirrors the arrows; held keys turn continuously via the render loop's `held` while a single tap still steps.
   var held = {};
   var STEP = { left: -15, right: 15, up: 4, down: -4 };
   function keyRole(e) {
@@ -422,9 +379,6 @@
     });
   }
 
-  // boot.js sets state.booted true and only THEN emits boot-done, so a keypress can land
-  // in between: input is accepted, and this handler would then discard it by snapping the
-  // target back. Only re-sync when the user has not already steered.
   // slew panel: turn the view onto a contact without dragging for it
   Array.prototype.forEach.call(document.querySelectorAll('#slew button[data-slew]'), function (b) {
     b.addEventListener('click', function () {
@@ -436,25 +390,21 @@
     });
   });
 
+  // state.booted goes true before boot-done fires, so a keypress can land in between and already be accepted; only re-sync when the user has not steered.
   BUNNYS.on('boot-done', function () {
     if (hadInput) return;
     targetYaw = state.yaw;
     targetPitch = state.pitch;
   });
 
-  // Culling only: a target on the far side still projects through the depthless
-  // Past 95deg it is culled outright: the cylinder has no depth, so a target on the far side
-  // still projects onto the screen through it, arriving mirrored (its back face is toward us).
-  // At a wide enough field of view that put the UNKNOWN box, 180deg behind, in the middle of
-  // the screen as backwards text. Hiding it is the fix; backface-visibility alone would drop
-  // the box but leave the CSS ::after label painting.
+  // The sphere has no depth, so a far target still projects through it, arriving mirrored -- at
+  // this field of view that can read as backwards text mid-screen. Hide it outright; backface-visibility
+  // alone would drop the box but leave the CSS ::after label painting.
   function updateBehind(yaw) {
     targets.forEach(function (t) {
       var dy = parseFloat(t.dataset.yaw) || 0;
       var off = Math.abs(shortestDelta(yaw, dy));
-      // 80, not 95: with the sphere's centre on the camera a contact at exactly 90deg sits
-      // in the camera plane, where the projection scale goes to infinity. Nothing past
-      // 50deg is on screen at a 100deg field anyway, so cut well short of the singularity.
+      // Cut at 80, not 90: the camera sits at the sphere's centre, so a contact at exactly 90deg sits in the camera plane, where the projection scale goes to infinity.
       var hidden = off > 80;
       t.style.visibility = hidden ? 'hidden' : '';
       t.style.pointerEvents = hidden ? 'none' : '';
@@ -489,11 +439,9 @@
       markInput();
     }
 
-    // Magnetism: as the view slows near a contact, pull the aim onto it so the reticle
-    // settles on the target instead of just past it. It waits out live input (so a wheel
-    // nudge or a held key is never fought) but engages while a released flick is still
-    // coasting, bleeds that coast off, and closes the last degree outright -- asymptoting
-    // in from a weaker pull read as drifting rather than snapping.
+    // Magnetism pulls the aim onto a contact as the view slows near it. It waits out live input
+    // (a wheel nudge or held key is never fought) but engages while a released flick is still
+    // coasting, and closes the last degree outright -- a weaker asymptotic pull reads as drifting.
     if (!firing) {
       var near = null, nearOff = null, nearDist = SNAP_DEG;
       targets.forEach(function (t) {
@@ -501,24 +449,19 @@
         var d = boreDist(o);
         if (d < nearDist) { nearDist = d; nearOff = o; near = t; }
       });
-      // A mouse drag is exactly when the assist should help, and the old `!dragging` gate
-      // meant it never did -- dragging got no magnetism at all. Assist through the drag at
-      // reduced strength so it guides the aim instead of fighting it, and keep the full
-      // strength (plus the outright click-on) for a released flick settling.
+      // Assist applies during a drag too, at reduced strength (SNAP_DRAG) so it guides rather than
+      // fights; full strength (SNAP_STRENGTH) is for a released flick settling.
       var settling = !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90;
-      // While dragging, only assist a drag already heading TOWARD the contact. Assisting
-      // unconditionally meant a drag starting on a target got pulled straight back onto it
-      // and never moved -- you could not drag away from a contact at all.
+      // While dragging, only assist when it already heads toward the contact (below), or a drag
+      // starting on a target gets pulled straight back and can never move away from it.
       var strength = dragging ? SNAP_DRAG : (settling ? SNAP_STRENGTH : 0);
       // `near` has to be tested FIRST: nearOff is null when nothing is in range, and
       // reading it unguarded threw on every frame with no contact nearby.
       if (near && strength > 0 && (!dragging || velYaw * nearOff.yaw >= 0)) {
         var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
         targetYaw = wrap360(targetYaw + nearOff.yaw * pull * strength);
-        // Elevation is corrected on the settle only. Pulling it mid-drag fights a
-        // deliberate vertical drag the same way the yaw pull fought a horizontal one.
-        // Held up/down keys win outright too -- an earlier build let this fight them and
-        // holding Up only ever reached 2 degrees.
+        // Elevation is corrected on the settle only, and skipped while a held up/down key is
+        // active (!tilt) -- otherwise the pull fights deliberate vertical input either way.
         if (!dragging && !tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
         if (!dragging) {
           velYaw *= Math.pow(0.55, dt * 60);
