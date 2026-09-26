@@ -12,9 +12,10 @@
   var done = false;
 
   // .hud-draw is a ONE-SHOT intro: it animates every stroke inside #hud. hud.js rebuilds
-  // the heading ticks and ladder rungs on every view event, so if the class is left on,
-  // each newly created element re-matches the rule and restarts the 1.1s draw-in -- the
-  // tape and ladder then look like they are perpetually reloading. Drop it once it ends.
+  // the heading tape's ticks on every view event (the ladder's rungs are built once and
+  // only their values rewritten), so if the class is left on, each newly created tick
+  // re-matches the rule and restarts the 1.1s draw-in -- the tape then looks like it is
+  // perpetually reloading. Drop it once it ends.
   function drawHudOnce() {
     var hud = document.getElementById('hud');
     if (!hud) return;

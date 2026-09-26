@@ -417,11 +417,9 @@ a { color: inherit; }
   bottom: 20px;
 }
 
-/* frame seam glow (spec 6, 1900-3100ms): "the frame seams glow green then settle".
-   No JS currently toggles this — #frame is a static <img> and boot.js correctly leaves
-   it alone. The hook is here and harmless if unused; wire it up with
-   frameEl.classList.add('seam-glow') at t=1900 (remove, or let the animation finish,
-   at t=3100) if this beat is wanted. See report. */
+/* frame seam glow (spec 6): "the frame seams glow green then settle". boot.js adds
+   seam-glow at FLICKER_AT (panels start lighting) and removes it in finish(), so the
+   glow runs for the rest of the boot rather than a fixed 1900-3100ms window. */
 #frame.seam-glow { animation: frame-seam-glow 1.2s ease-out 1; }
 @keyframes frame-seam-glow {
   0%, 100% { filter: none; }
