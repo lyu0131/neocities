@@ -762,27 +762,41 @@
     ['SYSTEM OVERRIDE ENGAGED', null]
   ];
   var warn = el('g', { class: 'warn', opacity: 0 });
-  // WARN_LIFT raises the triangle/tick/dot/caption cluster (and warnInner) off the
-  // box's own bottom (fixed at 30 -- xf(warn,...) keys the under-TARGET-ID placement
-  // off that, see place()), freeing room below warnInner for the part-number stencil.
-  // Measured against the real rendered glyph box (getBBox), not the baseline y: at 7px
-  // B612 Mono's cap-height alone ate the old 12px gap between warnInner's bottom and
-  // the box's, leaving ~0px of actual ink clearance despite looking fine on paper.
-  var WARN_LIFT = 7;
-  var warnText = el('text', { y: 8 - WARN_LIFT, 'text-anchor': 'middle', class: 'warn-text' });
+  // WARN_CAP_LIFT raises the tick/dot/caption together, off the box's own bottom
+  // (fixed at 30 -- xf(warn,...) keys the under-TARGET-ID placement off that, see
+  // place()), to help free room below warnInner for the part-number stencil.
+  // warnInner's *top* and the triangle's *apex* do NOT move: both already sat at the
+  // minimum safe 2-4px clearance from their own fixed reference (warnInner's top from
+  // warnBox's top; the triangle's apex from warnInner's top), so lifting either would
+  // just push the overlap up a level -- which is exactly what shifting them by
+  // WARN_CAP_LIFT did the first time (warnInner's own stroke ended up outside warnBox).
+  // Only warnInner's *bottom*, and the triangle's *base*, rise -- both rects/paths get
+  // shorter, not translated -- to clear the stencil's needed room without disturbing
+  // either fixed top edge.
+  var WARN_CAP_LIFT = 7;
+  var warnText = el('text', { y: 8 - WARN_CAP_LIFT, 'text-anchor': 'middle', class: 'warn-text' });
   // The box spans -halfW..halfW so xf(warn, cx, ...) keeps it centred. The triangle
   // sits a fixed inset (WARN_PAD) off the box's *left* edge, so as halfW grows to
   // fit longer text both the triangle and the text's free span move outward together
   // and stay in step -- see layoutWarn(), which derives the text anchor from that
   // geometry instead of a hand-guessed constant.
   var WARN_MIN_HALF = 280, WARN_PAD = 32, WARN_TRI_W = 40, WARN_PAD_R = 0, WARN_MARGIN = 16;
+  // The triangle's apex is fixed at -22 (exactly 2px inside warnInner's own fixed top,
+  // -24). Only its base rises, from the original 14 to WARN_TRI_BASE, shortening the
+  // triangle rather than shifting it, so it still clears warnInner's (independently
+  // raised) bottom by >=2px.
+  var WARN_TRI_BASE = 8;
   var warnBox, warnInner, warnTri, warnTick, warnDot, warnCorners, warnPN;
   function buildWarn() {
     warnBox = el('rect', { y: -30, height: 60, fill: 'rgba(6,10,18,.86)' });
-    warnInner = el('rect', { y: -24 - WARN_LIFT, height: 42, opacity: .5 });
+    // top fixed at -24 (5.25px inside warnBox's own top, including this rect's own
+    // 1.5px stroke) -- only the bottom rises, via a shorter height, freeing room for
+    // the stencil below without pushing the top past warnBox's edge (the bug this
+    // replaces: shifting the whole rect, including its top, by WARN_CAP_LIFT).
+    warnInner = el('rect', { y: -24, height: 42 - WARN_CAP_LIFT, opacity: .5 });
     warnTri = el('path', {});
-    warnTick = el('line', { y1: -10 - WARN_LIFT, y2: 2 - WARN_LIFT });
-    warnDot = el('circle', { cy: 8 - WARN_LIFT, r: 1.6 });
+    warnTick = el('line', { y1: -10 - WARN_CAP_LIFT, y2: 2 - WARN_CAP_LIFT });
+    warnDot = el('circle', { cy: 8 - WARN_CAP_LIFT, r: 1.6 });
     warn.appendChild(warnBox);
     warnCorners = corners(-WARN_MIN_HALF, -30, WARN_MIN_HALF * 2, 60);
     warn.appendChild(warnCorners);
@@ -792,8 +806,8 @@
     warn.appendChild(warnDot);
     warn.appendChild(warnText);
     // G_PAD inset (matches every other panel's stencil) clears the box's right edge by
-    // 14px; y=23 sits in the room WARN_LIFT frees below warnInner's (raised) bottom,
-    // both checked against real getBBox() ink, not these raw coordinates -- see
+    // 14px; y=23 sits in the room freed below warnInner's (raised) bottom, both
+    // checked against real getBBox() ink, not these raw coordinates -- see
     // tests/hub.test.js's warnGeom().
     warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 23, 'end', 'BNS-CTN-041A');
     layoutWarn(WARN_MIN_HALF);
@@ -807,8 +821,7 @@
     warnInner.setAttribute('x', (-halfW + 6).toFixed(1)); warnInner.setAttribute('width', (halfW * 2 - 12).toFixed(1));
     updateCorners(warnCorners, -halfW, -30, halfW * 2, 60);
     var triX0 = -halfW + WARN_PAD, triX1 = triX0 + WARN_TRI_W, triMidX = triX0 + WARN_TRI_W / 2;
-    var triBase = (14 - WARN_LIFT).toFixed(1), triApex = (-22 - WARN_LIFT).toFixed(1);
-    warnTri.setAttribute('d', 'M' + triX0.toFixed(1) + ',' + triBase + ' L' + triMidX.toFixed(1) + ',' + triApex + ' L' + triX1.toFixed(1) + ',' + triBase + ' Z');
+    warnTri.setAttribute('d', 'M' + triX0.toFixed(1) + ',' + WARN_TRI_BASE + ' L' + triMidX.toFixed(1) + ',-22 L' + triX1.toFixed(1) + ',' + WARN_TRI_BASE + ' Z');
     warnTick.setAttribute('x1', triMidX.toFixed(1)); warnTick.setAttribute('x2', triMidX.toFixed(1));
     warnDot.setAttribute('cx', triMidX.toFixed(1));
     // the caption's free span runs from the triangle's right edge to the box's own

@@ -58,6 +58,10 @@ function spdInsetOf(pg) {
 // at a 7px font-size B612 Mono's cap-height alone spans most of the gap between
 // warnInner's bottom and the box's, so coordinate arithmetic understated the overlap
 // the owner actually saw on screen.
+// innerStrokeHalf is warnInner's own rendered stroke width / 2 -- getBBox() is pure
+// geometry and excludes stroke, but the stroke is real ink (amber, 1.5px, centred on
+// the rect edge per the global `#hud :is(...,rect):not([fill])` rule), so a containment
+// check against warnBox needs it added back in, or a poking-out stroke reads as clear.
 function warnGeom(pg) {
   return pg.eval(`(() => {
     const g = document.querySelector('#hud .warn');
@@ -68,7 +72,8 @@ function warnGeom(pg) {
     return {
       viewport: { top: r.top, bottom: r.bottom, left: r.left, right: r.right },
       box: bb(boxEl), inner: bb(innerEl),
-      pn: bb(g.querySelector('.stencil')), tri: bb(g.querySelector('path')), cap: bb(g.querySelector('.warn-text'))
+      pn: bb(g.querySelector('.stencil')), tri: bb(g.querySelector('path')), cap: bb(g.querySelector('.warn-text')),
+      innerStrokeHalf: (parseFloat(getComputedStyle(innerEl).strokeWidth) || 0) / 2
     };
   })()`);
 }
@@ -335,6 +340,16 @@ function forceBanner(pg, text) {
     banner1920.tri.y - banner1920.inner.y >= 2 && banner1920.inner.bottom - banner1920.tri.bottom >= 2 &&
     banner1920.cap.y - banner1920.inner.y >= 2 && banner1920.inner.bottom - banner1920.cap.bottom >= 2,
     JSON.stringify({ inner: banner1920.inner, tri: banner1920.tri, cap: banner1920.cap }));
+  // warnInner (including half its own rendered stroke, which extends past its plain
+  // geometry) must sit fully inside warnBox with >=4px to spare on every side -- the
+  // WARN_CAP_LIFT fix's own regression: shifting warnInner's top along with its bottom
+  // pushed its stroke ~1.75px outside warnBox's top edge on every viewport.
+  check('warnInner (incl. its stroke) sits inside warnBox with >=4px on all sides',
+    (banner1920.inner.y - banner1920.innerStrokeHalf) - banner1920.box.y >= 4 &&
+    banner1920.box.bottom - (banner1920.inner.bottom + banner1920.innerStrokeHalf) >= 4 &&
+    (banner1920.inner.x - banner1920.innerStrokeHalf) - banner1920.box.x >= 4 &&
+    banner1920.box.right - (banner1920.inner.right + banner1920.innerStrokeHalf) >= 4,
+    JSON.stringify({ box: banner1920.box, inner: banner1920.inner, strokeHalf: banner1920.innerStrokeHalf }));
   check("the outer box's bottom edge stays at its fixed local y=30 (never grows downward)",
     banner1920.box.bottom === 30, `box.bottom ${banner1920.box.bottom}`);
   check('no h-overflow with COMMS open and banner forced at 1920x1080',
