@@ -91,6 +91,65 @@ function forceBanner(pg, text) {
   await p.sleep(6800);
   check('boot done fires', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
   check('boot overlay gone', await p.eval("!document.getElementById('boot') || getComputedStyle(document.getElementById('boot')).display === 'none'"));
+
+  // Task 4: one clock -- the splash+bar (css) and the log (boot.js) must never render at
+  // the same time. Sample the live page every ~60ms across the whole boot instead of
+  // trusting a couple of fixed-time snapshots, which could miss a real overlap.
+  {
+    const b = await launch({ width: 1440, height: 900 });
+    await b.eval("sessionStorage.clear()");
+    await b.goto('index.html', 300);
+    const samples = [];
+    for (let i = 0; i < 100 && !(await b.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) {
+      samples.push(await b.eval(`(() => {
+        const bar = document.querySelector('.boot-bar i');
+        const m = bar && new DOMMatrix(getComputedStyle(bar).transform);
+        const log = document.getElementById('boot-log');
+        const splash = document.querySelector('.boot-splash');
+        return {
+          scaleX: m ? m.a : 0,
+          hasLog: !!(log && log.textContent.trim().length),
+          splashOpacity: splash ? parseFloat(getComputedStyle(splash).opacity) : 0
+        };
+      })()`));
+      await b.sleep(60);
+    }
+    check('boot samples collected', samples.length > 5, 'n=' + samples.length);
+    const withSplash = samples.find(s => s.hasLog && s.splashOpacity > 0.05);
+    check('splash and log never on screen together', !withSplash, JSON.stringify(withSplash));
+    const early = samples.find(s => s.hasLog && s.scaleX < 0.98);
+    check('log never shown before the bar finishes', !early, JSON.stringify(early));
+    check('the bar does reach full width', samples.some(s => s.scaleX >= 0.98));
+    check('the log does run', samples.some(s => s.hasLog));
+    b.close();
+  }
+
+  // Task 4: the bar's animation is gated on #boot.is-booting, which run() adds -- not
+  // first paint. The sampling check above can't prove this on its own (a bar on its own
+  // clock could just happen to finish before the log starts); check the gate directly.
+  {
+    const g = await launch({ width: 1440, height: 900 });
+    await g.eval("sessionStorage.clear()");
+    await g.goto('index.html', 0);
+    let sawUngated = false, gatedName = '';
+    for (let i = 0; i < 100; i++) {
+      const s = await g.eval(`(() => {
+        const boot = document.getElementById('boot');
+        const bar = document.querySelector('.boot-bar i');
+        return {
+          gated: !!(boot && boot.classList.contains('is-booting')),
+          name: bar ? getComputedStyle(bar).animationName : ''
+        };
+      })()`);
+      if (!s.gated) { if (s.name === 'none') sawUngated = true; }
+      else { gatedName = s.name; break; }
+      await g.sleep(20);
+    }
+    check('bar does not animate before is-booting is added', sawUngated);
+    check('bar animates once is-booting is added', gatedName === 'boot-fill', gatedName);
+    g.close();
+  }
+
   await p.eval("sessionStorage.clear()"); await p.goto('index.html', 600);
   // Retry the skip until it takes. A single keypress 600ms after navigation races
   // boot.js attaching its listener -- under load (the suite starts Chrome three times
@@ -199,6 +258,17 @@ function forceBanner(pg, text) {
   // script load and made the arrow check flaky.
   for (let i = 0; i < 40 && !(await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) await r.sleep(100);
   check('reduced motion: booted at once', await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
+  // Task 4: #boot is already gone by now (finish(true) removes it synchronously before
+  // run() ever adds .is-booting), so there's no live bar left to sample. Probe the CSS
+  // rule itself with a detached element that matches the same selector.
+  check('reduced motion: bar not animated', await r.eval(`(() => {
+    const i = document.createElement('i');
+    const div = document.createElement('div'); div.className = 'boot-bar'; div.appendChild(i);
+    document.body.appendChild(div);
+    const name = getComputedStyle(i).animationName;
+    div.remove();
+    return name === 'none';
+  })()`));
   // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
   // something wakes the compositor, so the easing that applies the keypress can start
   // late. The keypress itself registers immediately.

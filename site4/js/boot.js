@@ -29,7 +29,7 @@
 
   function onSkip() { finish(true); }
 
-  // t=3800 (or immediately): hand the page over to cockpit.js/fx.js
+  // t=FINISH_AT (or immediately): hand the page over to cockpit.js/fx.js
   function finish(instant) {
     if (done) return;
     done = true;
@@ -63,23 +63,54 @@
   try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
   if (BUNNYS.reduce || already) { finish(true); return; }
 
+  // One clock, owned entirely by run(): the splash+bar play alone, then the log phase.
+  // BAR_MS must match cockpit.css's `#boot.is-booting .boot-bar i` animation-duration.
+  var BAR_MS = 1100;
+  // Splash fade-out length; must match cockpit.css's .boot-splash transition. LOG_START
+  // adds a buffer past the fade so the log never starts while a sample could still catch
+  // the splash mid-fade (the owner's whole complaint was the two overlapping).
+  var FADE_MS = 200;
+  var LOG_START = BAR_MS + FADE_MS + 150;
+  var LOG_STEP = 130;
+  var FLICKER_AT = 1900;
+  var WHIP_AT = 2500;
+  var HUD_AT = 3300;
+  var LOCK_AT = 3500;
+  var CALLSIGN_AT = 3700;
+  var FINISH_AT = 4000;
+
   try { run(); } catch (e) { finish(true); }
 
   function run() {
     document.addEventListener('keydown', onSkip);
     document.addEventListener('click', onSkip);
 
-    // t=0: blinking cursor, lower left (self-contained, no cockpit.css dependency)
-    var cursor = document.createElement('span');
-    cursor.className = 'boot-cursor';
-    cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
-    overlay.appendChild(cursor);
+    // t=0: the splash+bar play alone. Adding this class here -- not first paint -- is
+    // the actual fix: the bar used to animate on the page's own paint clock while
+    // everything else ran on this function's clock (which starts late, after hud.js,
+    // cockpit.js and the 60KB dmgmap.js have loaded), so the log used to start partway
+    // through a bar that was already moving.
+    overlay.classList.add('is-booting');
+    var splash = overlay.querySelector('.boot-splash');
 
-    // Boot log, paced across most of the sequence. It used to fire every 55ms, which
-    // put all 16 lines up between t=180 and t=1005 and then left the log frozen for the
-    // remaining 2.4s -- it blipped in rather than flowing. One line every ~185ms runs the
-    // roll from t=200 to t=2975, so text is still arriving while the panels flicker and
-    // the view whips round.
+    // t=BAR_MS: the bar completes. Fade the splash out; only once it's clear does the
+    // log phase start (below) -- the owner explicitly didn't want the two on screen
+    // together.
+    at(BAR_MS, function () {
+      if (splash) splash.classList.add('boot-splash-out');
+    });
+    at(LOG_START, function () {
+      if (splash) splash.style.display = 'none';
+
+      // blinking cursor, lower left (self-contained, no cockpit.css dependency)
+      var cursor = document.createElement('span');
+      cursor.className = 'boot-cursor';
+      cursor.style.cssText = 'position:fixed;left:24px;bottom:24px;width:10px;height:18px;background:var(--hud,#8CFFC1);';
+      overlay.appendChild(cursor);
+    });
+
+    // Boot log, one line every LOG_STEP starting at LOG_START, so all 16 lines arrive
+    // while the scene effects below play out behind it.
     var LOG = [
       'BUNNyS OS 2.6.1 // SYSTEM BOOT',
       'CORE BLOCK ........... LOCKED',
@@ -99,7 +130,7 @@
       'DEPLOYMENT READY'
     ];
     LOG.forEach(function (line, i) {
-      at(200 + i * 185, function () {
+      at(LOG_START + i * LOG_STEP, function () {
         var idx = lines.length;
         lines.push(line.indexOf('{P}') > -1 ? line.replace('{P}', '12') : line);
         render();
@@ -118,8 +149,8 @@
       })();
     }
 
-    // t=1050-1750: monitor panels flicker on in scattered order
-    at(1050, function () {
+    // FLICKER_AT-WHIP_AT: monitor panels flicker on in scattered order
+    at(FLICKER_AT, function () {
       // the frame seams glow green as the panels light, then settle (css owns the look)
       var frameEl = document.getElementById('frame');
       if (frameEl) frameEl.classList.add('seam-glow');
@@ -145,9 +176,9 @@
       });
     });
 
-    // t=1750-2550: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it while
-    // booted is false).
-    at(1750, function () {
+    // WHIP_AT-HUD_AT: 360 whip. Drive BUNNYS.state.yaw directly (cockpit.js renders it
+    // while booted is false).
+    at(WHIP_AT, function () {
       // No motion blur: blur() on .pano-ring re-rasterises the whole 360-tile sphere every
       // frame of the spin, and it was the single worst stall in the sequence. A 300deg/s
       // whip already reads as fast without it.
@@ -162,19 +193,19 @@
       raf = requestAnimationFrame(step);
     });
 
-    // t=2550-3050: HUD draw-in
-    at(2550, function () {
+    // HUD_AT-LOCK_AT: HUD draw-in
+    at(HUD_AT, function () {
       var hud = document.getElementById('hud');
       drawHudOnce();
     });
 
-    // t=3050-3800: lock ping on MISSIONS, callsign flash, then fade
-    at(3050, function () {
+    // LOCK_AT-FINISH_AT: lock ping on MISSIONS, callsign flash, then fade
+    at(LOCK_AT, function () {
       BUNNYS.emit('face', { yaw: 0 });
       var t = document.getElementById('t-missions');
       BUNNYS.emit('lock', { id: 't-missions', label: t ? t.dataset.label : 'MISSIONS', readout: t ? t.dataset.readout : '' });
     });
-    at(3300, function () {
+    at(CALLSIGN_AT, function () {
       BUNNYS.emit('lock', { id: null, label: '', readout: '' });
       var cs = document.createElement('p');
       cs.className = 'boot-callsign';
@@ -187,6 +218,6 @@
         setTimeout(function () { cs.style.opacity = '0'; }, 260);
       });
     });
-    at(3800, function () { finish(false); });
+    at(FINISH_AT, function () { finish(false); });
   }
 })();
