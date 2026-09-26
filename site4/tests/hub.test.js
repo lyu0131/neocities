@@ -207,6 +207,30 @@ function ladderRollOf(pg) {
   let c1 = c0, ticked = false;
   for (let i = 0; i < 20 && !ticked; i++) { await e.sleep(100); c1 = await clockText(); if (c1 && c1 !== c0) ticked = true; }
   check('ENVIRONMENT clock advances within 2s', ticked, `${c0} -> ${c1}`);
+
+  // Fix round 1: the arrow's rotation must never bring it within 6px of the value text
+  // at any heading it can reach -- flip reduce off on this already-booted page so the
+  // wind direction actually drifts, then sample the live rendered gap across a few
+  // frames instead of trusting the geometry on paper (BUNNYS.reduce is read fresh each
+  // frame in drawPanels, so flipping it here takes effect without a reload)
+  await e.eval('window.BUNNYS.reduce = false');
+  function windGap() {
+    return e.eval(`(() => {
+      const g = ${panelSel('ENVIRONMENT')};
+      const arrow = g.querySelector('path');
+      const value = [...g.querySelectorAll('text')].find(t => /KT$/.test(t.textContent));
+      if (!arrow || !value) return null;
+      const a = arrow.getBoundingClientRect(), v = value.getBoundingClientRect();
+      return v.left - a.right;
+    })()`);
+  }
+  let minGap = Infinity;
+  for (let i = 0; i < 10; i++) {
+    const gap = await windGap();
+    if (gap != null && gap < minGap) minGap = gap;
+    await e.sleep(300);
+  }
+  check('wind arrow stays >=6px clear of the value text across headings', minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
   // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short

@@ -278,6 +278,13 @@
   // thrusters an attitude cross, the combat panel its hardpoint cells.
   var PANEL_W = 248, G_PAD = 14, rowH = 17;
   var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM', 'AUX', 'CORE']; // AUXILIARY BUS, CORE BLOCK
+  // ENVIRONMENT's wind arrow: shape and radius live together so a future edit to one
+  // is a prompt to check the other. WIND_ARROW_R is this shape's farthest vertex from
+  // its own rotation origin (the tip, at (3.5,4): sqrt(3.5^2+4^2)) -- a polygon never
+  // reaches farther from its origin than its farthest vertex, at any rotation, so this
+  // is a true upper bound on how far the arrow can swing toward the value text next to it.
+  var WIND_ARROW_D = 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z';
+  var WIND_ARROW_R = Math.sqrt(3.5 * 3.5 + 4 * 4);
   var PANELS = [
     { id: 'reactor', title: 'REACTOR STATUS', code: 'BNS-PWR-118R', extra: 'spark',
       rows: [{ key: 'OUTPT', base: 0.94, drift: 0.03 },
@@ -426,7 +433,7 @@
           // drawPanels off the value text's own rendered width -- "240 12 KT" and
           // "232 9 KT" aren't the same width, and pctW (sized for a percentage) is
           // narrower than either, so a fixed x here would run the arrow into the digits
-          spec.windArrow = el('path', { d: 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z', fill: 'currentColor', stroke: 'none' });
+          spec.windArrow = el('path', { d: WIND_ARROW_D, fill: 'currentColor', stroke: 'none' });
           spec.windArrowY = ry + 1;
           g.appendChild(spec.windArrow);
         }
@@ -487,11 +494,15 @@
         if (spec.wind.textContent !== windStr) {
           spec.wind.textContent = windStr;
           // just left of the value text's own rendered box, not a fixed offset --
-          // "232 9 KT" and "248 15 KT" aren't the same width
-          spec.windArrowX = spec.wind.getBBox().x - 8;
+          // "232 9 KT" and "248 15 KT" aren't the same width. WIND_ARROW_R clears the
+          // shape's own farthest point from its rotation origin at any heading; the
+          // +6 beyond that is the clearance still owed to the text, so together they
+          // guarantee a real gap by construction instead of by the current numbers
+          // happening not to collide
+          spec.windArrowX = spec.wind.getBBox().x - WIND_ARROW_R - 6;
         }
-        spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX + ',' +
-          spec.windArrowY + ') rotate(' + windDeg.toFixed(0) + ')');
+        spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX.toFixed(1) + ',' +
+          spec.windArrowY.toFixed(1) + ') rotate(' + windDeg.toFixed(1) + ')');
 
         var precip = 3.75 + (hold ? 0 : Math.sin(now / 3700 + 2) * 1.25);
         setText(spec.precip, precip.toFixed(1) + ' MM/H');
@@ -991,7 +1002,15 @@
     hxFit(hx.spec, w); hxFit(hx.arms, w);
   }
   hxFitAll();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { hxFitAll(); place(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
+    hxFitAll(); place();
+    // the wind arrow's x is measured off spec.wind's own rendered width (see
+    // drawPanels), cached until the string next changes. If that first measurement
+    // landed before this promise resolved, it used the fallback font's metrics, not
+    // B612 Mono's -- clearing the cached string forces a remeasure on the next frame
+    var envSpec = PANELS[3];
+    if (envSpec && envSpec.wind) envSpec.wind.textContent = '';
+  });
 
   // ---------------------------------------------------------------- hostile alarm log
   // A 3-slot log under TARGET ID. Built once, per the house rule -- hxLogFire() below
