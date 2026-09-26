@@ -26,6 +26,20 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
     check('hangar has callout buttons', n >= 4, n + ' callouts');
     check('hangar callout lights its part', await p.eval("(()=>{const b=document.querySelector('button[data-part]');if(!b)return false;b.focus();const id=b.dataset.part;return [...document.querySelectorAll('[id=\"'+id+'\"]')].some(e=>e.classList.contains('is-hot'))})()"));
   }
+  // Folded in from the retired a11y-audit.js: the four of its checks no other test covered.
+  for (const pg of ['index.html', ...PAGES]) {
+    await p.goto(pg, 900);
+    check(`${pg} lang="en"`, await p.eval("document.documentElement.lang === 'en'"));
+    const dups = await p.eval("(()=>{const s=new Set(),d=new Set();document.querySelectorAll('[id]').forEach(e=>s.has(e.id)?d.add(e.id):s.add(e.id));return [...d].join(',')})()");
+    // hangar's three inline views share part ids ON PURPOSE today: its callouts light the
+    // part in every view with [id=...]. That goes with the Woundwort redraw (see the
+    // cleanup plan's gated section); until then hangar is the one exception.
+    check(`${pg} no duplicate ids`, pg === 'hangar.html' || dups === '', dups);
+  }
+  await p.goto('index.html', 900);
+  check('hub #lock-status is aria-live polite', await p.eval("document.getElementById('lock-status').getAttribute('aria-live') === 'polite'"));
+  check('hub svg#hud is aria-hidden', await p.eval("document.getElementById('hud').getAttribute('aria-hidden') === 'true'"));
+
   check('no JS errors on sub-pages', p.errors.length === 0, p.errors.join(' | '));
   p.close();
 })();

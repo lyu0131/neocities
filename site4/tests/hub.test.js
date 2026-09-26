@@ -38,7 +38,7 @@ function ladderRollOf(pg) {
 function rectExpr(pg, expr) {
   return pg.eval(`(() => { const e = ${expr}; if (!e) return null;
     const r = e.getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; })()`);
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, opacity: e.getAttribute('opacity') }; })()`);
 }
 function rectOf(pg, sel) { return rectExpr(pg, `document.querySelector(${JSON.stringify(sel)})`); }
 function overlaps(a, b) { return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }
@@ -360,12 +360,7 @@ function forceBanner(pg, text) {
   function panelSel(title) {
     return `[...document.querySelectorAll('#hud > g.panel')].find(g => g.querySelector('text').textContent === '${title}')`;
   }
-  function panelRect(pg, title) {
-    return pg.eval(`(() => { const g = ${panelSel(title)}; if (!g) return null;
-      const r = g.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, opacity: g.getAttribute('opacity') };
-    })()`);
-  }
+  function panelRect(pg, title) { return rectExpr(pg, panelSel(title)); }
   function radarTop(pg) {
     return pg.eval("(() => { const g = document.querySelector('#hud > g.radar'); return g ? g.getBoundingClientRect().top : null; })()");
   }
