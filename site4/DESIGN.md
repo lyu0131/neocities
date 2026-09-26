@@ -171,14 +171,29 @@ place showing during an active one.
 
 The part-number stencil under the banner's caption sits at `x = halfW - G_PAD` (the same
 inset every other panel's stencil uses, clearing the box's own right edge — and the
-corner brackets there — by 14px) and `y = 23`. Its clearance from `warnInner`'s bottom
-and the box's own bottom is checked against the **rendered** text box (`getBBox()`), not
-these raw coordinates: B612 Mono's cap-height at the shared 7px stencil size eats most of
-the gap on paper, so a coordinate-only check passed while the owner still saw overlap.
-`WARN_LIFT` (7) raises `warnInner` and the triangle/tick/dot/caption cluster together,
-opening the room below `warnInner` the stencil needed, while the outer box itself (and
-its `xf()` placement) stays untouched — `y -30..30` exactly as before — so the
-under-TARGET-ID placement's margin at `cy - 148` never changes.
+corner brackets there — by 14px) and `y = 23`. Every clearance here is checked against
+the **rendered** box (`getBBox()`, plus `getComputedStyle` for a stroke width), not raw
+coordinates: B612 Mono's cap-height at the shared 7px stencil size eats most of a gap
+that looks generous on paper, so a coordinate-only check can pass while ink still
+overlaps.
+
+`warnInner`'s top (`-24`) and the triangle's apex (`-22`) are both **pinned** — never
+moved by anything — because each already sits at the minimum clearance from its own
+fixed reference (`warnInner`'s top from `warnBox`'s top; the triangle's apex from
+`warnInner`'s top). Lifting either just relocates the same overlap a level up, which is
+what shifting them once did: `warnInner`'s own stroke ended up outside `warnBox`. Instead:
+- `WARN_CAP_LIFT` (7) raises only the caption/tick/dot cluster.
+- `warnInner` opens room for the stencil by shrinking from the **bottom** (its height is
+  `42 - WARN_CAP_LIFT`), not by translating — its top never moves.
+- `WARN_TRI_BASE` (8) sets the triangle's base, shortening it (not shifting it) so it
+  still clears `warnInner`'s (independently raised) bottom.
+
+The tests hold four rendered clearances at once: `warnInner`, including half its own
+stroke, sits inside `warnBox` with ≥4px on all four sides; the stencil clears `warnInner`'s
+bottom and `warnBox`'s own bottom by ≥4px and the right edge (corner brackets) by ≥14px;
+the triangle and caption stay inside `warnInner` by ≥2px; and `warnBox` itself never grows
+past its fixed `y -30..30` — its `xf()` placement is untouched, so the under-TARGET-ID
+margin at `cy - 148` never changes either.
 
 Alarm and caution strings are **<=34 characters**: `hxFit` never re-runs after build.
 
