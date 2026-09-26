@@ -10,7 +10,7 @@
 - JS is `'use strict'` IIFEs; the only global is `window.BUNNYS`.
 
 ## Tokens
-`--night #060A12`, `--indigo #0E1830`, `--teal #1F4E5F`, `--sodium #FF9A3D` (scene only), `--hud #8CFFC1`, `--amber #FFB02E`, `--lock #FF3347`, `--ice #DDE7EE`, `--panel rgba(6,10,18,.72)`.
+`--night #060A12`, `--indigo #0E1830`, `--teal #1F4E5F`, `--sodium #FF9A3D` (scene only), `--hud #8CFFC1`, `--amber #FFB02E`, `--lock #FF3347`, `--ice #DDE7EE`, `--panel rgba(6,10,18,.97)` (every housing's opaque backing plate, shared with hud.js's housing()).
 Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3).
 
 ## Hub DOM (index.html)

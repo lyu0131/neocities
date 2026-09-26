@@ -66,12 +66,23 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       const plates = JSON.parse(await p.eval("JSON.stringify([...document.querySelectorAll('#hud rect.plate')].map(r => r.getAttribute('rx') + '|' + r.getAttribute('fill')))"));
       check(`${tag} every housing is one plate style`, plates.length >= 10 && new Set(plates).size === 1, plates.length + ' plates: ' + [...new Set(plates)].join(' / '));
       const css = JSON.parse(await p.eval(`JSON.stringify((() => {
-        const tok = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
-        const bg = id => getComputedStyle(document.getElementById(id)).backgroundColor;
+        const normalize = (color) => { const el = document.createElement('div'); el.style.backgroundColor = color.trim(); document.body.appendChild(el); const result = getComputedStyle(el).backgroundColor; el.remove(); return result; };
+        const tokRaw = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+        const tok = normalize(tokRaw);
+        const plates = [...document.querySelectorAll('#hud rect.plate')].map(r => normalize(r.getAttribute('fill')));
+        const comms = document.getElementById('comms');
+        const slew = document.getElementById('slew');
+        const hudmode = document.getElementById('hudmode');
+        const bgSlew = slew ? getComputedStyle(slew).backgroundColor : null;
+        const bgHudmode = hudmode ? getComputedStyle(hudmode).backgroundColor : null;
+        const bgComms = comms ? getComputedStyle(comms).backgroundColor : null;
         const br = id => getComputedStyle(document.getElementById(id), '::before').backgroundImage;
-        return { tok, same: bg('slew') === bg('hudmode') && bg('slew') === bg('comms'), brackets: br('slew') === br('comms') && br('slew') !== 'none' };
+        const brackets = br('slew') === br('comms') && br('slew') !== 'none';
+        const allPlatesSame = plates.length > 0 && plates.every(p => p === tok);
+        const bgMatch = bgSlew === tok && bgHudmode === tok && bgComms === tok;
+        return { tokRaw, tok, plates: plates.length, allPlatesSame, bgSlew, bgHudmode, bgComms, bgMatch, brackets, hasComms: !!comms };
       })())`));
-      check(`${tag} one --panel token and one bracket rule`, css.tok !== '' && css.same && css.brackets, JSON.stringify(css));
+      check(`${tag} --panel token ties CSS backgrounds to SVG plates`, css.allPlatesSame && css.bgMatch && css.hasComms && css.brackets, JSON.stringify(css));
       const pair = r.all.filter(b => b.name === 'hx:UNIT DATA' || b.name === 'hx:ARMAMENT DETECTED');
       if (pair.length === 2) check(`${tag} UNIT DATA and ARMAMENT share one edge`, pair[0].l === pair[1].l && pair[0].r === pair[1].r);
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
