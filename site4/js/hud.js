@@ -23,6 +23,9 @@
   }
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
   function pad3(n) { n = Math.round(wrap360(n)); return (n < 10 ? '00' : n < 100 ? '0' : '') + n; }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; } // clock fields: 0-59, no wrap
+  // avoids touching the DOM every frame for a value that only changes once a second
+  function setText(node, v) { if (node.textContent !== v) node.textContent = v; }
   function cardinal(h) { return h === 0 ? 'N' : h === 90 ? 'E' : h === 180 ? 'S' : h === 270 ? 'W' : null; }
   function xf(g, x, y, extra) { g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' + (extra || '')); }
 
@@ -292,7 +295,11 @@
              { key: 'FRAME', base: 0.88, drift: 0.04 },   // FRAME INTEGRITY
              { key: 'THR-V', base: 0.50, drift: 0.30, fmt: fmtVector },
              { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: fmtLink },
-             { key: 'HDPT', base: 0.83, drift: 0.15, fmt: fmtHardpoint }] }
+             { key: 'HDPT', base: 0.83, drift: 0.15, fmt: fmtHardpoint }] },
+    // Appended, not inserted -- PANELS[0..2] above keep the indices drawPanels() and
+    // place() already key off of. rows: [] skips the bar-row loop in buildPanel below;
+    // this panel's whole body is its own 'env' branch instead.
+    { id: 'env', title: 'ENVIRONMENT', code: 'BNS-ENV-077W', extra: 'env', rows: [] }
   ];
   var sparkPts = [];
 
@@ -403,6 +410,36 @@
         spec.cells.push(cell);
       }
       y += 36;
+    } else if (spec.extra === 'env') {
+      // three fake weather rows on the bar rows' own label/value rhythm -- rows: []
+      // left spec.rows.forEach above with nothing to draw, so this is the whole panel
+      ['WX', 'WIND', 'PRECIP'].forEach(function (label, i) {
+        var ry = y + i * rowH;
+        var lbl = el('text', { x: x0, y: ry + 4 });
+        lbl.textContent = label;
+        g.appendChild(lbl);
+        var key = label === 'WX' ? 'wx' : label === 'WIND' ? 'wind' : 'precip';
+        spec[key] = el('text', { x: x1, y: ry + 4, 'text-anchor': 'end' });
+        g.appendChild(spec[key]);
+        if (label === 'WIND') {
+          // tip points at the compass heading the wind comes from. x is re-measured in
+          // drawPanels off the value text's own rendered width -- "240 12 KT" and
+          // "232 9 KT" aren't the same width, and pctW (sized for a percentage) is
+          // narrower than either, so a fixed x here would run the arrow into the digits
+          spec.windArrow = el('path', { d: 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z', fill: 'currentColor', stroke: 'none' });
+          spec.windArrowY = ry + 1;
+          g.appendChild(spec.windArrow);
+        }
+      });
+      y += 3 * rowH + 2;
+
+      // the clock: this panel's own instrument, the way the reactor has its trace and
+      // the thruster its cross -- and the one reading here that isn't fake
+      spec.clockTime = el('text', { x: x0, y: y + 14, style: 'font-size:16px' });
+      g.appendChild(spec.clockTime);
+      spec.clockDate = el('text', { x: x1, y: y + 14, 'text-anchor': 'end' });
+      g.appendChild(spec.clockDate);
+      y += 24;
     }
 
     var h = y + G_PAD;
@@ -437,6 +474,33 @@
           var on = Math.sin(now / (2300 + i * 480) + i) > -0.55;
           cell.setAttribute('fill', on ? 'currentColor' : 'rgba(140,255,193,.16)');
         });
+      } else if (spec.extra === 'env') {
+        // fake weather: drifting sines like the bar rows above, held still under
+        // reduced motion since it's decoration, not the clock below (that's information)
+        var hold = BUNNYS.reduce;
+        var temp = 14.2 + (hold ? 0 : Math.sin(now / 5000) * 0.4);
+        setText(spec.wx, 'LIGHT RAIN ' + temp.toFixed(1) + '°C');
+
+        var windDeg = 240 + (hold ? 0 : Math.sin(now / 6100) * 8);
+        var windKt = 12 + (hold ? 0 : Math.sin(now / 4300 + 1) * 3);
+        var windStr = windDeg.toFixed(0) + '° ' + windKt.toFixed(0) + ' KT';
+        if (spec.wind.textContent !== windStr) {
+          spec.wind.textContent = windStr;
+          // just left of the value text's own rendered box, not a fixed offset --
+          // "232 9 KT" and "248 15 KT" aren't the same width
+          spec.windArrowX = spec.wind.getBBox().x - 8;
+        }
+        spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX + ',' +
+          spec.windArrowY + ') rotate(' + windDeg.toFixed(0) + ')');
+
+        var precip = 3.75 + (hold ? 0 : Math.sin(now / 3700 + 2) * 1.25);
+        setText(spec.precip, precip.toFixed(1) + ' MM/H');
+
+        // the viewer's own clock, not a prop -- rewritten only when its string changes,
+        // same as the fake rows above, so a steady second doesn't touch the DOM 60x/s
+        var d = new Date();
+        setText(spec.clockTime, pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()));
+        setText(spec.clockDate, d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
       }
     });
 
@@ -1293,10 +1357,10 @@
         });
       }
 
-      var reactor = PANELS[0], thruster = PANELS[1], combat = PANELS[2];
+      var reactor = PANELS[0], thruster = PANELS[1], combat = PANELS[2], env = PANELS[3];
       PANELS.forEach(function (sp) { sp.g.setAttribute('opacity', room ? 1 : 0); });
 
-      // LEFT column, top to bottom: REACTOR STATUS, THRUSTER VECTOR, SENSOR ARRAY
+      // LEFT column, top to bottom: REACTOR STATUS, THRUSTER VECTOR, ENVIRONMENT, SENSOR ARRAY
       radar.setAttribute('opacity', room ? 1 : 0);
       // the radar's housing is PANEL_W wide by construction, so the same colS fits it
       var radarCy = H - 26 - (RAD + PAD) * colS;
@@ -1305,9 +1369,14 @@
       xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
       var thrusterY = colTop + reactor.h * colS + 14;
       xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
-      // the thruster panel is the one that gives way first: it stands down rather than
-      // running into the radar below it
-      if (thrusterY + thruster.h * colS > radarTop - 12) thruster.g.setAttribute('opacity', 0);
+      // stand-down order under a short column: ENVIRONMENT gives way first (it sits
+      // lowest, so it hits the radar first), then THRUSTER -- each stands down rather
+      // than running into the radar below it
+      var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 12;
+      if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
+      var envY = thrusterY + thruster.h * colS + 14;
+      xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
+      if (!thrusterFits || envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
 
       // RIGHT column, top to bottom: DIAGNOSTIC MODE, COMBAT SYSTEM, SLEW TO.
       // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it

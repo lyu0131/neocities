@@ -161,4 +161,61 @@ function ladderRollOf(pg) {
   await r.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
   check('reduced motion: ladder roll stays 0', reducedRoll === 0, 'roll ' + reducedRoll);
   r.close();
+
+  // Task 2: ENVIRONMENT panel, placed under THRUSTER VECTOR and above SENSOR ARRAY in
+  // the left column. reduce:true finishes boot instantly (see above) and the clock still
+  // ticks under reduced motion, so it is also the fastest way to reach a settled layout.
+  function panelSel(title) {
+    return `[...document.querySelectorAll('#hud > g.panel')].find(g => g.querySelector('text').textContent === '${title}')`;
+  }
+  function panelRect(pg, title) {
+    return pg.eval(`(() => { const g = ${panelSel(title)}; if (!g) return null;
+      const r = g.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, opacity: g.getAttribute('opacity') };
+    })()`);
+  }
+  function radarTop(pg) {
+    return pg.eval("(() => { const g = document.querySelector('#hud > g.radar'); return g ? g.getBoundingClientRect().top : null; })()");
+  }
+  async function bootedReduced(pg) {
+    for (let i = 0; i < 40 && !(await pg.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) await pg.sleep(100);
+  }
+
+  const e = await launch({ width: 1920, height: 1080, reduce: true });
+  await e.goto('index.html', 900);
+  await bootedReduced(e);
+  const envRect = await panelRect(e, 'ENVIRONMENT');
+  const thrRect = await panelRect(e, 'THRUSTER VECTOR');
+  const radar1080 = await radarTop(e);
+  check('ENVIRONMENT visible at 1920x1080', !!envRect && envRect.opacity !== '0', JSON.stringify(envRect));
+  check('ENVIRONMENT sits below THRUSTER VECTOR', !!envRect && !!thrRect && envRect.top >= thrRect.bottom,
+    `env.top ${envRect && envRect.top} vs thr.bottom ${thrRect && thrRect.bottom}`);
+  check('ENVIRONMENT clears SENSOR ARRAY above it', !!envRect && radar1080 != null && envRect.bottom <= radar1080,
+    `env.bottom ${envRect && envRect.bottom} vs radar.top ${radar1080}`);
+  check('ENVIRONMENT shares THRUSTER VECTOR\'s column', !!envRect && !!thrRect &&
+    Math.abs(envRect.left - thrRect.left) < 0.5 && Math.abs(envRect.right - thrRect.right) < 0.5,
+    JSON.stringify({ env: envRect, thr: thrRect }));
+
+  // the clock is this panel's one live instrument (the reactor has its trace, the
+  // thruster its cross) -- it should visibly tick even with reduced motion on
+  function clockText() {
+    return e.eval(`(() => { const g = ${panelSel('ENVIRONMENT')};
+      const t = g && [...g.querySelectorAll('text')].find(t => /^\\d{2}:\\d{2}:\\d{2}$/.test(t.textContent));
+      return t ? t.textContent : null; })()`);
+  }
+  const c0 = await clockText();
+  let c1 = c0, ticked = false;
+  for (let i = 0; i < 20 && !ticked; i++) { await e.sleep(100); c1 = await clockText(); if (c1 && c1 !== c0) ticked = true; }
+  check('ENVIRONMENT clock advances within 2s', ticked, `${c0} -> ${c1}`);
+  e.close();
+
+  // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short
+  const s = await launch({ width: 1440, height: 900, reduce: true });
+  await s.goto('index.html', 900);
+  await bootedReduced(s);
+  const envSmall = await panelRect(s, 'ENVIRONMENT');
+  const thrSmall = await panelRect(s, 'THRUSTER VECTOR');
+  check('ENVIRONMENT hidden at 1440x900', !!envSmall && envSmall.opacity === '0', JSON.stringify(envSmall));
+  check('THRUSTER VECTOR still shown at 1440x900', !!thrSmall && thrSmall.opacity !== '0', JSON.stringify(thrSmall));
+  s.close();
 })();
