@@ -170,8 +170,15 @@ hold means it can already be on screen when a lock lands, and a general caution 
 place showing during an active one.
 
 The part-number stencil under the banner's caption sits at `x = halfW - G_PAD` (the same
-inset every other panel's stencil uses) and `y = 25`, clear of `warnInner`'s bottom (18,
-raised from the old 24 so the outline itself has headroom) and the box's own bottom (30).
+inset every other panel's stencil uses, clearing the box's own right edge — and the
+corner brackets there — by 14px) and `y = 23`. Its clearance from `warnInner`'s bottom
+and the box's own bottom is checked against the **rendered** text box (`getBBox()`), not
+these raw coordinates: B612 Mono's cap-height at the shared 7px stencil size eats most of
+the gap on paper, so a coordinate-only check passed while the owner still saw overlap.
+`WARN_LIFT` (7) raises `warnInner` and the triangle/tick/dot/caption cluster together,
+opening the room below `warnInner` the stencil needed, while the outer box itself (and
+its `xf()` placement) stays untouched — `y -30..30` exactly as before — so the
+under-TARGET-ID placement's margin at `cy - 148` never changes.
 
 Alarm and caution strings are **<=34 characters**: `hxFit` never re-runs after build.
 

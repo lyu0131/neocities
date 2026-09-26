@@ -51,24 +51,24 @@ function spdInsetOf(pg) {
   })()`);
 }
 // warnBox and warnInner are plain, unclassed <rect>s (first two direct children of
-// .warn, in build order); warnPN is the only .stencil text inside .warn. box/pn are
-// real rendered boxes (rect edges are exact, so left/right clearance is meaningful
-// off them); innerBottom/boxBottom/pnY compare the SVG *coordinates* instead of
-// rendered glyph ink -- at a 7px font-size the caption's cap-height alone spans most
-// of the 12px gap between warnInner's bottom and the box's, so ink-to-ink clearance
-// is not what "N px clear" means here; the coordinates are what layoutWarn() controls.
+// .warn, in build order); warnPN is the only .stencil text inside .warn, warnTri the
+// only <path>. `viewport` is real screen pixels (for comparing against COMMS/the alarm
+// log, which live outside .warn's local space); box/inner/pn/tri/cap are all getBBox()
+// in .warn's own local space -- the real rendered ink, not raw x/y/baseline coordinates:
+// at a 7px font-size B612 Mono's cap-height alone spans most of the gap between
+// warnInner's bottom and the box's, so coordinate arithmetic understated the overlap
+// the owner actually saw on screen.
 function warnGeom(pg) {
   return pg.eval(`(() => {
     const g = document.querySelector('#hud .warn');
-    const pick = el => { const r = el.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; };
+    const bb = el => { const b = el.getBBox(); return { y: b.y, bottom: b.y + b.height, x: b.x, right: b.x + b.width }; };
     const rects = g.querySelectorAll(':scope > rect');
-    const box = rects[0], inner = rects[1], pn = g.querySelector('.stencil');
+    const boxEl = rects[0], innerEl = rects[1];
+    const r = boxEl.getBoundingClientRect();
     return {
-      box: pick(box), pn: pick(pn),
-      innerBottom: parseFloat(inner.getAttribute('y')) + parseFloat(inner.getAttribute('height')),
-      boxBottom: parseFloat(box.getAttribute('y')) + parseFloat(box.getAttribute('height')),
-      pnY: parseFloat(pn.getAttribute('y'))
+      viewport: { top: r.top, bottom: r.bottom, left: r.left, right: r.right },
+      box: bb(boxEl), inner: bb(innerEl),
+      pn: bb(g.querySelector('.stencil')), tri: bb(g.querySelector('path')), cap: bb(g.querySelector('.warn-text'))
     };
   })()`);
 }
@@ -315,18 +315,28 @@ function forceBanner(pg, text) {
     !!comms1920 && Math.abs((comms1920.top + comms1920.bottom) / 2 - vh1920 / 2) <= 4,
     `mid ${comms1920 && (comms1920.top + comms1920.bottom) / 2} vs ${vh1920 / 2}`);
   check('COMMS and the forced-visible banner do not overlap at 1920x1080',
-    !overlaps(comms1920, banner1920.box), JSON.stringify({ comms: comms1920, banner: banner1920.box }));
+    !overlaps(comms1920, banner1920.viewport), JSON.stringify({ comms: comms1920, banner: banner1920.viewport }));
   check("banner sits at/below TARGET ID's alarm log at 1920x1080",
-    banner1920.box.top >= log1920.bottom - 0.5,
-    `banner.top ${banner1920.box.top} vs log.bottom ${log1920.bottom}`);
-  check("banner stencil's y clears warnInner's bottom by >=4 (SVG coordinates)",
-    banner1920.pnY - banner1920.innerBottom >= 4,
-    `pnY ${banner1920.pnY} vs innerBottom ${banner1920.innerBottom}`);
-  check('banner stencil clears the box bottom by >=4 (SVG coordinates) and the left/right edges by >=4px (rendered)',
-    banner1920.boxBottom - banner1920.pnY >= 4 &&
-    banner1920.pn.left - banner1920.box.left >= 4 &&
-    banner1920.box.right - banner1920.pn.right >= 4,
-    JSON.stringify(banner1920));
+    banner1920.viewport.top >= log1920.bottom - 0.5,
+    `banner.top ${banner1920.viewport.top} vs log.bottom ${log1920.bottom}`);
+  // The stencil's own rendered box (getBBox, real ink -- not the baseline y or the
+  // rect attributes) vs warnInner's and the outer box's, since at 7px font-size the
+  // cap-height alone consumed most of the coordinate-space gap: see warnGeom().
+  check("banner stencil's rendered box clears warnInner's bottom by >=4px",
+    banner1920.pn.y - banner1920.inner.bottom >= 4,
+    `pn.y ${banner1920.pn.y} vs inner.bottom ${banner1920.inner.bottom}`);
+  check("banner stencil's rendered box clears the outer box's bottom by >=4px",
+    banner1920.box.bottom - banner1920.pn.bottom >= 4,
+    `box.bottom ${banner1920.box.bottom} vs pn.bottom ${banner1920.pn.bottom}`);
+  check("banner stencil's rendered box clears the outer box's right edge (brackets) by >=14px",
+    banner1920.box.right - banner1920.pn.right >= 14,
+    `box.right ${banner1920.box.right} vs pn.right ${banner1920.pn.right}`);
+  check('the triangle and caption stay inside warnInner with >=2px (rendered)',
+    banner1920.tri.y - banner1920.inner.y >= 2 && banner1920.inner.bottom - banner1920.tri.bottom >= 2 &&
+    banner1920.cap.y - banner1920.inner.y >= 2 && banner1920.inner.bottom - banner1920.cap.bottom >= 2,
+    JSON.stringify({ inner: banner1920.inner, tri: banner1920.tri, cap: banner1920.cap }));
+  check("the outer box's bottom edge stays at its fixed local y=30 (never grows downward)",
+    banner1920.box.bottom === 30, `box.bottom ${banner1920.box.bottom}`);
   check('no h-overflow with COMMS open and banner forced at 1920x1080',
     await t3.eval('document.documentElement.scrollWidth <= innerWidth'));
   await t3.shot(path.join(__dirname, 'out/task3-1920.png'), false);
@@ -352,7 +362,7 @@ function forceBanner(pg, text) {
   check('COMMS does not overlap the dossier card at 1440x900',
     !overlaps(comms1440, dossier1440), JSON.stringify({ comms: comms1440, dossier: dossier1440 }));
   check('COMMS does not overlap the banner at 1440x900',
-    !overlaps(comms1440, banner1440.box), JSON.stringify({ comms: comms1440, banner: banner1440.box }));
+    !overlaps(comms1440, banner1440.viewport), JSON.stringify({ comms: comms1440, banner: banner1440.viewport }));
   check('no h-overflow with COMMS open and banner forced at 1440x900',
     await t3b.eval('document.documentElement.scrollWidth <= innerWidth'));
   await t3b.shot(path.join(__dirname, 'out/task3-1440.png'), false);
