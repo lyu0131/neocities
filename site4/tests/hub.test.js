@@ -20,11 +20,16 @@ function spdStateOf(pg) {
     return { frac, readout: g.querySelectorAll('text')[1].textContent };
   })()`);
 }
-// the ladder group carries class="ladder" so tests can find it without a global
+// the ladder group carries class="ladder" so tests can find it without a global.
+// Returns null (not 0) when the selector or the rotate() match fails, so a caller has
+// to notice a broken lookup instead of it silently reading as "no roll" -- Math.abs(0)
+// and Math.abs(null) are the same value, so treating them the same used to let a
+// broken selector pass every roll check for free.
 function ladderRollOf(pg) {
   return pg.eval(`(() => {
-    const m = /rotate\\(([-\\d.]+)/.exec(document.querySelector('.ladder').getAttribute('transform'));
-    return m ? parseFloat(m[1]) : 0;
+    const l = document.querySelector('.ladder');
+    const m = l && /rotate\\(([-\\d.]+)/.exec(l.getAttribute('transform'));
+    return m ? parseFloat(m[1]) : null;
   })()`);
 }
 // Task 3: COMMS beside the SPD bar, the caution banner under TARGET ID's alarm log.
@@ -37,6 +42,19 @@ function rectExpr(pg, expr) {
 }
 function rectOf(pg, sel) { return rectExpr(pg, `document.querySelector(${JSON.stringify(sel)})`); }
 function overlaps(a, b) { return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }
+// Important 2 (final review): the ladder's rungs, as their own real screen rects -- not
+// the whole .ladder group's bounding box, which spans the gaps between rungs too and
+// would over-report an overlap that never touches real ink. updateLadder() appends each
+// rung as [rung line, tickL, tickR], in that order, so every 3rd <line> is a rung.
+function ladderRungRects(pg) {
+  return pg.eval(`(() => {
+    const lines = [...document.querySelectorAll('#hud .ladder > line')];
+    return lines.filter((_, i) => i % 3 === 0).map(l => {
+      const r = l.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+    });
+  })()`);
+}
 // hx.left/hx.right/hx.id/hxLog all carry class="hostile" with no id of their own --
 // find the one that owns the given label text.
 function hostileGroupWith(pg, label) {
@@ -235,21 +253,24 @@ function forceBanner(pg, text) {
   const boreBefore = await p.eval("document.querySelector('.boresight').getAttribute('transform')");
   // key() sends down+up together; hold D by dispatching the two events ourselves
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
-  let keySpd = { frac: 0, readout: '000' }, keyRoll = 0;
+  let keySpd = { frac: 0, readout: '000' }, keyRoll = null;
   for (let i = 0; i < 20; i++) {
     keySpd = await spdStateOf(p);
     keyRoll = await ladderRollOf(p);
-    if (keySpd.frac > 0.3 && Math.abs(keyRoll) > 2) break;
+    if (keySpd.frac > 0.3 && keyRoll !== null && Math.abs(keyRoll) > 2) break;
     await p.sleep(100);
   }
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
   check('SPD rises on held key', keySpd.frac > 0.3 && parseInt(keySpd.readout, 10) > 0, JSON.stringify(keySpd));
-  check('ladder tilts on held key', Math.abs(keyRoll) > 2, 'roll ' + keyRoll);
+  check('ladder tilts on held key', keyRoll !== null && Math.abs(keyRoll) > 2, 'roll ' + keyRoll);
 
   let restRoll = keyRoll, rollBack = false;
   for (let i = 0; i < 20; i++) {
     restRoll = await ladderRollOf(p);
-    if (Math.abs(restRoll) < 0.5) { rollBack = true; break; }
+    // null (the .ladder selector found nothing) must not read as "back at rest" --
+    // Math.abs(null) coerces to 0, which used to make a broken selector pass this
+    // check for free instead of failing it
+    if (restRoll !== null && Math.abs(restRoll) < 0.5) { rollBack = true; break; }
     await p.sleep(100);
   }
   check('ladder returns within 2s of release', rollBack, 'roll ' + restRoll);
@@ -268,12 +289,12 @@ function forceBanner(pg, text) {
     await p.mouse('mouseMoved', 700 - 45 * k, 450, 1);
     const s = await spdStateOf(p), r = await ladderRollOf(p);
     if (s.frac > dragSpdMax) dragSpdMax = s.frac;
-    if (Math.abs(r) > Math.abs(dragRollMax)) dragRollMax = r;
+    if (r !== null && Math.abs(r) > Math.abs(dragRollMax)) dragRollMax = r;
     await p.sleep(30);
   }
   await p.mouse('mouseReleased', 700 - 45 * 14, 450);
   check('SPD reads higher on drag than key', dragSpdMax > keySpd.frac, `drag ${dragSpdMax} vs key ${keySpd.frac}`);
-  check('ladder tilts more on drag than key', Math.abs(dragRollMax) > Math.abs(keyRoll), `drag ${dragRollMax} vs key ${keyRoll}`);
+  check('ladder tilts more on drag than key', keyRoll !== null && Math.abs(dragRollMax) > Math.abs(keyRoll), `drag ${dragRollMax} vs key ${keyRoll}`);
   await p.sleep(1200);
   const boreAfter = await p.eval("document.querySelector('.boresight').getAttribute('transform')");
   check('boresight untouched by motion sampler', boreBefore === boreAfter, `${boreBefore} vs ${boreAfter}`);
@@ -318,11 +339,18 @@ function forceBanner(pg, text) {
     await r.sleep(100);
   }
   check('reduced motion: arrows still turn', Math.abs(rYaw) > 5, 'yaw ' + rYaw);
-  // Task 1: reduced motion pins the ladder to plain pitch tracking -- no spring roll
+  // Task 1: reduced motion pins the ladder to plain pitch tracking -- no spring roll.
+  // Guard against a vacuous pass: confirm D actually turned the view during the hold,
+  // the same way the arrow-key check above does, so "roll stays 0" can't pass just
+  // because the key never registered.
+  const yawBeforeD = await r.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
   await r.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
   await r.sleep(600);
   const reducedRoll = await ladderRollOf(r);
+  const yawAfterD = await r.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
   await r.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 });
+  check('reduced motion: D actually turns the view (guards the roll check below)',
+    Math.abs(((yawAfterD - yawBeforeD + 540) % 360) - 180) > 3, `${yawBeforeD} -> ${yawAfterD}`);
   check('reduced motion: ladder roll stays 0', reducedRoll === 0, 'roll ' + reducedRoll);
   r.close();
 
@@ -388,13 +416,18 @@ function forceBanner(pg, text) {
       return v.left - a.right;
     })()`);
   }
-  let minGap = Infinity;
+  let minGap = Infinity, gapSamples = 0;
   for (let i = 0; i < 10; i++) {
     const gap = await windGap();
-    if (gap != null && gap < minGap) minGap = gap;
+    if (gap != null) { gapSamples++; if (gap < minGap) minGap = gap; }
     await e.sleep(300);
   }
-  check('wind arrow stays >=6px clear of the value text across headings', minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
+  // minGap starts at Infinity, which trivially clears >=5.9 if windGap() never once
+  // found the arrow/value pair -- guard against that vacuous pass by requiring at
+  // least one real sample.
+  check('wind gap was actually sampled', gapSamples > 0, 'samples ' + gapSamples);
+  check('wind arrow stays >=6px clear of the value text across headings',
+    gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
   // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short
@@ -478,6 +511,12 @@ function forceBanner(pg, text) {
   const targetId1440 = await hostileGroupWith(t3b, 'TARGET ID');
   const dossier1440 = await rectOf(t3b, '#hud .dossier > rect');
   const banner1440 = await warnGeom(t3b);
+  // rectOf() reads getBoundingClientRect() whether or not the element is hidden, so a
+  // COMMS that silently failed to open would collapse to a zero rect and pass every
+  // "does not overlap" check below for free. Guard against that vacuous pass first.
+  check('COMMS is visible at 1440x900 (guards the overlap checks below)',
+    !!comms1440 && comms1440.right > comms1440.left && comms1440.bottom > comms1440.top,
+    JSON.stringify(comms1440));
   check('COMMS does not overlap the reticle readouts at 1440x900',
     !overlaps(comms1440, readouts1440), JSON.stringify({ comms: comms1440, readouts: readouts1440 }));
   check('COMMS does not overlap TARGET ID at 1440x900',
@@ -490,4 +529,44 @@ function forceBanner(pg, text) {
     await t3b.eval('document.documentElement.scrollWidth <= innerWidth'));
   await t3b.shot(path.join(__dirname, 'out/task3-1440.png'), false);
   t3b.close();
+
+  // Important 2 (final review): below ~1080px tall, the banner falls back to TARGET ID's
+  // own slot and COMMS/the toast used to stack into the shared centre slot right under
+  // it -- which sits on top of the pitch ladder there. At 1366x768 COMMS covered the
+  // solid +10 rung outright and the toast covered the +5 rung; 1280x800 and 1100x700 hit
+  // the same overlap. Regression across all three, with COMMS open, the toast forced up
+  // (via RUN DIAG, same as the review's own probe) and the banner forced visible.
+  async function checkLadderClear(w, h) {
+    const tag = w + 'x' + h;
+    const t = await launch({ width: w, height: h, reduce: true });
+    await t.goto('index.html', 900);
+    await bootedReduced(t);
+    await t.eval("document.querySelector('[data-mode=comms]').click(); document.querySelector('[data-mode=diag]').click()");
+    await forceBanner(t, 'PROPELLANT RESERVE LOW');
+    await t.sleep(150);
+    const commsR = await rectOf(t, '#comms');
+    const toastR = await rectOf(t, '#toast');
+    const bannerR = (await warnGeom(t)).viewport;
+    const rungs = await ladderRungRects(t);
+    // Guard against vacuous passes: a hidden popup or a missed selector collapses to a
+    // zero/absent rect, which would pass every "no overlap" check below for free.
+    check(`COMMS is visible at ${tag} (guards the ladder-overlap check)`,
+      !!commsR && commsR.right > commsR.left && commsR.bottom > commsR.top, JSON.stringify(commsR));
+    check(`the toast is visible at ${tag} (guards the ladder-overlap check)`,
+      !!toastR && toastR.right > toastR.left && toastR.bottom > toastR.top, JSON.stringify(toastR));
+    check(`the banner is visible at ${tag} (guards the ladder-overlap check)`,
+      !!bannerR && bannerR.right > bannerR.left && bannerR.bottom > bannerR.top, JSON.stringify(bannerR));
+    check(`the ladder's 4 rungs were found at ${tag} (guards the ladder-overlap check)`,
+      rungs.length === 4, 'rungs found: ' + rungs.length);
+    const boxes = { comms: commsR, toast: toastR, banner: bannerR };
+    const hits = [];
+    Object.keys(boxes).forEach(k => rungs.forEach((r, i) => { if (overlaps(boxes[k], r)) hits.push(k + ' x rung' + i); }));
+    check(`no overlap between COMMS/toast/banner and the ladder's rungs at ${tag}`,
+      hits.length === 0, hits.join(', ') || 'none');
+    await t.shot(path.join(__dirname, `out/ladder-clear-${tag}.png`), false);
+    t.close();
+  }
+  await checkLadderClear(1366, 768);
+  await checkLadderClear(1280, 800);
+  await checkLadderClear(1100, 700);
 })();

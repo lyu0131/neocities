@@ -279,10 +279,11 @@
   var PANEL_W = 248, G_PAD = 14, rowH = 17;
   var LAMPS = ['IFF', 'LNK', 'NAV', 'GYR', 'THM', 'AUX', 'CORE']; // AUXILIARY BUS, CORE BLOCK
   // ENVIRONMENT's wind arrow: shape and radius live together so a future edit to one
-  // is a prompt to check the other. WIND_ARROW_R is this shape's farthest vertex from
-  // its own rotation origin (the tip, at (3.5,4): sqrt(3.5^2+4^2)) -- a polygon never
-  // reaches farther from its origin than its farthest vertex, at any rotation, so this
-  // is a true upper bound on how far the arrow can swing toward the value text next to it.
+  // is a prompt to check the other. The tip that points at the compass heading is
+  // M0,-5; WIND_ARROW_R is this shape's farthest vertex from its own rotation origin
+  // instead -- the back corner at (3.5,4): sqrt(3.5^2+4^2) -- a polygon never reaches
+  // farther from its origin than its farthest vertex, at any rotation, so this is a
+  // true upper bound on how far the arrow can swing toward the value text next to it.
   var WIND_ARROW_D = 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z';
   var WIND_ARROW_R = Math.sqrt(3.5 * 3.5 + 4 * 4);
   var PANELS = [
@@ -1144,6 +1145,23 @@
   // POP_H: the tallest a popup gets -- a three-line transmission at the narrowest slot
   // measured 136px -- so place() can tell whether the band clears the SPD/ALT captions
   var POP_MAX = 300, POP_MIN = 200, POP_H = 150;
+  // The narrower floor a band beside a bar may use instead of POP_MIN, when that band's
+  // own position already keeps it clear of the ladder (see the comms/toast call sites) so
+  // POP_MIN's extra room is only there for legibility, not to dodge an overlap. Measured,
+  // not guessed: rendering COMMS' longest stock line ("Patrol route confirmed. Hold
+  // bearing 180 and report any contact.") at shrinking widths, the text still wraps
+  // cleanly (no word wider than the box) down to 104px -- narrower and a word starts
+  // running past the box edge, which is where "legible" actually stops, not some fraction
+  // of POP_MIN. 120 keeps a margin above that measured floor. It only ever softens the
+  // *band* check; the shared centre slot (genuinely centred over the ladder) still needs
+  // POP_MIN's own room.
+  var POP_MIN_SLIDE = 120;
+  // How far the pitch ladder's rungs can reach from the vertical centre in the worst
+  // case: 140 at rest (the r=10 rung, see updateLadder below) lifted to ~157 by a 13deg
+  // roll, plus up to 10px of dx/dy sway -- the same worst case DESIGN.md's warnFits
+  // margin already budgets for the identical rungs. Used once, as a last-resort dodge
+  // when COMMS' centre-slot fallback would otherwise land on top of them (see place()).
+  var LADDER_SPAN = 167;
   // Sizes a popup into the band [left, right]. Too narrow a band and it falls back to the
   // centre slot under the tape, stacked `drop` px down so comms and toast never share it.
   // vmode picks how `top` is used once the band fits: undefined anchors the top edge
@@ -1153,11 +1171,12 @@
   // itself, so a popup moved between modes across a resize never keeps a stale one.
   // tryOnly skips the centre-slot fallback and returns false instead, so a caller can
   // try a second band first (COMMS tries beside the SPD bar, then sliding up it, before
-  // finally sharing the centre slot). Return value: whether the band itself was used.
-  function popSlot(node, left, right, top, alignEnd, drop, vmode, tryOnly) {
+  // finally sharing the centre slot). minW overrides POP_MIN for this call only (see
+  // POP_MIN_SLIDE). Return value: whether the band itself was used.
+  function popSlot(node, left, right, top, alignEnd, drop, vmode, tryOnly, minW) {
     if (!node) return false;
     var w = Math.min(POP_MAX, right - left);
-    if (w >= POP_MIN) {
+    if (w >= (minW || POP_MIN)) {
       node.style.left = (alignEnd ? right - w : left) + 'px';
       node.style.width = w + 'px';
       node.style.top = vmode === 'bottom' ? 'auto' : top + 'px';
@@ -1537,11 +1556,29 @@
       // the SPD caption and needle) is the same in every band -- only the vertical
       // anchor and the right bound change.
       var commsLeft = inset + 24, lb = hx.left.getBBox();
-      var midRight = Math.min(cx - 92 + lb.x, cx - 220) - 16;
+      // dossier's left edge, read off the box the same way place() already reads dosBox's
+      // y/height for dosBot -- was a hard-coded -220 that silently drifted from padX
+      // (hud.js:699) the moment either one changed alone
+      var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
+      // hx.left and hx.right are one shared row layout (same y per index, mirrored x --
+      // see buildHostile), so readTop from either bbox is the same value: reuse the one
+      // already computed above from rb instead of shadowing it with a second var readTop,
+      // which used to silently overwrite that outer binding
       if (!popSlot(commsEl, commsLeft, midRight, cy, false, 0, 'mid', true)) {
-        var readTop = cy - 17 + lb.y;
-        if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true)) {
-          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, popTop, true, 0);
+        if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true, POP_MIN_SLIDE)) {
+          // Last resort: the shared centre slot is centred on cx, same as the ladder, so
+          // no width can dodge it -- only its vertical anchor can. popTop (right under the
+          // banner's own fallback row) only clears the ladder on a tall enough screen; on
+          // one short enough that even the narrow bands above failed (comms and the ladder
+          // are the only two things that ever fight for this exact spot), push the anchor
+          // past the ladder's own worst-case reach instead -- LADDER_SPAN mirrors the
+          // margin the banner's warnFits already budgets for the same rungs (rest 140 off
+          // cy, +13deg roll lifting that to ~157, +10px sway).
+          var commsFallbackTop = popTop;
+          if (commsFallbackTop < cy + LADDER_SPAN && commsFallbackTop + POP_H > cy - LADDER_SPAN) {
+            commsFallbackTop = cy + LADDER_SPAN + 12;
+          }
+          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, commsFallbackTop, true, 0);
         }
       }
       // The toast keeps its slot right of TARGET ID, top-aligned with it. On a tall
@@ -1549,8 +1586,13 @@
       // so the slot may reach out to the column; on a short one the band would run
       // into those captions, so the bar's own x becomes the bound. Too narrow either
       // way, and it takes the centre slot instead.
-      // 132: a two-line transmission at full width is 121px tall, plus an 11px gap
-      popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132);
+      // 132: a two-line transmission at full width is 121px tall, plus an 11px gap.
+      // POP_MIN_SLIDE (not POP_MIN): this band's left edge already starts at
+      // cx + idHalf + 24, well clear of the ladder's rungs (cx +/- 90) whatever its own
+      // width ends up being, so a narrower band here still can't drop the toast onto the
+      // ladder the way the centre slot does -- only the shared centre slot needs POP_MIN's
+      // room to stay legible, since it is the one placement that's centred on the ladder.
+      popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132, undefined, false, POP_MIN_SLIDE);
       xf(hx.spec, specX, specY);
       xf(hx.arms, specX, armsY);
       xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
@@ -1688,7 +1730,7 @@
       spdEma += (speed - spdEma) * (1 - Math.exp(-dt / SPD_TAU));
       var spdFrac = 1 - Math.exp(-spdEma / 90);
       setBar(spd, spdFrac);
-      if (t - spdTextAt >= 200) { spdTextAt = t; spd.readout.textContent = pad3(spdFrac * 240); }
+      if (t - spdTextAt >= 200) { spdTextAt = t; setText(spd.readout, pad3(spdFrac * 240)); }
 
       // ladder: a damped spring banks and drifts the rungs off yaw/pitch rate, so it
       // overshoots slightly on release instead of snapping straight to a value. Reduced
