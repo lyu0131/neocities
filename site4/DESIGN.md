@@ -116,6 +116,10 @@ so a column sits 38px from both the screen edge and its bar.
 **One header rhythm.** Every panel, the radar included, puts its header baseline at
 `G_PAD + 11` from the housing top, its rule 9px below that with a 12px tick scale, and its
 text at a `G_PAD` (14) inset. The old 9px baseline set the caps against the top edge.
+Both rhythms are enforced in code, not just by convention: every box's backing plate and
+corner brackets come from one `housing()` helper and every column header from one `header()`
+helper, so no box can drift from the others — including the hostile contact boxes, which
+share the same plate style (rx 3) as everything else.
 
 The four meter panels share `buildPanel(spec)` but each carries its own extra instrument,
 so they do not read as one panel repeated: the reactor's P-INT trace and bus lamps, the

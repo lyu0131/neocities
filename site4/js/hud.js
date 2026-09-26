@@ -55,6 +55,30 @@
       ln.b.setAttribute('x2', x); ln.b.setAttribute('y2', (y + len * ln.sy).toFixed(1));
     });
   }
+  // Every HUD box stands on this: a backing plate plus corner brackets, so no box can drift
+  // from the others. size() re-fits both once a box knows its real height.
+  function housing(parent, x, y, w, h, len) {
+    var bg = el('rect', { class: 'plate', x: x, y: y, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' });
+    var cn = corners(x, y, w, h, len);
+    parent.appendChild(bg);
+    parent.appendChild(cn);
+    return { bg: bg, size: function (w2, h2) {
+      bg.setAttribute('width', w2);
+      bg.setAttribute('height', h2);
+      updateCorners(cn, x, y, w2, h2, len);
+    } };
+  }
+  // A column instrument's header -- title, rule, 12px ticks -- on the rhythm they all share:
+  // baseline G_PAD+11 below the housing top, rule 9px under it. Returns the rule's y.
+  function header(parent, x0, x1, top, title) {
+    var t = el('text', { x: x0, y: top + G_PAD + 11 });
+    t.textContent = title;
+    parent.appendChild(t);
+    var ruleY = top + G_PAD + 20;
+    parent.appendChild(el('line', { x1: x0, y1: ruleY, x2: x1, y2: ruleY, opacity: .55 }));
+    tickScale(parent, x0, x1, ruleY, 12);
+    return ruleY;
+  }
   function tickScale(container, x0, x1, y, step) {
     for (var x = x0; x <= x1; x += step) {
       container.appendChild(el('line', { x1: x, y1: y, x2: x, y2: y + 4, opacity: .35 }));
@@ -174,11 +198,9 @@
   function buildRadar() {
     // housing first, so the scope sits inside a panel rather than floating on the scene
     var w = RAD * 2 + PAD * 2, h = R_HEAD + RAD * 2 + PAD;
-    var bx = -w / 2, by = -RAD - R_HEAD, headRuleY = by + G_PAD + 20;
-    radar.appendChild(el('rect', { x: bx, y: by, width: w, height: h, rx: 3, fill: 'rgba(6,10,18,.97)' }));
-    radar.appendChild(corners(bx, by, w, h));
-    radar.appendChild(el('line', { x1: bx + G_PAD, y1: headRuleY, x2: bx + w - G_PAD, y2: headRuleY, opacity: .55 }));
-    tickScale(radar, bx + G_PAD, bx + w - G_PAD, headRuleY, 12);
+    var bx = -w / 2, by = -RAD - R_HEAD;
+    housing(radar, bx, by, w, h);
+    header(radar, bx + G_PAD, bx + w - G_PAD, by, 'SENSOR ARRAY');
     radar.appendChild(el('circle', { r: RAD, fill: 'rgba(6,10,18,.55)' }));
     [RAD, RAD * 0.66, RAD * 0.33].forEach(function (r) {
       radar.appendChild(el('circle', { r: r, opacity: r === RAD ? 1 : 0.4 }));
@@ -209,9 +231,6 @@
     sweepGroup.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: .9 }));
     radar.appendChild(sweepGroup);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
-    var cap = el('text', { x: bx + G_PAD, y: by + G_PAD + 11 });
-    cap.textContent = 'SENSOR ARRAY';
-    radar.appendChild(cap);
     stencil(radar, bx + w - G_PAD, by + h - 7, 'end', UNIT_SERIAL + ' \u00B7 BNS-SNS-7741A');
 
     targets.forEach(function (t) {
@@ -260,11 +279,6 @@
     });
   }
 
-  // ---------------------------------------------------------------- system gauges
-  // Fictional readouts. They drift rather than sit still, so the panel reads as live.
-  function fmtVector(v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; }
-  function fmtLink(v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; }
-  function fmtHardpoint(v) { return Math.max(1, Math.round(v * 6)) + '/6'; }
   // ------------------------------------------------------- instrument panels
   // Three panels, one builder, ONE width. This used to be a single hardcoded COMBAT
   // SYSTEM whose width fell out of its own content (204) while the damage map was 194 and
@@ -301,9 +315,9 @@
     { id: 'combat', title: 'COMBAT SYSTEM', code: 'BNS-SYS-206C', extra: 'cells',
       rows: [{ key: 'SENSR', base: 0.70, drift: 0.11 },   // SENSOR ARRAY
              { key: 'FRAME', base: 0.88, drift: 0.04 },   // FRAME INTEGRITY
-             { key: 'THR-V', base: 0.50, drift: 0.30, fmt: fmtVector },
-             { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: fmtLink },
-             { key: 'HDPT', base: 0.83, drift: 0.15, fmt: fmtHardpoint }] },
+             { key: 'THR-V', base: 0.50, drift: 0.30, fmt: function (v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; } },
+             { key: 'WPN-L', base: 0.85, drift: 0.10, fmt: function (v) { return v > 0.5 ? 'LINKED' : 'STANDBY'; } },
+             { key: 'HDPT', base: 0.83, drift: 0.15, fmt: function (v) { return Math.max(1, Math.round(v * 6)) + '/6'; } }] },
     // Appended, not inserted -- PANELS[0..2] above keep the indices drawPanels() and
     // place() already key off of. rows: [] skips the bar-row loop in buildPanel below;
     // this panel's whole body is its own 'env' branch instead.
@@ -332,19 +346,8 @@
     // label | bar | value, with a 10px gutter each side of the bar. The value column is
     // sized for the widest string it ever shows (STANDBY), not for a percentage.
     var labelW = 52, pctW = 64, barX = x0 + labelW, barW = inner - labelW - pctW - 10;
-    // header a full line below the housing edge: at the old 9px baseline the caps touched
-    // the top of the box, which is what read as the text being against the edge
-    var headerY = G_PAD + 11, ruleY = headerY + 9, rowsY = ruleY + 17;
-
-    spec.bg = el('rect', { x: 0, y: 0, width: PANEL_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.97)' });
-    g.appendChild(spec.bg);
-    spec.cn = corners(0, 0, PANEL_W, 10);
-    g.appendChild(spec.cn);
-    var hdr = el('text', { x: x0, y: headerY });
-    hdr.textContent = spec.title;
-    g.appendChild(hdr);
-    g.appendChild(el('line', { x1: x0, y1: ruleY, x2: x1, y2: ruleY, opacity: .55 }));
-    tickScale(g, x0, x1, ruleY, 12);
+    spec.box = housing(g, 0, 0, PANEL_W, 10);
+    var rowsY = header(g, x0, x1, 0, spec.title) + 17;
 
     spec.rows.forEach(function (r, i) {
       var ry = rowsY + i * rowH;
@@ -452,8 +455,7 @@
 
     var h = y + G_PAD;
     spec.h = h;
-    spec.bg.setAttribute('height', h);
-    updateCorners(spec.cn, 0, 0, PANEL_W, h);
+    spec.box.size(PANEL_W, h);
     stencil(g, x1, h - 7, 'end', UNIT_SERIAL + ' · ' + spec.code);
     spec.g = g;
     svg.appendChild(g);
@@ -558,27 +560,16 @@
   // them and read as touching the box. G_PAD matches the other panels' text inset exactly,
   // so all four headers start on the same line as each other.
   var DMG_TEXT_PAD = G_PAD;
-  var dmgBox, dmgBg, dmgCorners, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
+  var dmgBox, dmgHousing, dmgStencil, dmgArt, dmgArtTop = 0, dmgOn = false;
   var dmgPaths = [], dmgZones = null, dmgStep = 15;
   // idle | ease (spinning to front-on the short way round) | hold (fronted, flashing)
   var dmgState = 'idle', dmgPhase = 0, dmgHoldUntil = 0, dmgLastIdx = -1, dmgH = 0;
   function buildDamage() {
     var D = window.BUNNYS_DMG;
     if (!D) return; // no data baked -- panel simply never exists
-    // same vertical rhythm as buildPanel: at the old 9px baseline the header's caps sat
-    // hard against the top edge of the housing, which is what read as touching
-    var headerY = G_PAD + 11, ruleY = headerY + 9;
-    dmgArtTop = ruleY + 12;
     dmgBox = el('g', { class: 'dmgmap', opacity: 0 });
-    dmgBg = el('rect', { x: 0, y: 0, width: DMG_W, height: 10, rx: 3, fill: 'rgba(6,10,18,.97)' });
-    dmgBox.appendChild(dmgBg);
-    dmgCorners = corners(0, 0, DMG_W, 10);
-    dmgBox.appendChild(dmgCorners);
-    var hdr = el('text', { x: DMG_TEXT_PAD, y: headerY });
-    hdr.textContent = 'DIAGNOSTIC MODE';
-    dmgBox.appendChild(hdr);
-    dmgBox.appendChild(el('line', { x1: DMG_TEXT_PAD, y1: ruleY, x2: DMG_W - DMG_TEXT_PAD, y2: ruleY, opacity: .55 }));
-    tickScale(dmgBox, DMG_TEXT_PAD, DMG_W - DMG_TEXT_PAD, ruleY, 12);
+    dmgHousing = housing(dmgBox, 0, 0, DMG_W, 10);
+    dmgArtTop = header(dmgBox, DMG_TEXT_PAD, DMG_W - DMG_TEXT_PAD, 0, 'DIAGNOSTIC MODE') + 12;
     // the scaled artwork: 8 zone paths, built once and never recreated -- drawDamage
     // only rewrites their `d` and re-appends them in the current frame's paint order
     dmgArt = el('g', { class: 'dmg-art' });
@@ -623,9 +614,8 @@
     var artW = D.w * scale, artH = D.h * scale;
     var h = dmgArtTop + side + DMG_PAD;          // housing shrink-wraps the square art
     xf(dmgBox, x, top, ' scale(' + sc.toFixed(4) + ')');   // top of the column
-    dmgBg.setAttribute('height', h);
     dmgH = h * sc;
-    updateCorners(dmgCorners, 0, 0, DMG_W, h);
+    dmgHousing.size(DMG_W, h);
     dmgStencil.setAttribute('y', h - 6);
     xf(dmgArt, (DMG_W - artW) / 2, dmgArtTop + (side - artH) / 2,
        ' scale(' + scale.toFixed(4) + ')');
@@ -699,9 +689,7 @@
     var hintY = briefY0 + 2 * briefStep + 32;
     var boxTop = -36, boxBottom = hintY + 26, padX = 220; // extra room below the hint for the stencil line
     dosCap.textContent = 'TARGET ACQUISITION';
-    dosBox = el('rect', { x: -padX, y: boxTop, width: padX * 2, height: boxBottom - boxTop, rx: 3, fill: 'rgba(6,10,18,.97)' });
-    dossier.appendChild(dosBox);
-    dossier.appendChild(corners(-padX, boxTop, padX * 2, boxBottom - boxTop));
+    dosBox = housing(dossier, -padX, boxTop, padX * 2, boxBottom - boxTop).bg;
     dossier.appendChild(el('rect', { x: -padX + 6, y: boxTop + 6, width: padX * 2 - 12, height: boxBottom - boxTop - 12, rx: 2, opacity: .45 }));
     dossier.appendChild(dosCap); dossier.appendChild(dosSeq);
     dosRule = el('line', { x1: -200, y1: ruleY, x2: 200, y2: ruleY, opacity: .5 });
@@ -908,11 +896,7 @@
 
   function hxBox(title, w, stamp, cls) {
     var g = el('g', { class: 'hostile' + (cls ? ' ' + cls : ''), opacity: 0 });
-    g.body = el('rect', { x: -HX_PAD, y: -HX_PAD, width: w + HX_PAD * 2, height: 10,
-                          fill: 'rgba(6,10,18,.97)' });
-    g.appendChild(g.body);
-    g.frame = corners(-HX_PAD, -HX_PAD, w + HX_PAD * 2, 10, 9);
-    g.appendChild(g.frame);
+    g.box = housing(g, -HX_PAD, -HX_PAD, w + HX_PAD * 2, 10, 9);
     var cap = el('text', { x: 0, y: 0, style: 'font-size:10px;letter-spacing:.18em;fill:var(--lock);text-anchor:start' });
     cap.textContent = title;
     g.appendChild(cap);
@@ -941,8 +925,7 @@
   }
   function hxSeal(g) {                       // close the housing round whatever it holds
     var h = g.y - HX_ROW + HX_PAD * 2 + 4;
-    g.body.setAttribute('height', h);
-    updateCorners(g.frame, -HX_PAD, -HX_PAD, g.w + HX_PAD * 2, h, 9);
+    g.box.size(g.w + HX_PAD * 2, h);
     g.h = h;
     if (g.stamp && !g.stampEl) g.stampEl = stencil(g, g.w, g.y - HX_ROW + 13, 'end', g.stamp);
     else if (g.stampEl) g.stampEl.setAttribute('x', g.w);
@@ -967,8 +950,7 @@
     g.w = need;
     g.pairs.forEach(function (p) { p.v.setAttribute('x', need); });
     g.rule.setAttribute('x2', need);
-    g.body.setAttribute('width', need + HX_PAD * 2);
-    updateCorners(g.frame, -HX_PAD, -HX_PAD, need + HX_PAD * 2, g.h, 9);
+    g.box.size(need + HX_PAD * 2, g.h);
     if (g.stampEl) g.stampEl.setAttribute('x', need);
   }
 
@@ -1452,7 +1434,7 @@
       if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
       var envY = thrusterY + thruster.h * colS + 14;
       xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
-      if (!thrusterFits || envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
+      if (envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
 
       // RIGHT column, top to bottom: DIAGNOSTIC MODE, COMBAT SYSTEM, SLEW TO.
       // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it

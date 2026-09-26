@@ -63,6 +63,8 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       check(`${tag} left column shares one edge`, edges(r.all, LEFT).length === 1, edges(r.all, LEFT).join(' | '));
       check(`${tag} right column shares one edge`, edges(r.all, RIGHT).length === 1, edges(r.all, RIGHT).join(' | '));
       check(`${tag} every column header at one inset`, new Set(r.insets).size === 1, r.insets.join(','));
+      const plates = JSON.parse(await p.eval("JSON.stringify([...document.querySelectorAll('#hud rect.plate')].map(r => r.getAttribute('rx') + '|' + r.getAttribute('fill')))"));
+      check(`${tag} every housing is one plate style`, plates.length >= 10 && new Set(plates).size === 1, plates.length + ' plates: ' + [...new Set(plates)].join(' / '));
       const pair = r.all.filter(b => b.name === 'hx:UNIT DATA' || b.name === 'hx:ARMAMENT DETECTED');
       if (pair.length === 2) check(`${tag} UNIT DATA and ARMAMENT share one edge`, pair[0].l === pair[1].l && pair[0].r === pair[1].r);
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
