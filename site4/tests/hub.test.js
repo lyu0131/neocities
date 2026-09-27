@@ -174,29 +174,27 @@ function forceBanner(pg, text) {
     b.close();
   }
 
-  // Task 4: the bar's animation is gated on #boot.is-booting, which run() adds -- not
-  // first paint. The sampling check above can't prove this on its own (a bar on its own
-  // clock could just happen to finish before the log starts); check the gate directly.
+  // One clock: the bar only moves once boot.js's run() starts (it adds #boot.is-booting),
+  // never at first paint, and boot.js is what drives its scaleX from then on.
   {
     const g = await launch({ width: 1440, height: 900 });
     await g.eval("sessionStorage.clear()");
     await g.goto('index.html', 0);
-    let sawUngated = false, gatedName = '';
-    for (let i = 0; i < 100; i++) {
+    let sawUngatedAtZero = false, grew = false;
+    for (let i = 0; i < 150 && !grew; i++) {
       const s = await g.eval(`(() => {
         const boot = document.getElementById('boot');
         const bar = document.querySelector('.boot-bar i');
-        return {
-          gated: !!(boot && boot.classList.contains('is-booting')),
-          name: bar ? getComputedStyle(bar).animationName : ''
-        };
+        const tf = bar ? getComputedStyle(bar).transform : 'none';
+        return { gated: !!(boot && boot.classList.contains('is-booting')), sx: tf === 'none' ? 0 : new DOMMatrix(tf).a };
       })()`);
-      if (!s.gated) { if (s.name === 'none') sawUngated = true; }
-      else { gatedName = s.name; break; }
+      if (!s) { await g.sleep(20); continue; }   // page not there yet mid-navigation
+      if (!s.gated && s.sx < 0.01) sawUngatedAtZero = true;
+      if (s.gated && s.sx > 0.05) grew = true;
       await g.sleep(20);
     }
-    check('bar does not animate before is-booting is added', sawUngated);
-    check('bar animates once is-booting is added', gatedName === 'boot-fill', gatedName);
+    check('bar sits empty until the boot clock starts', sawUngatedAtZero);
+    check('bar fills once the boot clock runs', grew);
     g.close();
   }
 
@@ -317,23 +315,6 @@ function forceBanner(pg, text) {
   // script load and made the arrow check flaky.
   for (let i = 0; i < 40 && !(await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) await r.sleep(100);
   check('reduced motion: booted at once', await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
-  // Task 4: #boot is already gone by now (finish(true) removes it synchronously before
-  // run() ever adds .is-booting), so there's no live bar left to sample. Probe the CSS
-  // itself -- and specifically under #boot.is-booting, since that's a higher-specificity
-  // selector (1,2,1) than the reduced-motion query's plain `.boot-bar i` (0,1,1) and so
-  // would otherwise win and re-enable the animation if .is-booting were ever present
-  // while reduced motion is active. Today that combination can't happen (run(), the only
-  // thing that adds .is-booting, never executes when BUNNYS.reduce is true -- boot.js),
-  // but the CSS on its own must not depend on that: this checks the rule, not the gate.
-  check('reduced motion: is-booting cannot re-enable the bar animation', await r.eval(`(() => {
-    const boot = document.createElement('div'); boot.id = 'boot'; boot.className = 'is-booting';
-    const bar = document.createElement('div'); bar.className = 'boot-bar';
-    const i = document.createElement('i');
-    bar.appendChild(i); boot.appendChild(bar); document.body.appendChild(boot);
-    const name = getComputedStyle(i).animationName;
-    boot.remove();
-    return name === 'none';
-  })()`));
   // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
   // something wakes the compositor, so the easing that applies the keypress can start
   // late. The keypress itself registers immediately.

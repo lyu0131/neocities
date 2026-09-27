@@ -21,8 +21,24 @@
     setTimeout(function () { hud.classList.remove('hud-draw'); }, 1400);
   }
 
-  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
-  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  // ONE boot clock drives the bar, the log and every scene effect. It advances with real
+  // frames but never by more than CLOCK_MAX_STEP per frame, so a main-thread stall (a cold
+  // open still rasterising the panorama) pauses the whole sequence instead of letting the
+  // bar run on while the log's timers pile up and then fire as one block.
+  var clock = 0, lastFrame = null, CLOCK_MAX_STEP = 50;
+  function at(ms, fn) { timers.push({ t: clock + ms, fn: fn }); }
+  function clearTimers() { timers = []; }
+  function runClock(now) {
+    if (done) return;
+    if (lastFrame != null) clock += Math.min(CLOCK_MAX_STEP, now - lastFrame);
+    lastFrame = now;
+    var bar = overlay.querySelector('.boot-bar i');
+    if (bar) bar.style.transform = 'scaleX(' + Math.min(1, clock / BAR_MS).toFixed(4) + ')';
+    var due = timers.filter(function (t) { return t.t <= clock; });
+    timers = timers.filter(function (t) { return t.t > clock; });
+    due.forEach(function (t) { t.fn(); });
+    requestAnimationFrame(runClock);
+  }
   function render() { if (logEl) logEl.textContent = lines.join('\n'); }
 
   function onSkip() { finish(true); }
@@ -71,7 +87,14 @@
   var CALLSIGN_AT = 3300;
   var FINISH_AT = 3800;
 
-  try { run(); } catch (e) { finish(true); }
+  // Start once the page has loaded and painted twice, so the heaviest first-frame work is
+  // behind us; until then the splash shows with an empty bar.
+  function start() {
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      try { run(); requestAnimationFrame(runClock); } catch (e) { finish(true); }
+    }); });
+  }
+  if (document.readyState === 'complete') start(); else addEventListener('load', start);
 
   function run() {
     document.addEventListener('keydown', onSkip);
@@ -113,11 +136,11 @@
       });
     });
     function countReactor(idx, template) {
-      var t0 = performance.now();
-      var dur = 1200;   // its own window now that the roll is spread out
+      var t0 = clock;
+      var dur = 1200;   // its own window, on the boot clock like everything else
       (function step() {
         if (done) return;
-        var p = Math.min(1, (performance.now() - t0) / dur);
+        var p = Math.min(1, (clock - t0) / dur);
         lines[idx] = template.replace('{P}', String(Math.round(12 + p * 88)));
         render();
         if (p < 1) requestAnimationFrame(step);
@@ -151,10 +174,10 @@
     at(WHIP_AT, function () {
       // No blur() on .pano-ring: it re-rasterises the whole 360-tile sphere every frame
       // and stalls the main thread; a 300deg/s whip already reads as fast without it.
-      var t0 = performance.now(), dur = 800;
+      var t0 = clock, dur = 800;
       function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
-      function step(now) {
-        var p = Math.min(1, (now - t0) / dur);
+      function step() {
+        var p = Math.min(1, (clock - t0) / dur);
         BUNNYS.state.yaw = ease(p) * 360;
         if (p < 1) raf = requestAnimationFrame(step);
         else { BUNNYS.state.yaw = 0; raf = null; }
