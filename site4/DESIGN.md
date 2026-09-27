@@ -190,7 +190,8 @@ art there only ever showed through as stray fragments.
 
 ### Rails and power-on
 Each lane is a rail: `place()` puts a small bracket (two ticks, two bolt dots) in every gap between stacked
-instruments and a cap at each column end, from the same numbers that stack the panels, so brackets never touch a
+instruments (none at the column ends: the top band's edge and the console are those joints), from the same numbers
+that stack the panels, so brackets never touch a
 panel (held by `tests/layout.test.js`). When the cockpit opens (`boot-done`), `powerOn()` flickers each instrument
 group on in turn, 60ms apart: tape, SPD/ALT, boresight, ladder, the left column top to bottom, the right column,
 the foot row, the rails. The `.pw` keyframes fill backwards only, so a stood-down panel never flashes on; the status

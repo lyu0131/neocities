@@ -713,6 +713,10 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   color: var(--ice);
   font: 700 11px/1 'B612 Mono', monospace;
   letter-spacing: .12em;
+  /* a column, so when place() stretches the panel to the radar's height the button rows take
+     the extra */
+  display: flex;
+  flex-direction: column;
 }
 /* four corner brackets, 10px arms, same geometry as corners() draws in the SVG panels */
 .slew::before, .pop::before {
@@ -757,7 +761,8 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   background: repeating-linear-gradient(to right, var(--hud) 0 1px, transparent 1px 12px);
   opacity: .5;
 }
-.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 6px; flex: 1; }
+.slew li { display: flex; }
 .slew button {
   display: block;
   width: 100%;

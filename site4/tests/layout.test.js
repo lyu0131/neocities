@@ -99,7 +99,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         const br = [...document.querySelectorAll('#hud .rail-br')].filter(g => g.getAttribute('opacity') !== '0').map(g => g.getBoundingClientRect());
         return { n: br.length, hits: br.filter(b => boxes.some(x => b.left < x.right && x.left < b.right && b.top < x.bottom && x.top < b.bottom)).length };
       })())`));
-      check(`${tag} rail brackets sit in the gaps`, rails.n >= 4 && rails.hits === 0, JSON.stringify(rails));
+      check(`${tag} rail brackets sit in the gaps`, rails.n >= 2 && rails.hits === 0, JSON.stringify(rails));
       // The canopy seams are cut around the instruments: none may run through a box. Sampled
       // every 2px along each seam; the console edge's third point is the lower centre edge.
       // UNIT DATA and ARMAMENT are exempt: a lock overlay whose narrow fallback (flush to the
@@ -126,6 +126,8 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       if (rea && dia && thr && com) {
         check(`${tag} columns line up in rows`, rea.b === dia.b && thr.t === com.t && thr.b === com.b, JSON.stringify({ rea, dia, thr, com }));
         check(`${tag} both console pods share one top line`, seams[3][0][1] === seams[3][5][1], seams[3][0][1] + ' vs ' + seams[3][5][1]);
+        const [sa, hm, sl] = ['SENSOR ARRAY', 'HUD MODE', 'SLEW TO'].map(at);
+        check(`${tag} the pods' instruments sit level, top and bottom`, Math.abs(sa.t - hm.t) <= 1 && Math.abs(sa.b - sl.b) <= 1, JSON.stringify({ sa, hm, sl }));
       }
       const statusTop = await p.eval("[...document.querySelectorAll('#hud > text')].find(t => /NOMINAL|SEQUENCE|ONLINE/.test(t.textContent)).getBoundingClientRect().top");
       check(`${tag} status line sits just under the console edge`, statusTop - deck >= 10 && statusTop - deck <= 24, (statusTop - deck).toFixed(1) + 'px');

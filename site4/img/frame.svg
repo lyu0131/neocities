@@ -203,7 +203,7 @@
 <g id="registration" fill="none" stroke="#8CFFC1" stroke-width="1.5" stroke-opacity=".55" stroke-linecap="square">
   <path d="M28,28 L28,72 M28,28 L72,28"/>
   <path d="M1892,28 L1892,72 M1892,28 L1848,28"/>
-  <path d="M28,1052 L28,1008 M28,1052 L72,1052"/>
-  <path d="M1892,1052 L1892,1008 M1892,1052 L1848,1052"/>
+  <!-- no bottom marks: the console pods (js/hud.js) fill those corners, and a mark there only
+       peeked out beside the radar and SLEW TO -->
 </g>
 </svg>

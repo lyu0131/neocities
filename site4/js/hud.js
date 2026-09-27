@@ -230,7 +230,10 @@
     sweepGroup.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: -RAD, opacity: .9 }));
     radar.appendChild(sweepGroup);
     radar.appendChild(el('path', { d: 'M0,-7 L5,5 L0,2 L-5,5 Z', fill: 'currentColor' })); // own ship
-    stencil(radar, bx + w - G_PAD, by + h - 7, 'end', UNIT_SERIAL + ' \u00B7 BNS-SNS-7741A');
+    // Stacked in the bottom-right corner, where the ring has curved away: on one line under the
+    // ring it would run 4px below the scope's 6 o'clock tick.
+    stencil(radar, bx + w - G_PAD, by + h - 16, 'end', UNIT_SERIAL + ' \u00B7');
+    stencil(radar, bx + w - G_PAD, by + h - 7, 'end', 'BNS-SNS-7741A');
 
     targets.forEach(function (t) {
       var g = el('g', { class: 'blip' });
@@ -320,8 +323,8 @@
   var lane = el('g', { class: 'lane', opacity: 0 });
   var laneRuleL = el('line', { opacity: .22 });
   var laneRuleR = el('line', { opacity: .22 });
-  // The lane is a machined rail: a bracket in every gap between stacked instruments and a cap
-  // at each column end, placed by place() from the same numbers that stack the panels.
+  // The lane is a machined rail: a bracket in every gap between stacked instruments, placed by
+  // place() from the same numbers that stack the panels.
   var railBrackets = [], RAIL_POOL = 12;
   function buildLane() {
     lane.appendChild(laneRuleL);
@@ -1534,7 +1537,10 @@
 
       // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
       // onto the same lane and width here rather than in the stylesheet.
-      var slewEl = document.getElementById('slew'), slewR = slewEl && slewEl.getBoundingClientRect();
+      var slewEl = document.getElementById('slew');
+      // back to their natural heights; the pod block below may stretch them again
+      [slewEl, modeEl].forEach(function (e) { if (e) e.style.height = ''; });
+      var slewR = slewEl && slewEl.getBoundingClientRect();
       if (slewEl && room) {
         slewEl.style.left = colRx + 'px';
         slewEl.style.right = 'auto';
@@ -1568,7 +1574,20 @@
       var podTopL = radarTop, podTopRt = podTopR;
       if (podTopR != null) {
         var shared = Math.min(radarTop, podTopR);
-        if (leftFits(shared) === leftFits(radarTop) && fitDamage(shared) === fitDamage(podTopR)) podTopL = podTopRt = shared;
+        if (leftFits(shared) === leftFits(radarTop) && fitDamage(shared) === fitDamage(podTopR)) {
+          podTopL = podTopRt = shared;
+          // ...and the instruments inside sit level too: a right stack shorter than the radar
+          // stretches to its height, the two panels sharing the difference (their button rows
+          // grow to fill -- see .slew in the CSS).
+          if (modeR && podTopR > radarTop) {
+            var grow = (podTopR - radarTop) / 2;
+            slewEl.style.height = (slewEl.offsetHeight + grow) + 'px';
+            modeEl.style.height = (modeEl.offsetHeight + grow) + 'px';
+            slewR = slewEl.getBoundingClientRect();
+            modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
+            modeR = modeEl.getBoundingClientRect();
+          }
+        }
       }
       // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
       // pod first), then THRUSTER.
@@ -1600,11 +1619,10 @@
             slewVisible && [slewR.top, slewR.bottom, true]])]
         ].forEach(function (c) {
           var s = c[1];
-          // no cap over a column: the top band's edge is that joint
+          // no caps: the top band's edge and the console are the column's end joints
           for (var i = 1; i < s.length; i++) {
             if (!(s[i][2] && !s[i - 1][2])) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
           }
-          rails.push([c[0], s[s.length - 1][1] + 8]);
         });
       }
       railBrackets.forEach(function (b, i) {
