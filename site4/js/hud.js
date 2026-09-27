@@ -327,7 +327,7 @@
     lane.appendChild(laneRuleL);
     lane.appendChild(laneRuleR);
     for (var i = 0; i < RAIL_POOL; i++) {
-      var b = el('g', { class: 'rail', opacity: 0 });
+      var b = el('g', { class: 'rail-br', opacity: 0 });
       b.appendChild(el('line', { x1: -12, y1: 0, x2: -4, y2: 0, opacity: .45 }));
       b.appendChild(el('line', { x1: 4, y1: 0, x2: 12, y2: 0, opacity: .45 }));
       b.appendChild(el('circle', { cx: -8, cy: -3.5, r: 1.2, fill: 'currentColor', stroke: 'none', opacity: .5 }));

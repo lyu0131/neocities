@@ -1,13 +1,9 @@
 const fs = require('fs'), path = require('path');
 const { launch, check, SITE } = require('./cdp');
-const only = process.argv[2]; // optional: pano | frame | ms
+const only = process.argv[2]; // optional: pano | frame | dmgmap
 const specs = {
   pano:  [['img/pano.svg', '0 0 9600 2000', 350, []]],
   frame: [['img/frame.svg', '0 0 1920 1080', 120, []]],
-  ms:    [['img/ms/sl01-front.svg', '0 0 800 1400', 120, ['head','chest','binder-l','binder-r','leg-l','leg-r']],
-          ['img/ms/sl01-side.svg', '0 0 800 1400', 120, ['head','chest','backpack','rifle']],
-          ['img/ms/sl01-back.svg', '0 0 800 1400', 120, ['head','backpack','binder-l','binder-r']],
-          ['img/ms/decals.svg', null, 120, ['unit-mark','serial','caution-chevron','no-step']]],
   dmgmap: [['img/dmgmap.svg', null, 120,
             ['dz-head','dz-chest','dz-body','dz-arm-r','dz-arm-l','dz-leg-r','dz-leg-l','dz-weapon']]]
 };

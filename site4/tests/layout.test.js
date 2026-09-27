@@ -96,7 +96,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       const rails = JSON.parse(await p.eval(`JSON.stringify((() => {
         const boxes = [...document.querySelectorAll('#hud rect.plate')].filter(r => getComputedStyle(r.parentNode).opacity !== '0').map(r => r.getBoundingClientRect()).filter(b => b.width)
           .concat(['slew', 'hudmode'].map(id => document.getElementById(id).getBoundingClientRect()));
-        const br = [...document.querySelectorAll('#hud .rail')].filter(g => g.getAttribute('opacity') !== '0').map(g => g.getBoundingClientRect());
+        const br = [...document.querySelectorAll('#hud .rail-br')].filter(g => g.getAttribute('opacity') !== '0').map(g => g.getBoundingClientRect());
         return { n: br.length, hits: br.filter(b => boxes.some(x => b.left < x.right && x.left < b.right && b.top < x.bottom && x.top < b.bottom)).length };
       })())`));
       check(`${tag} rail brackets sit in the gaps`, rails.n >= 4 && rails.hits === 0, JSON.stringify(rails));

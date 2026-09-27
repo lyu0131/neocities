@@ -615,7 +615,6 @@ body.page #frame { opacity: .55; }
 .rows dd { margin: 0; }
 .tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
 .tag.is-caution { border-color: var(--amber); color: var(--amber); }
-.tag.is-lock { border-color: var(--lock); color: var(--lock); }
 
 /* a rail of subsystem readouts: glass cells on a machined grid, hairline dividers made
    by letting the housing edge show through a 1px gap rather than by drawing borders */
@@ -628,7 +627,6 @@ body.page #frame { opacity: .55; }
 .rail b { font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .14em; color: var(--hud); }
 .rail span { font: 700 15px/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--ice); }
 .rail .is-caution span { color: var(--amber); }
-.rail .is-lock span { color: var(--lock); }
 
 /* mission entries slide in as they scroll into view */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }

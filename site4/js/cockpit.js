@@ -21,7 +21,6 @@
   var DEG_PER_PX = 360 / IMG_W;
   var BAND_PX = IMG_H / LAT_BANDS, BAND_DEG = BAND_PX * DEG_PER_PX;
   function bandTopLat(j) { return (HORIZON_Y - j * BAND_PX) * DEG_PER_PX; }
-  function bandMidLat(j) { return bandTopLat(j) - BAND_DEG / 2; }
   var tiles = [];
   // Bands run zenith to nadir so the world closes into a true sphere -- a flat disc cap
   // doesn't converge and reads as a ring instead. The image covers only the middle rows
@@ -77,7 +76,6 @@
   var SNAP_CLICK = 1.2;      // inside this, close the gap outright so the aim clicks on
   var BORE_DEG = 14;         // acquire radius, measured in BOTH axes
   var MAX_PITCH = 26;   // you can look well down now that the sphere has a floor
-  var COVER_PITCH = 12; // the strip itself only has to cover this much; caps take the rest
   function clampPitch(p) { return Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p)); }
 
   // Built once; CSS owns size/background-image/background-size (--slice-w), this owns transform and
