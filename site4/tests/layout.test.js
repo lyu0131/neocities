@@ -119,6 +119,14 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       }
       check(`${tag} no seam runs through a box`, seams.length === 4 && crossed.size === 0, [...crossed].join(', '));
       const deck = seams[3][2][1];
+      // Where both columns are full, they line up in rows and both console pods share one top
+      // line. On a short screen the pods keep to their own stacks rather than cost a panel.
+      const at = n => r.all.find(b => b.name === n);
+      const [rea, dia, thr, com] = ['REACTOR STATUS', 'DIAGNOSTIC MODE', 'THRUSTER VECTOR', 'COMBAT SYSTEM'].map(at);
+      if (rea && dia && thr && com) {
+        check(`${tag} columns line up in rows`, rea.b === dia.b && thr.t === com.t && thr.b === com.b, JSON.stringify({ rea, dia, thr, com }));
+        check(`${tag} both console pods share one top line`, seams[3][0][1] === seams[3][5][1], seams[3][0][1] + ' vs ' + seams[3][5][1]);
+      }
       const statusTop = await p.eval("[...document.querySelectorAll('#hud > text')].find(t => /NOMINAL|SEQUENCE|ONLINE/.test(t.textContent)).getBoundingClientRect().top");
       check(`${tag} status line sits just under the console edge`, statusTop - deck >= 10 && statusTop - deck <= 24, (statusTop - deck).toFixed(1) + 'px');
       const dos = r.all.find(b => b.name === 'DOSSIER');

@@ -209,7 +209,11 @@ frame. `place()` cuts them from the same numbers that place the instruments, so 
   the SPD/ALT bar (COMMS opens 16px past it), then angles out onto the console's lower centre edge;
 - the console rises into a pod 8px over each bottom-corner instrument (radar left, HUD MODE + SLEW TO right), then
   steps down along an angled shoulder to its lower centre edge, 16px over the status line. The dossier sits 20px
-  above that edge; column panels stand down rather than come within 8px of a pod.
+  above that edge; column panels stand down rather than come within 8px of a pod. Both pods share one top line
+  unless that would cost a panel on a short screen.
+- the columns line up in rows: DIAGNOSTIC MODE takes REACTOR STATUS's height (its map shrinks to fit) and COMBAT
+  SYSTEM stretches to THRUSTER VECTOR's, so the gaps between them run straight across the screen. The top band's
+  edge and the pod edges are the columns' end joints, so the rail carries no cap there.
 
 Every seam is one machined line: the lit 1.5px line over a faint bevel, bolt pairs at the joints, and a tick scale
 along the console's centre edge. On entering the cockpit (`boot-done`) each screen starts dark and comes online in

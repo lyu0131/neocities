@@ -451,12 +451,16 @@
       y += 24;
     }
 
-    var h = y + G_PAD;
-    spec.h = h;
-    spec.box.size(PANEL_W, h);
-    stencil(g, x1, h - 7, 'end', UNIT_SERIAL + ' · ' + spec.code);
+    spec.h0 = y + G_PAD;   // natural height; place() may stretch a panel to line up with its row
+    spec.stamp = stencil(g, x1, 0, 'end', UNIT_SERIAL + ' · ' + spec.code);
+    fitPanel(spec, spec.h0);
     spec.g = g;
     svg.appendChild(g);
+  }
+  function fitPanel(spec, h) {
+    spec.h = h;
+    spec.box.size(PANEL_W, h);
+    spec.stamp.setAttribute('y', h - 7);
   }
   function buildPanels() { PANELS.forEach(buildPanel); }
 
@@ -1525,14 +1529,8 @@
       xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
       var thrusterY = colTop + reactor.h * colS + 14;
       xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
-      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
-      // radar first), then THRUSTER.
-      // -16: the pod's edge, 8px over the radar, sits mid-gap like a rail bracket
-      var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 16;
-      if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
       var envY = thrusterY + thruster.h * colS + 14;
       xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
-      if (envY + env.h * colS > radarTop - 16) env.g.setAttribute('opacity', 0);
 
       // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
       // onto the same lane and width here rather than in the stylesheet.
@@ -1551,13 +1549,37 @@
         modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
         modeR = modeEl.getBoundingClientRect();
       }
-      // The slew panel's media query hides it below 860px/520px, and a hidden element's rect
-      // is all zeros -- fall back to a fixed foot margin. The map takes the largest square that
-      // still leaves COMBAT SYSTEM room above the slew panel.
+      // The slew panel's media query hides it below 860px/520px, and a hidden element's rect is
+      // all zeros -- then there's no right pod and a fixed foot margin instead. -16 under a pod
+      // top: its edge sits mid-gap, 8px either side, like a rail bracket.
       var podTopR = modeR ? modeR.top : slewVisible ? slewR.top : null;
-      var rightFloor = podTopR != null ? podTopR - 16 : (H - 26);
-      layoutDamage(colRx, colTop, rightFloor - combat.h * colS - 14, room, colS);
+      var floorR = function (top) { return top != null ? top - 16 : H - 26; };
+      var leftFits = function (top) { return (thrusterY + thruster.h * colS <= top - 16) + (envY + env.h * colS <= top - 16); };
+      // The columns line up in rows: DIAGNOSTIC MODE takes REACTOR STATUS's height (its map
+      // shrinks to fit), so COMBAT SYSTEM starts level with THRUSTER VECTOR, and stretches to
+      // end level with it too. On a short screen the map takes whatever still leaves COMBAT
+      // room above the pod, and the rows give up.
+      var fitDamage = function (top) {
+        layoutDamage(colRx, colTop, Math.min(floorR(top) - combat.h0 * colS - 14, colTop + reactor.h * colS), room, colS);
+        return dmgOn;
+      };
+      // Both console pods share one top line, 8px over the taller of the two bottom-corner
+      // stacks, unless that would cost an instrument -- then each pod hugs its own stack.
+      var podTopL = radarTop, podTopRt = podTopR;
+      if (podTopR != null) {
+        var shared = Math.min(radarTop, podTopR);
+        if (leftFits(shared) === leftFits(radarTop) && fitDamage(shared) === fitDamage(podTopR)) podTopL = podTopRt = shared;
+      }
+      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
+      // pod first), then THRUSTER.
+      if (thrusterY + thruster.h * colS > podTopL - 16) thruster.g.setAttribute('opacity', 0);
+      if (envY + env.h * colS > podTopL - 16) env.g.setAttribute('opacity', 0);
+      var rightFloor = floorR(podTopRt);
+      fitDamage(podTopRt);
       var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
+      var rowMate = Math.abs(combatY - thrusterY) < 0.5 && thruster.g.getAttribute('opacity') !== '0'
+                 && combatY + thruster.h * colS <= rightFloor;
+      fitPanel(combat, rowMate ? Math.max(combat.h0, thruster.h) : combat.h0);
       xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
 
       var rails = [];
@@ -1578,7 +1600,7 @@
             slewVisible && [slewR.top, slewR.bottom, true]])]
         ].forEach(function (c) {
           var s = c[1];
-          rails.push([c[0], s[0][0] - 8]);
+          // no cap over a column: the top band's edge is that joint
           for (var i = 1; i < s.length; i++) {
             if (!(s[i][2] && !s[i - 1][2])) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
           }
@@ -1706,7 +1728,7 @@
       // instruments it holds, its corner mid-gap between a column and its bar. With the columns
       // stood down the console is flat.
       var pod = function (top) { return room && top != null ? top - 8 : deckY; };
-      var podL = pod(radarTop), podR = pod(podTopR);
+      var podL = pod(podTopL), podR = pod(podTopRt);
       [laneRuleL, laneRuleR].forEach(function (r, i) { r.setAttribute('y2', i ? podR : podL); });
       layoutScreens({
         yS: Math.min(H * 0.10, colTop - 14),
