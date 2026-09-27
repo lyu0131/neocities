@@ -188,6 +188,16 @@ when the span between those instruments is under 340px. `img/frame.svg` carries 
 the bottom corners or under the foot row: the instruments occupy that space, and painted
 art there only ever showed through as stray fragments.
 
+### Rails and power-on
+Each lane is a rail: `place()` puts a small bracket (two ticks, two bolt dots) in every gap between stacked
+instruments and a cap at each column end, from the same numbers that stack the panels, so brackets never touch a
+panel (held by `tests/layout.test.js`). When the cockpit opens (`boot-done`), `powerOn()` flickers each instrument
+group on in turn, 60ms apart: tape, SPD/ALT, boresight, ladder, the left column top to bottom, the right column,
+the foot row, the rails. The `.pw` keyframes fill backwards only, so a stood-down panel never flashes on; the status
+line reads `PANORAMIC MONITOR ONLINE` for 1.6s. None of it runs under reduced motion. `img/frame.svg` carries only
+canopy-scale detail (rivets and joint hashes on the top seams, two corner stencils): it is a fixed 1920x1080
+painting cropped with `slice`, so anything that must line up with a box belongs in the HUD instead.
+
 ## Cautions and alarms
 One scheduler, two modes, keyed off `hxOn`:
 - **general** (no hostile lock): the wide banner, 9-25s cadence. `CAUTIONS` entries are

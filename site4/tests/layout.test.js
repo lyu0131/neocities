@@ -44,6 +44,8 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
     for (let i = 0; i < 40 && !(await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) {
       await p.key(' ', 'Space', 32); await p.sleep(150);
     }
+    // wait out the cockpit power-on: groups sit at opacity 0 until their turn in the sequence
+    for (let i = 0; i < 40 && await p.eval("!!document.querySelector('.pw')"); i++) await p.sleep(100);
     await p.eval("document.querySelector('[data-mode=comms]').click()");  // popups count too
     await p.sleep(1200);
     for (const state of ['idle', 'locked']) {
@@ -91,6 +93,13 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       check(`${tag} --panel token ties CSS backgrounds to SVG plates`, css.allPlatesSame && css.bgMatch && css.hasComms && css.brackets, JSON.stringify(css));
       const pair = r.all.filter(b => b.name === 'hx:UNIT DATA' || b.name === 'hx:ARMAMENT DETECTED');
       if (pair.length === 2) check(`${tag} UNIT DATA and ARMAMENT share one edge`, pair[0].l === pair[1].l && pair[0].r === pair[1].r);
+      const rails = JSON.parse(await p.eval(`JSON.stringify((() => {
+        const boxes = [...document.querySelectorAll('#hud rect.plate')].filter(r => getComputedStyle(r.parentNode).opacity !== '0').map(r => r.getBoundingClientRect()).filter(b => b.width)
+          .concat(['slew', 'hudmode'].map(id => document.getElementById(id).getBoundingClientRect()));
+        const br = [...document.querySelectorAll('#hud .rail')].filter(g => g.getAttribute('opacity') !== '0').map(g => g.getBoundingClientRect());
+        return { n: br.length, hits: br.filter(b => boxes.some(x => b.left < x.right && x.left < b.right && b.top < x.bottom && x.top < b.bottom)).length };
+      })())`));
+      check(`${tag} rail brackets sit in the gaps`, rails.n >= 4 && rails.hits === 0, JSON.stringify(rails));
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
     }
     check(`layout ${w}x${h}: no JS errors`, p.errors.length === 0, p.errors.join(' | '));

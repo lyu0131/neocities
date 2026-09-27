@@ -212,6 +212,12 @@ function forceBanner(pg, text) {
     await p.sleep(100);
   }
   check('skip boot works', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
+  // the cockpit powers on in sequence after the boot: every group gets its own delay (DOM order is not
+  // sequence order, so compare as a set), then the class clears
+  const pwDelays = await p.eval("[...document.querySelectorAll('.pw')].map(n => parseFloat(n.style.getPropertyValue('--d')))");
+  check('power-on staggers the instruments', pwDelays.length >= 8 && new Set(pwDelays).size === pwDelays.length && Math.max(...pwDelays) > 0, pwDelays.join(','));
+  for (let i = 0; i < 30 && await p.eval("!!document.querySelector('.pw')"); i++) await p.sleep(100);
+  check('power-on classes clear afterwards', !(await p.eval("!!document.querySelector('.pw')")));
   // Whether or not the skip landed, never drive the view until the hub is actually
   // interactive: cockpit.js drops every input while state.booted is false, so a drag sent
   // early is silently discarded and reads as "the drag did nothing". If the skip raced,

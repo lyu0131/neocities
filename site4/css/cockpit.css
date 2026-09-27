@@ -421,6 +421,17 @@ a { color: inherit; }
    seam-glow at FLICKER_AT (panels start lighting) and removes it in finish(), so the
    glow runs for the rest of the boot rather than a fixed 1900-3100ms window. */
 #frame.seam-glow { animation: frame-seam-glow 1.2s ease-out 1; }
+
+/* Cockpit power-on: each instrument group flickers on in turn (delay set per group by hud.js
+   powerOn()). Stepped, not faded -- a display striking up, not a dissolve. `backwards` only, so
+   after its run the group's own opacity attribute is back in charge. */
+.pw { animation: power-on .3s steps(1, end) var(--d, 0ms) backwards; }
+@keyframes power-on {
+  0%   { opacity: 0; }
+  25%  { opacity: .7; }
+  50%  { opacity: .15; }
+  75%  { opacity: 1; }
+}
 @keyframes frame-seam-glow {
   0%, 100% { filter: none; }
   50% { filter: drop-shadow(0 0 6px var(--hud)) brightness(1.2); }
@@ -439,6 +450,7 @@ a { color: inherit; }
   .boot-bar i { animation: none !important; transform: scaleX(1); }
   .boot-cursor { animation: none; }
   #frame.seam-glow { animation: none; filter: none; }
+  .pw { animation: none; }
 }
 
 /* ---------- 375px: no horizontal scroll, tilt reachable, 44px targets ---------- */

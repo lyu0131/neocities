@@ -320,9 +320,21 @@
   var lane = el('g', { class: 'lane', opacity: 0 });
   var laneRuleL = el('line', { opacity: .22 });
   var laneRuleR = el('line', { opacity: .22 });
+  // The lane is a machined rail: a bracket in every gap between stacked instruments and a cap
+  // at each column end, placed by place() from the same numbers that stack the panels.
+  var railBrackets = [], RAIL_POOL = 12;
   function buildLane() {
     lane.appendChild(laneRuleL);
     lane.appendChild(laneRuleR);
+    for (var i = 0; i < RAIL_POOL; i++) {
+      var b = el('g', { class: 'rail', opacity: 0 });
+      b.appendChild(el('line', { x1: -12, y1: 0, x2: -4, y2: 0, opacity: .45 }));
+      b.appendChild(el('line', { x1: 4, y1: 0, x2: 12, y2: 0, opacity: .45 }));
+      b.appendChild(el('circle', { cx: -8, cy: -3.5, r: 1.2, fill: 'currentColor', stroke: 'none', opacity: .5 }));
+      b.appendChild(el('circle', { cx: 8, cy: -3.5, r: 1.2, fill: 'currentColor', stroke: 'none', opacity: .5 }));
+      lane.appendChild(b);
+      railBrackets.push(b);
+    }
     svg.appendChild(lane);   // appended first, so every panel paints over it
   }
 
@@ -1061,6 +1073,25 @@
   // rect could leave them out of phase -- one shared clock can't drift against itself.
   var ALARM_HALF = 400;
 
+  // Instruments power on one after another as the cockpit opens: flight instruments first, then
+  // the left column top to bottom, the right column, the foot row. The CSS keyframes fill
+  // backwards only, so once a group's flicker ends its own opacity attribute rules again and a
+  // stood-down panel never flashes back on; groups already stood down are skipped entirely.
+  var POWER_STEP = 60;
+  function powerOn() {
+    if (BUNNYS.reduce) return;
+    var seq = [hdg, spd.g, alt.g, bore, ladder, PANELS[0].g, PANELS[1].g, PANELS[3].g, radar,
+               dmgBox, PANELS[2].g, modeEl, document.getElementById('slew'), footWrap, lane];
+    var d = 0;
+    seq.forEach(function (n) {
+      if (!n || n.getAttribute('opacity') === '0') return;
+      n.style.setProperty('--d', d + 'ms');
+      n.classList.add('pw');
+      d += POWER_STEP;
+    });
+    setTimeout(function () { seq.forEach(function (n) { if (n) n.classList.remove('pw'); }); }, d + 400);
+  }
+
   // ----------------------------------------------- HUD MODE, comms and status toast
   var modeEl = document.getElementById('hudmode');
   var commsEl = document.getElementById('comms'), toastEl = document.getElementById('toast');
@@ -1394,6 +1425,33 @@
       var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
       xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
 
+      var rails = [];
+      if (room) {
+        var shown = function (g) { return g.getAttribute('opacity') !== '0'; };
+        var bySpan = function (list) { return list.filter(Boolean).sort(function (a, b) { return a[0] - b[0]; }); };
+        [[laneL, bySpan([
+            [colTop, colTop + reactor.h * colS],
+            shown(thruster.g) && [thrusterY, thrusterY + thruster.h * colS],
+            shown(env.g) && [envY, envY + env.h * colS],
+            [radarTop, radarCy + (RAD + PAD) * colS]])],
+         [laneR, bySpan([
+            dmgOn && [colTop, colTop + dmgH],
+            [combatY, combatY + combat.h * colS],
+            modeR && [modeR.top, modeR.bottom],
+            slewVisible && [slewR.top, slewR.bottom]])]
+        ].forEach(function (c) {
+          var s = c[1];
+          rails.push([c[0], s[0][0] - 8]);
+          for (var i = 1; i < s.length; i++) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
+          rails.push([c[0], s[s.length - 1][1] + 8]);
+        });
+      }
+      railBrackets.forEach(function (b, i) {
+        var r = rails[i];
+        b.setAttribute('opacity', r ? 1 : 0);
+        if (r) xf(b, r[0], r[1]);
+      });
+
       // the foot row runs between the two bottom-corner instruments
       var slewLeft = slewVisible ? slewR.left : (W - 22);
       layoutFoot(laneL + colW / 2 + 26, slewLeft - 26, statusY + 16);
@@ -1573,7 +1631,11 @@
       drawRadar(BUNNYS.state.yaw);
     });
     BUNNYS.on('boot-done', function () {
-      status.textContent = IDLE_STATUS;
+      status.textContent = 'PANORAMIC MONITOR ONLINE';
+      setTimeout(function () {
+        if (status.textContent === 'PANORAMIC MONITOR ONLINE') status.textContent = IDLE_STATUS;
+      }, 1600);
+      powerOn();
       scheduleCaution();
       scheduleComms(8000);
     });
