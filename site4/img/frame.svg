@@ -65,14 +65,8 @@
      SLEW TO instruments sit there now, and the pods only showed as a stray tab
      poking above HUD MODE, so they were removed rather than drawn underneath -->
 
-<!-- centre console: a glass shelf, not a wall. Cut from 162-189px tall to ~87-95px
-     and made translucent, with a bright lip line marking the front edge. -->
-<g id="centre-console" fill="#060A12" fill-opacity=".45">
-  <path d="M288,985 L400,989 L700,991 L960,993 L1220,991 L1520,989 L1632,985 L1632,1080 L288,1080 Z"/>
-</g>
-<g id="centre-lip" fill="none" stroke="#8CFFC1" stroke-width="1.5" stroke-opacity=".7">
-  <path d="M288,985 L400,989 L700,991 L960,993 L1220,991 L1520,989 L1632,985"/>
-</g>
+<!-- the centre console lives in svg#screens now (js/hud.js buildScreens): it is the bottom
+     of the five canopy screens and has to line up with their seams at every size -->
 
 <!-- fuel gauge: one centred horizontal instrument, seated below the bottom-centre
      status text (ends ~y1034) and clear of the lip (y993 at x960). Bracket ends

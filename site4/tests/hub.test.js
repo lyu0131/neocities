@@ -216,6 +216,9 @@ function forceBanner(pg, text) {
   check('power-on staggers the instruments', pwDelays.length >= 8 && new Set(pwDelays).size === pwDelays.length && Math.max(...pwDelays) > 0, pwDelays.join(','));
   for (let i = 0; i < 30 && await p.eval("!!document.querySelector('.pw')"); i++) await p.sleep(100);
   check('power-on classes clear afterwards', !(await p.eval("!!document.querySelector('.pw')")));
+  check('five canopy screens are drawn', await p.eval("document.querySelectorAll('#screens .screen').length === 5"));
+  for (let i = 0; i < 30 && await p.eval("document.getElementById('screens').classList.contains('powering')"); i++) await p.sleep(100);
+  check('screens finish powering on and clear', await p.eval("!document.getElementById('screens').classList.contains('powering') && [...document.querySelectorAll('#screens .shutter')].every(s => getComputedStyle(s).opacity === '0')"));
   // Whether or not the skip landed, never drive the view until the hub is actually
   // interactive: cockpit.js drops every input while state.booted is false, so a drag sent
   // early is silently discarded and reads as "the drag did nothing". If the skip raced,

@@ -1077,19 +1077,110 @@
   // the left column top to bottom, the right column, the foot row. The CSS keyframes fill
   // backwards only, so once a group's flicker ends its own opacity attribute rules again and a
   // stood-down panel never flashes back on; groups already stood down are skipped entirely.
-  var POWER_STEP = 60;
+  var POWER_STEP = 55;
   function powerOn() {
     if (BUNNYS.reduce) return;
-    var seq = [hdg, spd.g, alt.g, bore, ladder, PANELS[0].g, PANELS[1].g, PANELS[3].g, radar,
-               dmgBox, PANELS[2].g, modeEl, document.getElementById('slew'), footWrap, lane];
-    var d = 0;
-    seq.forEach(function (n) {
+    // each instrument flickers on once the screen it sits on has come online
+    var seq = [[spd.g, 'L'], [PANELS[0].g, 'L'], [PANELS[1].g, 'L'], [PANELS[3].g, 'L'], [radar, 'L'],
+               [bore, 'C'], [ladder, 'C'],
+               [alt.g, 'R'], [dmgBox, 'R'], [PANELS[2].g, 'R'], [modeEl, 'R'], [document.getElementById('slew'), 'R'],
+               [hdg, 'T'], [footWrap, 'B'], [lane, 'B']];
+    var k = {}, last = 0;
+    seq.forEach(function (e) {
+      var n = e[0];
       if (!n || n.getAttribute('opacity') === '0') return;
+      k[e[1]] = (k[e[1]] || 0) + 1;
+      var d = SCREEN_LEAD + screenAt(e[1]) + 260 + (k[e[1]] - 1) * POWER_STEP;
       n.style.setProperty('--d', d + 'ms');
       n.classList.add('pw');
-      d += POWER_STEP;
+      last = Math.max(last, d);
     });
-    setTimeout(function () { seq.forEach(function (n) { if (n) n.classList.remove('pw'); }); }, d + 400);
+    setTimeout(function () { seq.forEach(function (e) { if (e[0]) e[0].classList.remove('pw'); }); }, last + 400);
+  }
+
+  // ------------------------------------------------------------ five canopy screens
+  // The canopy is five screens, not one pane: left and right wings, the centre panel, a top
+  // band and the bottom console. They live in their own viewport-true layer (#screens, between
+  // the panorama and the frame), so the seams and the console line up at every size. On
+  // entering the cockpit each screen starts dark and comes online in turn: its outline traces
+  // in, a calibration grid tilted 30deg swings level, then the screen clears.
+  var SCREEN_LEAD = 300;   // let the boot overlay's own 350ms fade get under way first
+  var SCREENS = [          // [id, start ms, outline as fractions of the viewport]
+    ['L', 0,    [[0, .10], [.30, .14], [.24, .30], [.24, .74], [.32, .86], [0, .92]]],
+    ['C', 380,  [[.30, .14], [.70, .14], [.76, .30], [.76, .74], [.68, .86], [.32, .86], [.24, .74], [.24, .30]]],
+    ['R', 760,  [[1, .10], [.70, .14], [.76, .30], [.76, .74], [.68, .86], [1, .92]]],
+    ['T', 1080, [[0, 0], [1, 0], [1, .10], [.70, .14], [.30, .14], [0, .10]]],
+    ['B', 1300, [[0, .92], [.32, .86], [.68, .86], [1, .92], [1, 1], [0, 1]]]
+  ];
+  var CONSOLE_EDGE = [[0, .92], [.32, .86], [.68, .86], [1, .92]];
+  function screenAt(id) { for (var i = 0; i < SCREENS.length; i++) if (SCREENS[i][0] === id) return SCREENS[i][1]; return 0; }
+  var screensEl = document.getElementById('screens'), screenParts = [];
+  var consoleFill, consoleEdge, consoleBevel, consoleTicks, consoleBolts;
+  function buildScreens() {
+    if (!screensEl) return;
+    var defs = el('defs', {});
+    defs.innerHTML = '<linearGradient id="console-grad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#0B121C" stop-opacity=".55"/><stop offset=".45" stop-color="#070B12" stop-opacity=".8"/>' +
+      '<stop offset="1" stop-color="#04070C" stop-opacity=".94"/></linearGradient>';
+    screensEl.appendChild(defs);
+    // the console sits under the screens, so the bottom screen's shutter hides it until it's online
+    consoleFill = el('polygon', { class: 'console-fill', fill: 'url(#console-grad)' });
+    consoleBevel = el('polyline', { class: 'console-bevel' });
+    consoleEdge = el('polyline', { class: 'console-edge' });
+    consoleTicks = el('g', { class: 'console-ticks' });
+    consoleBolts = el('g', { class: 'console-bolts' });
+    [consoleFill, consoleBevel, consoleEdge, consoleTicks, consoleBolts].forEach(function (n) { screensEl.appendChild(n); });
+    SCREENS.forEach(function (s) {
+      var clip = el('clipPath', { id: 'scr-clip-' + s[0] }), cpoly = el('polygon', {});
+      clip.appendChild(cpoly);
+      defs.appendChild(clip);
+      var g = el('g', { class: 'screen' });
+      var shutter = el('polygon', { class: 'shutter' });
+      var calib = el('g', { class: 'calib', 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
+      var spin = el('g', { class: 'calib-spin' });
+      spin.appendChild(el('line', { class: 'calib-horizon', x1: -3000, y1: 0, x2: 3000, y2: 0 }));
+      [-80, -40, 40, 80].forEach(function (y) { spin.appendChild(el('line', { class: 'calib-rung', x1: -150, y1: y, x2: 150, y2: y })); });
+      for (var x = -900; x <= 900; x += 60) spin.appendChild(el('line', { class: 'calib-tick', x1: x, y1: -7, x2: x, y2: 7 }));
+      calib.appendChild(spin);
+      var seam = el('polygon', { class: 'seam' });
+      g.appendChild(shutter); g.appendChild(calib); g.appendChild(seam);
+      screensEl.appendChild(g);
+      screenParts.push({ spec: s, g: g, shutter: shutter, cpoly: cpoly, spin: spin, seam: seam });
+    });
+  }
+  function toPts(poly, dy) {
+    return poly.map(function (p) { return (p[0] * W).toFixed(1) + ',' + (p[1] * H + (dy || 0)).toFixed(1); }).join(' ');
+  }
+  function layoutScreens() {
+    if (!screensEl) return;
+    screensEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    screenParts.forEach(function (p) {
+      var poly = p.spec[2], pts = toPts(poly), cx = 0, cy = 0;
+      p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.seam.setAttribute('points', pts);
+      poly.forEach(function (q) { cx += q[0]; cy += q[1]; });
+      p.spin.style.setProperty('--cx', (cx / poly.length * W).toFixed(1) + 'px');
+      p.spin.style.setProperty('--cy', (cy / poly.length * H).toFixed(1) + 'px');
+    });
+    consoleFill.setAttribute('points', toPts(SCREENS[4][2]));
+    consoleEdge.setAttribute('points', toPts(CONSOLE_EDGE));
+    consoleBevel.setAttribute('points', toPts(CONSOLE_EDGE, 5));
+    // a machined tick scale along the flat front of the console, bolt pairs at its two corners
+    clear(consoleTicks); clear(consoleBolts);
+    var y = CONSOLE_EDGE[1][1] * H, x0 = CONSOLE_EDGE[1][0] * W + 24, x1 = CONSOLE_EDGE[2][0] * W - 24;
+    for (var x = x0, i = 0; x <= x1; x += 16, i++) {
+      consoleTicks.appendChild(el('line', { x1: x.toFixed(1), y1: y + 9, x2: x.toFixed(1), y2: y + (i % 5 ? 12 : 15) }));
+    }
+    [CONSOLE_EDGE[1], CONSOLE_EDGE[2]].forEach(function (c) {
+      [-7, 7].forEach(function (dx) {
+        consoleBolts.appendChild(el('circle', { cx: (c[0] * W + dx).toFixed(1), cy: (c[1] * H + 11).toFixed(1), r: 1.6, fill: 'currentColor' }));
+      });
+    });
+  }
+  function powerScreens() {
+    if (!screensEl || BUNNYS.reduce) return;
+    screenParts.forEach(function (p) { p.g.style.setProperty('--d', (SCREEN_LEAD + p.spec[1]) + 'ms'); });
+    screensEl.classList.add('powering');
+    setTimeout(function () { screensEl.classList.remove('powering'); }, SCREEN_LEAD + 1300 + 900);
   }
 
   // ----------------------------------------------- HUD MODE, comms and status toast
@@ -1371,6 +1462,7 @@
       var laneL = inset / 2, laneR = W - inset / 2;
       var colLx = laneL - colW / 2, colRx = laneR - colW / 2;
       var colTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
+      layoutScreens();
       lane.setAttribute('opacity', room ? 1 : 0);
       if (room) {
         laneRuleL.setAttribute('x1', laneL); laneRuleL.setAttribute('x2', laneL);
@@ -1608,7 +1700,7 @@
       fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
     });
 
-    buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
+    buildScreens(); buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
     place();
     drawHeading(0); updateLadder(0, 0, 0, 0); drawRadar(0);
 
@@ -1635,6 +1727,7 @@
       setTimeout(function () {
         if (status.textContent === 'PANORAMIC MONITOR ONLINE') status.textContent = IDLE_STATUS;
       }, 1600);
+      powerScreens();
       powerOn();
       scheduleCaution();
       scheduleComms(8000);

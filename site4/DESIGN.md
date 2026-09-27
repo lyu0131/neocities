@@ -198,6 +198,15 @@ line reads `PANORAMIC MONITOR ONLINE` for 1.6s. None of it runs under reduced mo
 canopy-scale detail (rivets and joint hashes on the top seams, two corner stencils): it is a fixed 1920x1080
 painting cropped with `slice`, so anything that must line up with a box belongs in the HUD instead.
 
+### Five canopy screens
+The canopy is five screens, not one pane: left and right wings, the centre panel, a top band and the bottom console
+(`SCREENS` in hud.js, outlines as fractions of the viewport). They are drawn in `svg#screens`, a viewport-true layer
+between the panorama and the frame, so the seams and the console line up at every size; the old flat glass shelf in
+`frame.svg` is gone. On entering the cockpit (`boot-done`) each screen starts dark and comes online in turn,
+left -> centre -> right -> top -> bottom: its outline traces in, a calibration grid tilted 30deg swings level, then
+the shutter clears. Each instrument's power-on flicker is timed to land after its own screen is online. Seams stay
+faintly visible afterwards. None of it runs under reduced motion.
+
 ## Cautions and alarms
 One scheduler, two modes, keyed off `hxOn`:
 - **general** (no hostile lock): the wide banner, 9-25s cadence. `CAUTIONS` entries are
