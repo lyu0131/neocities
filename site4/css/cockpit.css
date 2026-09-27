@@ -421,16 +421,17 @@ a { color: inherit; }
    takes input. The shutter is each screen's "off" state; .powering runs the bring-up. */
 #screens { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-fx); pointer-events: none; color: var(--hud); }
 #screens .shutter { fill: #03060B; opacity: 0; }
-#screens .seam { fill: none; stroke: var(--hud); stroke-opacity: .16; stroke-width: 1; }
+#screens .seam { fill: none; stroke: var(--hud); stroke-opacity: 0; stroke-width: 1; }
 #screens .calib { opacity: 0; }
 #screens .calib line { stroke: var(--hud); stroke-width: 1; }
 #screens .calib-horizon { stroke-opacity: .85; }
 #screens .calib-rung, #screens .calib-tick { stroke-opacity: .5; }
 #screens .calib-spin { transform-box: view-box; transform-origin: 0 0; transform: translate(var(--cx), var(--cy)); }
-#screens .console-edge { fill: none; stroke: var(--hud); stroke-opacity: .6; stroke-width: 1.5; }
-#screens .console-bevel { fill: none; stroke: var(--ice); stroke-opacity: .14; stroke-width: 1; }
+/* every seam -- the console edge and the lines between screens -- is one machined line */
+#screens .seam-line { fill: none; stroke: var(--hud); stroke-opacity: .6; stroke-width: 1.5; }
+#screens .seam-bevel { fill: none; stroke: var(--ice); stroke-opacity: .14; stroke-width: 1; }
 #screens .console-ticks line { stroke: var(--hud); stroke-opacity: .35; stroke-width: 1; }
-#screens .console-bolts { opacity: .45; }
+#screens .seam-bolts { opacity: .45; }
 #screens.powering .shutter { opacity: 1; animation: scr-shutter .8s var(--d) forwards; }
 #screens.powering .calib { animation: scr-calib .8s var(--d) forwards; }
 #screens.powering .calib-spin { animation: scr-level .8s var(--d) forwards; }
@@ -446,7 +447,7 @@ a { color: inherit; }
 @keyframes scr-trace {
   0% { stroke-dashoffset: 6000; stroke-opacity: .8; }
   26% { stroke-dashoffset: 0; stroke-opacity: .8; }
-  100% { stroke-dashoffset: 0; stroke-opacity: .16; }
+  100% { stroke-dashoffset: 0; stroke-opacity: 0; }   /* the permanent .seam-line takes over */
 }
 
 /* Cockpit power-on: each instrument group flickers on in turn (delay set per group by hud.js

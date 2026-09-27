@@ -3,7 +3,7 @@
 // boxes overlap -- idle, and with the hostile set up. Screenshots go to tests/out/.
 const path = require('path');
 const { launch, check } = require('./cdp');
-const SIZES = [[1920, 1080], [1440, 900], [1366, 768]];
+const SIZES = [[2560, 1440], [1920, 1080], [1440, 900], [1366, 768]];
 const LEFT = ['REACTOR STATUS', 'THRUSTER VECTOR', 'ENVIRONMENT', 'SENSOR ARRAY'];
 const RIGHT = ['DIAGNOSTIC MODE', 'COMBAT SYSTEM', 'HUD MODE', 'SLEW TO'];
 const PROBE = `(() => {
@@ -100,6 +100,27 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         return { n: br.length, hits: br.filter(b => boxes.some(x => b.left < x.right && x.left < b.right && b.top < x.bottom && x.top < b.bottom)).length };
       })())`));
       check(`${tag} rail brackets sit in the gaps`, rails.n >= 4 && rails.hits === 0, JSON.stringify(rails));
+      // The canopy seams are cut around the instruments: none may run through a box. Sampled
+      // every 2px along each seam; the console edge's third point is the lower centre edge.
+      const seams = JSON.parse(await p.eval(`JSON.stringify([...document.querySelectorAll('#screens .seam-line')]
+        .map(l => l.getAttribute('points').split(' ').map(q => q.split(',').map(Number))))`));
+      // the tape as its two real boxes: the tick strip and the readout housing under it
+      const tape = JSON.parse(await p.eval(`JSON.stringify((g => [g.querySelector(':scope > g'), g.querySelector(':scope > rect')]
+        .map((e, i) => (b => ({ name: 'TAPE' + i, l: b.left, t: b.top, r: b.right, b: b.bottom }))(e.getBoundingClientRect())))(document.querySelector('.hdg-readout').parentNode))`));
+      const crossed = new Set();
+      for (const pts of seams) for (let k = 1; k < pts.length; k++) {
+        const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 2);
+        for (let j = 0; j <= n; j++) {
+          const x = x0 + (x1 - x0) * j / n, y = y0 + (y1 - y0) * j / n;
+          for (const b of r.all.concat(tape)) if (x > b.l + 1 && x < b.r - 1 && y > b.t + 1 && y < b.b - 1) crossed.add(b.name);
+        }
+      }
+      check(`${tag} no seam runs through a box`, seams.length === 4 && crossed.size === 0, [...crossed].join(', '));
+      const deck = seams[3][2][1];
+      const statusTop = await p.eval("[...document.querySelectorAll('#hud > text')].find(t => /NOMINAL|SEQUENCE|ONLINE/.test(t.textContent)).getBoundingClientRect().top");
+      check(`${tag} status line sits just under the console edge`, statusTop - deck >= 10 && statusTop - deck <= 24, (statusTop - deck).toFixed(1) + 'px');
+      const dos = r.all.find(b => b.name === 'DOSSIER');
+      if (dos) check(`${tag} dossier sits on the console`, deck - dos.b >= 16 && deck - dos.b <= 24, (deck - dos.b).toFixed(1) + 'px');
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
     }
     check(`layout ${w}x${h}: no JS errors`, p.errors.length === 0, p.errors.join(' | '));

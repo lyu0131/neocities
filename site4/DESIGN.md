@@ -199,13 +199,22 @@ canopy-scale detail (rivets and joint hashes on the top seams, two corner stenci
 painting cropped with `slice`, so anything that must line up with a box belongs in the HUD instead.
 
 ### Five canopy screens
-The canopy is five screens, not one pane: left and right wings, the centre panel, a top band and the bottom console
-(`SCREENS` in hud.js, outlines as fractions of the viewport). They are drawn in `svg#screens`, a viewport-true layer
-between the panorama and the frame, so the seams and the console line up at every size; the old flat glass shelf in
-`frame.svg` is gone. On entering the cockpit (`boot-done`) each screen starts dark and comes online in turn,
-left -> centre -> right -> top -> bottom: its outline traces in, a calibration grid tilted 30deg swings level, then
-the shutter clears. Each instrument's power-on flicker is timed to land after its own screen is online. Seams stay
-faintly visible afterwards. None of it runs under reduced motion.
+The canopy is five screens, not one pane, and each holds its own instruments: the top band the heading tape, the
+left and right wings the two instrument columns, the centre the flight display (SPD/ALT, reticle, dossier), and the
+bottom console the status line and foot bars. They are drawn in `svg#screens`, a viewport-true layer between the
+panorama and the frame. `place()` cuts them from the same numbers that place the instruments, so no seam ever runs
+through a box (`tests/layout.test.js` samples every seam against every box):
+- each side seam runs down the middle of the gap between a column and its SPD/ALT bar;
+- the top band's edge runs 14px over the columns and notches down around the heading readout when that reaches lower;
+- the console rises into a pod 8px over each bottom-corner instrument (radar left, HUD MODE + SLEW TO right), then
+  steps down along an angled shoulder to its lower centre edge, 16px over the status line. The dossier sits 20px
+  above that edge; column panels stand down rather than come within 8px of a pod.
+
+Every seam is one machined line: the lit 1.5px line over a faint bevel, bolt pairs at the joints, and a tick scale
+along the console's centre edge. On entering the cockpit (`boot-done`) each screen starts dark and comes online in
+turn, left -> centre -> right -> top -> bottom: its outline traces in, a calibration grid tilted 30deg swings level,
+then the shutter clears and the seam underneath shows. Each instrument's power-on flicker lands after its own screen
+is online. None of the animation runs under reduced motion.
 
 ## Cautions and alarms
 One scheduler, two modes, keyed off `hxOn`:

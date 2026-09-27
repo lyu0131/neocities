@@ -1081,10 +1081,11 @@
   function powerOn() {
     if (BUNNYS.reduce) return;
     // each instrument flickers on once the screen it sits on has come online
-    var seq = [[spd.g, 'L'], [PANELS[0].g, 'L'], [PANELS[1].g, 'L'], [PANELS[3].g, 'L'], [radar, 'L'],
-               [bore, 'C'], [ladder, 'C'],
-               [alt.g, 'R'], [dmgBox, 'R'], [PANELS[2].g, 'R'], [modeEl, 'R'], [document.getElementById('slew'), 'R'],
-               [hdg, 'T'], [footWrap, 'B'], [lane, 'B']];
+    var seq = [[PANELS[0].g, 'L'], [PANELS[1].g, 'L'], [PANELS[3].g, 'L'], [lane, 'L'],
+               [spd.g, 'C'], [bore, 'C'], [ladder, 'C'], [alt.g, 'C'],
+               [dmgBox, 'R'], [PANELS[2].g, 'R'],
+               [hdg, 'T'],
+               [radar, 'B'], [modeEl, 'B'], [document.getElementById('slew'), 'B'], [footWrap, 'B']];
     var k = {}, last = 0;
     seq.forEach(function (e) {
       var n = e[0];
@@ -1099,23 +1100,20 @@
   }
 
   // ------------------------------------------------------------ five canopy screens
-  // The canopy is five screens, not one pane: left and right wings, the centre panel, a top
-  // band and the bottom console. They live in their own viewport-true layer (#screens, between
-  // the panorama and the frame), so the seams and the console line up at every size. On
+  // The canopy is five screens, not one pane, and each one holds its own instruments: the top
+  // band the heading tape, the two wings the instrument columns, the centre the flight display,
+  // and the bottom console the status line and foot bars. The console rises into a pod under
+  // each bottom corner (radar left, HUD MODE + SLEW TO right), so those sit in the console
+  // rather than across it. place() works the edges out from the same numbers that place the
+  // instruments (see canopy()), so a seam never runs through a box at any size. The screens
+  // live in their own viewport-true layer (#screens, between the panorama and the frame). On
   // entering the cockpit each screen starts dark and comes online in turn: its outline traces
   // in, a calibration grid tilted 30deg swings level, then the screen clears.
   var SCREEN_LEAD = 300;   // let the boot overlay's own 350ms fade get under way first
-  var SCREENS = [          // [id, start ms, outline as fractions of the viewport]
-    ['L', 0,    [[0, .10], [.30, .14], [.24, .30], [.24, .74], [.32, .86], [0, .92]]],
-    ['C', 380,  [[.30, .14], [.70, .14], [.76, .30], [.76, .74], [.68, .86], [.32, .86], [.24, .74], [.24, .30]]],
-    ['R', 760,  [[1, .10], [.70, .14], [.76, .30], [.76, .74], [.68, .86], [1, .92]]],
-    ['T', 1080, [[0, 0], [1, 0], [1, .10], [.70, .14], [.30, .14], [0, .10]]],
-    ['B', 1300, [[0, .92], [.32, .86], [.68, .86], [1, .92], [1, 1], [0, 1]]]
-  ];
-  var CONSOLE_EDGE = [[0, .92], [.32, .86], [.68, .86], [1, .92]];
+  var SCREENS = [['L', 0], ['C', 380], ['R', 760], ['T', 1080], ['B', 1300]];   // [id, start ms]
   function screenAt(id) { for (var i = 0; i < SCREENS.length; i++) if (SCREENS[i][0] === id) return SCREENS[i][1]; return 0; }
   var screensEl = document.getElementById('screens'), screenParts = [];
-  var consoleFill, consoleEdge, consoleBevel, consoleTicks, consoleBolts;
+  var consoleFill, consoleTicks, seamBolts, seams = [];
   function buildScreens() {
     if (!screensEl) return;
     var defs = el('defs', {});
@@ -1123,13 +1121,19 @@
       '<stop offset="0" stop-color="#0B121C" stop-opacity=".55"/><stop offset=".45" stop-color="#070B12" stop-opacity=".8"/>' +
       '<stop offset="1" stop-color="#04070C" stop-opacity=".94"/></linearGradient>';
     screensEl.appendChild(defs);
-    // the console sits under the screens, so the bottom screen's shutter hides it until it's online
+    // the console and the seams sit under the screens, so each shutter hides them until its screen
+    // is online
     consoleFill = el('polygon', { class: 'console-fill', fill: 'url(#console-grad)' });
-    consoleBevel = el('polyline', { class: 'console-bevel' });
-    consoleEdge = el('polyline', { class: 'console-edge' });
+    screensEl.appendChild(consoleFill);
+    // four seams (top, left, right, console edge), each a lit line over a faint bevel
+    for (var i = 0; i < 4; i++) {
+      var sm = { bevel: el('polyline', { class: 'seam-bevel' }), line: el('polyline', { class: 'seam-line' }) };
+      screensEl.appendChild(sm.bevel); screensEl.appendChild(sm.line);
+      seams.push(sm);
+    }
     consoleTicks = el('g', { class: 'console-ticks' });
-    consoleBolts = el('g', { class: 'console-bolts' });
-    [consoleFill, consoleBevel, consoleEdge, consoleTicks, consoleBolts].forEach(function (n) { screensEl.appendChild(n); });
+    seamBolts = el('g', { class: 'seam-bolts' });
+    screensEl.appendChild(consoleTicks); screensEl.appendChild(seamBolts);
     SCREENS.forEach(function (s) {
       var clip = el('clipPath', { id: 'scr-clip-' + s[0] }), cpoly = el('polygon', {});
       clip.appendChild(cpoly);
@@ -1145,40 +1149,64 @@
       var seam = el('polygon', { class: 'seam' });
       g.appendChild(shutter); g.appendChild(calib); g.appendChild(seam);
       screensEl.appendChild(g);
-      screenParts.push({ spec: s, g: g, shutter: shutter, cpoly: cpoly, spin: spin, seam: seam });
+      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, spin: spin, seam: seam });
     });
   }
-  function toPts(poly, dy) {
-    return poly.map(function (p) { return (p[0] * W).toFixed(1) + ',' + (p[1] * H + (dy || 0)).toFixed(1); }).join(' ');
+  function toPts(poly, dx, dy) {
+    return poly.map(function (p) { return (p[0] + (dx || 0)).toFixed(1) + ',' + (p[1] + (dy || 0)).toFixed(1); }).join(' ');
   }
-  function layoutScreens() {
+  // c: { tY, tN, tHalf, sL, sR, podL, podR, deck } in px -- the top band's lower edge, the
+  // bottom and half-width of its notch around the heading readout, the two side seams, the two
+  // pod tops and the console's lower centre edge (a pod at deck height is no pod, a notch
+  // above tY no notch).
+  function layoutScreens(c) {
     if (!screensEl) return;
     screensEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var runL = c.deck > c.podL ? clamp((c.deck - c.podL) * 0.5, 24, 120) : 0;
+    var runR = c.deck > c.podR ? clamp((c.deck - c.podR) * 0.5, 24, 120) : 0;
+    var dL = c.sL + runL, dR = c.sR - runR;   // where each shoulder meets the lower centre edge
+    var edge = [[0, c.podL], [c.sL, c.podL], [dL, c.deck], [dR, c.deck], [c.sR, c.podR], [W, c.podR]];
+    var dn = Math.max(0, c.tN - c.tY), mid = W / 2;
+    var notch = dn ? [[mid - c.tHalf - dn, c.tY], [mid - c.tHalf, c.tN], [mid + c.tHalf, c.tN], [mid + c.tHalf + dn, c.tY]] : [];
+    var top = [[0, c.tY]].concat(notch, [[W, c.tY]]);
+    var polys = {
+      T: [[0, 0], [W, 0]].concat(top.slice().reverse()),
+      L: [[0, c.tY], [c.sL, c.tY], [c.sL, c.podL], [0, c.podL]],
+      R: [[W, c.tY], [c.sR, c.tY], [c.sR, c.podR], [W, c.podR]],
+      C: [[c.sL, c.tY]].concat(notch, [[c.sR, c.tY], [c.sR, c.podR], [dR, c.deck], [dL, c.deck], [c.sL, c.podL]]),
+      B: edge.concat([[W, H], [0, H]])
+    };
     screenParts.forEach(function (p) {
-      var poly = p.spec[2], pts = toPts(poly), cx = 0, cy = 0;
+      var poly = polys[p.id], pts = toPts(poly), cx = 0, cy = 0;
       p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.seam.setAttribute('points', pts);
       poly.forEach(function (q) { cx += q[0]; cy += q[1]; });
-      p.spin.style.setProperty('--cx', (cx / poly.length * W).toFixed(1) + 'px');
-      p.spin.style.setProperty('--cy', (cy / poly.length * H).toFixed(1) + 'px');
+      p.spin.style.setProperty('--cx', (cx / poly.length).toFixed(1) + 'px');
+      p.spin.style.setProperty('--cy', (cy / poly.length).toFixed(1) + 'px');
     });
-    consoleFill.setAttribute('points', toPts(SCREENS[4][2]));
-    consoleEdge.setAttribute('points', toPts(CONSOLE_EDGE));
-    consoleBevel.setAttribute('points', toPts(CONSOLE_EDGE, 5));
-    // a machined tick scale along the flat front of the console, bolt pairs at its two corners
-    clear(consoleTicks); clear(consoleBolts);
-    var y = CONSOLE_EDGE[1][1] * H, x0 = CONSOLE_EDGE[1][0] * W + 24, x1 = CONSOLE_EDGE[2][0] * W - 24;
-    for (var x = x0, i = 0; x <= x1; x += 16, i++) {
-      consoleTicks.appendChild(el('line', { x1: x.toFixed(1), y1: y + 9, x2: x.toFixed(1), y2: y + (i % 5 ? 12 : 15) }));
+    consoleFill.setAttribute('points', toPts(polys.B));
+    // each seam's bevel sits 5px to the inside of the centre screen (or of the console)
+    [[top, 0, 5],
+     [[[c.sL, c.tY], [c.sL, c.podL]], 5, 0],
+     [[[c.sR, c.tY], [c.sR, c.podR]], -5, 0],
+     [edge, 0, 5]].forEach(function (d, i) {
+      seams[i].line.setAttribute('points', toPts(d[0]));
+      seams[i].bevel.setAttribute('points', toPts(d[0], d[1], d[2]));
+    });
+    // a machined tick scale along the console's lower centre edge; bolt pairs where the side
+    // seams meet the top band and at the console's two lower corners
+    clear(consoleTicks); clear(seamBolts);
+    for (var x = dL + 24, i = 0; x <= dR - 24; x += 16, i++) {
+      consoleTicks.appendChild(el('line', { x1: x.toFixed(1), y1: c.deck + 9, x2: x.toFixed(1), y2: c.deck + (i % 5 ? 12 : 15) }));
     }
-    [CONSOLE_EDGE[1], CONSOLE_EDGE[2]].forEach(function (c) {
+    [[c.sL, c.tY], [c.sR, c.tY], [dL, c.deck], [dR, c.deck]].forEach(function (b) {
       [-7, 7].forEach(function (dx) {
-        consoleBolts.appendChild(el('circle', { cx: (c[0] * W + dx).toFixed(1), cy: (c[1] * H + 11).toFixed(1), r: 1.6, fill: 'currentColor' }));
+        seamBolts.appendChild(el('circle', { cx: (b[0] + dx).toFixed(1), cy: (b[1] + 11).toFixed(1), r: 1.6, fill: 'currentColor' }));
       });
     });
   }
   function powerScreens() {
     if (!screensEl || BUNNYS.reduce) return;
-    screenParts.forEach(function (p) { p.g.style.setProperty('--d', (SCREEN_LEAD + p.spec[1]) + 'ms'); });
+    screenParts.forEach(function (p) { p.g.style.setProperty('--d', (SCREEN_LEAD + screenAt(p.id)) + 'ms'); });
     screensEl.classList.add('powering');
     setTimeout(function () { screensEl.classList.remove('powering'); }, SCREEN_LEAD + 1300 + 900);
   }
@@ -1434,6 +1462,8 @@
     status.setAttribute('x', cx);
     var statusY = H - Math.max(26, H * 0.05);
     status.setAttribute('y', statusY);
+    // the console's lower centre edge: 16px over the status line's cap height
+    var deckY = statusY - 28;
 
     [spd, alt].forEach(function (b) {
       b.rule.setAttribute('y1', -barH); b.rule.setAttribute('y2', barH);
@@ -1462,13 +1492,12 @@
       var laneL = inset / 2, laneR = W - inset / 2;
       var colLx = laneL - colW / 2, colRx = laneR - colW / 2;
       var colTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
-      layoutScreens();
       lane.setAttribute('opacity', room ? 1 : 0);
       if (room) {
         laneRuleL.setAttribute('x1', laneL); laneRuleL.setAttribute('x2', laneL);
         laneRuleR.setAttribute('x1', laneR); laneRuleR.setAttribute('x2', laneR);
         [laneRuleL, laneRuleR].forEach(function (r) {
-          r.setAttribute('y1', colTop - 16); r.setAttribute('y2', statusY - 6);
+          r.setAttribute('y1', colTop - 8);
         });
       }
 
@@ -1486,11 +1515,12 @@
       xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
       // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
       // radar first), then THRUSTER.
-      var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 12;
+      // -16: the pod's edge, 8px over the radar, sits mid-gap like a rail bracket
+      var thrusterFits = thrusterY + thruster.h * colS <= radarTop - 16;
       if (!thrusterFits) thruster.g.setAttribute('opacity', 0);
       var envY = thrusterY + thruster.h * colS + 14;
       xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
-      if (envY + env.h * colS > radarTop - 12) env.g.setAttribute('opacity', 0);
+      if (envY + env.h * colS > radarTop - 16) env.g.setAttribute('opacity', 0);
 
       // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
       // onto the same lane and width here rather than in the stylesheet.
@@ -1512,7 +1542,8 @@
       // The slew panel's media query hides it below 860px/520px, and a hidden element's rect
       // is all zeros -- fall back to a fixed foot margin. The map takes the largest square that
       // still leaves COMBAT SYSTEM room above the slew panel.
-      var rightFloor = modeR ? (modeR.top - 14) : slewVisible ? (slewR.top - 14) : (H - 26);
+      var podTopR = modeR ? modeR.top : slewVisible ? slewR.top : null;
+      var rightFloor = podTopR != null ? podTopR - 16 : (H - 26);
       layoutDamage(colRx, colTop, rightFloor - combat.h * colS - 14, room, colS);
       var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
       xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
@@ -1521,20 +1552,24 @@
       if (room) {
         var shown = function (g) { return g.getAttribute('opacity') !== '0'; };
         var bySpan = function (list) { return list.filter(Boolean).sort(function (a, b) { return a[0] - b[0]; }); };
+        // [top, bottom, sits in a console pod]; no bracket where a column meets its pod -- the
+        // pod's edge is that joint
         [[laneL, bySpan([
             [colTop, colTop + reactor.h * colS],
             shown(thruster.g) && [thrusterY, thrusterY + thruster.h * colS],
             shown(env.g) && [envY, envY + env.h * colS],
-            [radarTop, radarCy + (RAD + PAD) * colS]])],
+            [radarTop, radarCy + (RAD + PAD) * colS, true]])],
          [laneR, bySpan([
             dmgOn && [colTop, colTop + dmgH],
             [combatY, combatY + combat.h * colS],
-            modeR && [modeR.top, modeR.bottom],
-            slewVisible && [slewR.top, slewR.bottom]])]
+            modeR && [modeR.top, modeR.bottom, true],
+            slewVisible && [slewR.top, slewR.bottom, true]])]
         ].forEach(function (c) {
           var s = c[1];
           rails.push([c[0], s[0][0] - 8]);
-          for (var i = 1; i < s.length; i++) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
+          for (var i = 1; i < s.length; i++) {
+            if (!(s[i][2] && !s[i - 1][2])) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
+          }
           rails.push([c[0], s[s.length - 1][1] + 8]);
         });
       }
@@ -1552,7 +1587,7 @@
       // than 18px to the status line -- derived from the card's own box height, not a
       // fixed fraction, since a fixed fraction runs through the status line at short sizes.
       var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
-      var dosY = clamp(H * 0.74, 200, statusY - 18 - dosBot);
+      var dosY = deckY - 20 - dosBot;
       xf(dossier, cx, dosY);
 
       // UNIT DATA and ARMAMENT are placed beside the contact, not in a column, so they read
@@ -1590,7 +1625,7 @@
             && specLeft >= cx + hx.id.w / 2 + HX_PAD + 12   // clear of TARGET ID
             && specLeft >= cx + hx.warn.w / 2 + HX_PAD + 12 // and of the anchor warning
             && specTop >= tapeBottom + 8                     // under the heading tape
-            && hxArmsBottom + 14 <= statusY - 20             // over the status line
+            && hxArmsBottom + 14 <= deckY                    // over the console
             && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
       xf(hx.id, cx - hx.id.w / 2, idY);
       var idHalf = hx.id.w / 2 + HX_PAD;
@@ -1636,7 +1671,7 @@
       popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132, undefined, false, POP_MIN_SLIDE);
       xf(hx.spec, specX, specY);
       xf(hx.arms, specX, armsY);
-      xf(hx.warn, cx - hx.warn.w / 2, statusY - 26 - hx.warn.h);
+      xf(hx.warn, cx - hx.warn.w / 2, deckY - 12 - hx.warn.h);
       xf(hx.left, cx - 92, cy - 17);
       xf(hx.right, cx + 92, cy - 17);
       if (hxLogW !== hx.id.w) hxLogSetWidth(hx.id.w);
@@ -1649,6 +1684,20 @@
       // ladder's own transform is re-applied by tick() every frame off the spring's
       // current values, so a resize needs no extra push here
       if (fpm) xf(fpm, cx, cy);
+
+      // The canopy screens, cut around what was just placed: each side seam down the middle of
+      // the gap between a column and its SPD/ALT bar (the bar's caption reaches 12px either
+      // side), each console pod 8px over the instruments it holds, the top band 14px over the
+      // columns, notched down around the heading readout (46px half-wide) where that reaches
+      // lower. With the columns stood down, the seams split the empty gutters and the console is flat.
+      var pod = function (top) { return room && top != null ? top - 8 : deckY; };
+      var podL = pod(radarTop), podR = pod(podTopR);
+      [laneRuleL, laneRuleR].forEach(function (r, i) { r.setAttribute('y2', i ? podR : podL); });
+      layoutScreens({
+        tY: colTop - 14, tN: tapeBottom + 10, tHalf: 66, deck: deckY, podL: podL, podR: podR,
+        sL: room ? (colLx + colW + inset - 12) / 2 : inset / 2,
+        sR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2
+      });
     }
   }
 
