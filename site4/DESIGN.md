@@ -199,13 +199,14 @@ canopy-scale detail (rivets and joint hashes on the top seams, two corner stenci
 painting cropped with `slice`, so anything that must line up with a box belongs in the HUD instead.
 
 ### Five canopy screens
-The canopy is five screens, not one pane, and each holds its own instruments: the top band the heading tape, the
-left and right wings the two instrument columns, the centre the flight display (SPD/ALT, reticle, dossier), and the
-bottom console the status line and foot bars. They are drawn in `svg#screens`, a viewport-true layer between the
-panorama and the frame. `place()` cuts them from the same numbers that place the instruments, so no seam ever runs
-through a box (`tests/layout.test.js` samples every seam against every box):
-- each side seam runs down the middle of the gap between a column and its SPD/ALT bar;
-- the top band's edge runs 14px over the columns and notches down around the heading readout when that reaches lower;
+The canopy is five screens, not one pane: left and right wings, the centre, a top band and the bottom console (the
+status line and foot bars). They are drawn in `svg#screens`, a viewport-true layer between the panorama and the
+frame. `place()` cuts them from the same numbers that place the instruments, so no seam runs through an instrument
+(`tests/layout.test.js` samples every seam against every box; the hostile UNIT DATA/ARMAMENT pair is exempt, see there):
+- the top band runs 14px over the columns, then slants down to its centre edge, between the heading readout and
+  TARGET ID's slot;
+- each wing comes in from the top band's centre corner at the old canopy's slope, runs straight down 36px right of
+  the SPD/ALT bar (COMMS opens 16px past it), then angles out onto the console's lower centre edge;
 - the console rises into a pod 8px over each bottom-corner instrument (radar left, HUD MODE + SLEW TO right), then
   steps down along an angled shoulder to its lower centre edge, 16px over the status line. The dossier sits 20px
   above that edge; column panels stand down rather than come within 8px of a pod.

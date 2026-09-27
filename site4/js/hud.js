@@ -1081,9 +1081,9 @@
   function powerOn() {
     if (BUNNYS.reduce) return;
     // each instrument flickers on once the screen it sits on has come online
-    var seq = [[PANELS[0].g, 'L'], [PANELS[1].g, 'L'], [PANELS[3].g, 'L'], [lane, 'L'],
-               [spd.g, 'C'], [bore, 'C'], [ladder, 'C'], [alt.g, 'C'],
-               [dmgBox, 'R'], [PANELS[2].g, 'R'],
+    var seq = [[spd.g, 'L'], [PANELS[0].g, 'L'], [PANELS[1].g, 'L'], [PANELS[3].g, 'L'], [lane, 'L'],
+               [bore, 'C'], [ladder, 'C'],
+               [alt.g, 'R'], [dmgBox, 'R'], [PANELS[2].g, 'R'],
                [hdg, 'T'],
                [radar, 'B'], [modeEl, 'B'], [document.getElementById('slew'), 'B'], [footWrap, 'B']];
     var k = {}, last = 0;
@@ -1155,25 +1155,40 @@
   function toPts(poly, dx, dy) {
     return poly.map(function (p) { return (p[0] + (dx || 0)).toFixed(1) + ',' + (p[1] + (dy || 0)).toFixed(1); }).join(' ');
   }
-  // c: { tY, tN, tHalf, sL, sR, podL, podR, deck } in px -- the top band's lower edge, the
-  // bottom and half-width of its notch around the heading readout, the two side seams, the two
-  // pod tops and the console's lower centre edge (a pod at deck height is no pod, a notch
-  // above tY no notch).
+  // c, in px: yS the top band's edge over the columns and cY its lower edge across the centre,
+  // colL/colR where it starts slanting down (just past each column), xv the wings' inner
+  // vertical (the right one mirrors it), pL/pR and podL/podR each console pod's inner corner and
+  // top, deck the console's lower centre edge (a pod at deck height is no pod).
   function layoutScreens(c) {
     if (!screensEl) return;
     screensEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     var runL = c.deck > c.podL ? clamp((c.deck - c.podL) * 0.5, 24, 120) : 0;
     var runR = c.deck > c.podR ? clamp((c.deck - c.podR) * 0.5, 24, 120) : 0;
-    var dL = c.sL + runL, dR = c.sR - runR;   // where each shoulder meets the lower centre edge
-    var edge = [[0, c.podL], [c.sL, c.podL], [dL, c.deck], [dR, c.deck], [c.sR, c.podR], [W, c.podR]];
-    var dn = Math.max(0, c.tN - c.tY), mid = W / 2;
-    var notch = dn ? [[mid - c.tHalf - dn, c.tY], [mid - c.tHalf, c.tN], [mid + c.tHalf, c.tN], [mid + c.tHalf + dn, c.tY]] : [];
-    var top = [[0, c.tY]].concat(notch, [[W, c.tY]]);
+    var dL = c.pL + runL, dR = c.pR - runR;   // where each shoulder meets the lower centre edge
+    var edge = [[0, c.podL], [c.pL, c.podL], [dL, c.deck], [dR, c.deck], [c.pR, c.podR], [W, c.podR]];
+    // the console's y under x, so a wing's vertical can stop 16px short of it
+    var consoleY = function (x) {
+      for (var i = 1; i < edge.length; i++) {
+        var a = edge[i - 1], b = edge[i];
+        if (x <= b[0]) return b[0] > a[0] ? a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]) : Math.min(a[1], b[1]);
+      }
+      return c.podR;
+    };
+    // The wings: in from the top band's centre corner, down, then out to the console's lower
+    // centre edge -- the right one mirrors the left.
+    // the upper diagonal keeps the old canopy's slope (1.5 down per 1 across), ending by .30H
+    var tx = Math.max(W * 0.30, c.xv + 24), vTop = Math.min(H * 0.30, c.cY + (tx - c.xv) * 1.5);
+    var xvR = W - c.xv, txR = W - tx;
+    var yvL = Math.min(H * 0.74, consoleY(c.xv) - 16), yvR = Math.min(H * 0.74, consoleY(xvR) - 16);
+    var xd = Math.max(W * 0.32, dL + 24, c.xv), xdR = Math.min(W * 0.68, dR - 24, xvR);
+    var top = [[0, c.yS], [c.colL, c.yS], [tx, c.cY], [txR, c.cY], [c.colR, c.yS], [W, c.yS]];
+    var wingL = [[tx, c.cY], [c.xv, vTop], [c.xv, yvL], [xd, c.deck]];
+    var wingR = [[txR, c.cY], [xvR, vTop], [xvR, yvR], [xdR, c.deck]];
     var polys = {
       T: [[0, 0], [W, 0]].concat(top.slice().reverse()),
-      L: [[0, c.tY], [c.sL, c.tY], [c.sL, c.podL], [0, c.podL]],
-      R: [[W, c.tY], [c.sR, c.tY], [c.sR, c.podR], [W, c.podR]],
-      C: [[c.sL, c.tY]].concat(notch, [[c.sR, c.tY], [c.sR, c.podR], [dR, c.deck], [dL, c.deck], [c.sL, c.podL]]),
+      L: [[0, c.yS], [c.colL, c.yS]].concat(wingL, [[dL, c.deck], [c.pL, c.podL], [0, c.podL]]),
+      R: [[W, c.yS], [c.colR, c.yS]].concat(wingR, [[dR, c.deck], [c.pR, c.podR], [W, c.podR]]),
+      C: wingL.concat(wingR.slice().reverse()),
       B: edge.concat([[W, H], [0, H]])
     };
     screenParts.forEach(function (p) {
@@ -1185,20 +1200,17 @@
     });
     consoleFill.setAttribute('points', toPts(polys.B));
     // each seam's bevel sits 5px to the inside of the centre screen (or of the console)
-    [[top, 0, 5],
-     [[[c.sL, c.tY], [c.sL, c.podL]], 5, 0],
-     [[[c.sR, c.tY], [c.sR, c.podR]], -5, 0],
-     [edge, 0, 5]].forEach(function (d, i) {
+    [[top, 0, 5], [wingL, 5, 0], [wingR, -5, 0], [edge, 0, 5]].forEach(function (d, i) {
       seams[i].line.setAttribute('points', toPts(d[0]));
       seams[i].bevel.setAttribute('points', toPts(d[0], d[1], d[2]));
     });
-    // a machined tick scale along the console's lower centre edge; bolt pairs where the side
-    // seams meet the top band and at the console's two lower corners
+    // a machined tick scale along the console's lower centre edge; bolt pairs where the wings
+    // meet the top band and at the console's two lower corners
     clear(consoleTicks); clear(seamBolts);
     for (var x = dL + 24, i = 0; x <= dR - 24; x += 16, i++) {
       consoleTicks.appendChild(el('line', { x1: x.toFixed(1), y1: c.deck + 9, x2: x.toFixed(1), y2: c.deck + (i % 5 ? 12 : 15) }));
     }
-    [[c.sL, c.tY], [c.sR, c.tY], [dL, c.deck], [dR, c.deck]].forEach(function (b) {
+    [[tx, c.cY], [txR, c.cY], [dL, c.deck], [dR, c.deck]].forEach(function (b) {
       [-7, 7].forEach(function (dx) {
         seamBolts.appendChild(el('circle', { cx: (b[0] + dx).toFixed(1), cy: (b[1] + 11).toFixed(1), r: 1.6, fill: 'currentColor' }));
       });
@@ -1642,9 +1654,12 @@
       // COMMS beside the SPD bar: centred on it when the band to the reticle readouts (or the
       // dossier card, whichever is tighter) is wide enough; failing that, sliding up the bar
       // instead, bottom-anchored 12px above the readouts; the shared centre slot only as a
-      // last resort. The left edge (inset + 24, clear of the SPD caption and needle) is the
-      // same in every band -- only the vertical anchor and the right bound change.
-      var commsLeft = inset + 24, lb = hx.left.getBBox();
+      // last resort. The left edge (clear of the SPD caption and needle, and 16px past the left
+      // wing's seam) is the same in every band -- only the vertical anchor and the right bound
+      // change. wingX: the wings' inner vertical, 36px right of the SPD bar (whose caption and
+      // needle reach 12px either side); with the columns stood down, tucked into the gutter.
+      var wingX = room ? Math.max(W * 0.24, inset + 36) : Math.min(W * 0.24, inset / 2);
+      var commsLeft = Math.max(inset + 24, wingX + 16), lb = hx.left.getBBox();
       // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX
       // independently.
       var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
@@ -1660,7 +1675,7 @@
           if (commsFallbackTop < cy + LADDER_SPAN && commsFallbackTop + POP_H > cy - LADDER_SPAN) {
             commsFallbackTop = cy + LADDER_SPAN + 12;
           }
-          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : inset + 24, cx - idHalf - 24, commsFallbackTop, true, 0);
+          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : commsLeft, cx - idHalf - 24, commsFallbackTop, true, 0);
         }
       }
       // The toast keeps its slot right of TARGET ID, top-aligned with it; too narrow at any
@@ -1685,18 +1700,22 @@
       // current values, so a resize needs no extra push here
       if (fpm) xf(fpm, cx, cy);
 
-      // The canopy screens, cut around what was just placed: each side seam down the middle of
-      // the gap between a column and its SPD/ALT bar (the bar's caption reaches 12px either
-      // side), each console pod 8px over the instruments it holds, the top band 14px over the
-      // columns, notched down around the heading readout (46px half-wide) where that reaches
-      // lower. With the columns stood down, the seams split the empty gutters and the console is flat.
+      // The canopy screens, cut around what was just placed. The top band runs 14px over the
+      // columns, then slants down to its centre edge between the heading readout and TARGET
+      // ID's slot; the wings come down at wingX (above). Each console pod sits 8px over the
+      // instruments it holds, its corner mid-gap between a column and its bar. With the columns
+      // stood down the console is flat.
       var pod = function (top) { return room && top != null ? top - 8 : deckY; };
       var podL = pod(radarTop), podR = pod(podTopR);
       [laneRuleL, laneRuleR].forEach(function (r, i) { r.setAttribute('y2', i ? podR : podL); });
       layoutScreens({
-        tY: colTop - 14, tN: tapeBottom + 10, tHalf: 66, deck: deckY, podL: podL, podR: podR,
-        sL: room ? (colLx + colW + inset - 12) / 2 : inset / 2,
-        sR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2
+        yS: Math.min(H * 0.10, colTop - 14),
+        cY: Math.max(tapeBottom + 10, Math.min(H * 0.14, idY - HX_PAD - 10)),
+        colL: room ? colLx + colW + 12 : 0, colR: room ? colRx - 12 : W,
+        xv: wingX,
+        pL: room ? (colLx + colW + inset - 12) / 2 : inset / 2,
+        pR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2,
+        podL: podL, podR: podR, deck: deckY
       });
     }
   }

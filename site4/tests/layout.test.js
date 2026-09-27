@@ -102,6 +102,8 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       check(`${tag} rail brackets sit in the gaps`, rails.n >= 4 && rails.hits === 0, JSON.stringify(rails));
       // The canopy seams are cut around the instruments: none may run through a box. Sampled
       // every 2px along each seam; the console edge's third point is the lower centre edge.
+      // UNIT DATA and ARMAMENT are exempt: a lock overlay whose narrow fallback (flush to the
+      // right column) already sits over the ALT bar, so a wing behind it is no worse.
       const seams = JSON.parse(await p.eval(`JSON.stringify([...document.querySelectorAll('#screens .seam-line')]
         .map(l => l.getAttribute('points').split(' ').map(q => q.split(',').map(Number))))`));
       // the tape as its two real boxes: the tick strip and the readout housing under it
@@ -112,7 +114,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 2);
         for (let j = 0; j <= n; j++) {
           const x = x0 + (x1 - x0) * j / n, y = y0 + (y1 - y0) * j / n;
-          for (const b of r.all.concat(tape)) if (x > b.l + 1 && x < b.r - 1 && y > b.t + 1 && y < b.b - 1) crossed.add(b.name);
+          for (const b of r.all.concat(tape)) if (!/^hx:(UNIT|ARMAMENT)/.test(b.name) && x > b.l + 1 && x < b.r - 1 && y > b.t + 1 && y < b.b - 1) crossed.add(b.name);
         }
       }
       check(`${tag} no seam runs through a box`, seams.length === 4 && crossed.size === 0, [...crossed].join(', '));
