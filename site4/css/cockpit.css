@@ -189,6 +189,30 @@ a { color: inherit; }
   pointer-events: none;
 }
 
+/* The water on the canopy glass. Its own canvas, not part of #fx, for three reasons: the
+   bitmap PERSISTS (beads stay put between frames and are never cleared, which is what makes
+   300 of them free), the browser composites it on the GPU instead of us blitting it, and the
+   clip below is then free and per-pixel. scr-clip-all is the union of the five screen
+   polygons, built by hud.js buildScreens(), so the panes catch water and the seams stay dry.
+   Sub-pages have no #screens, so they go unclipped rather than point at a missing id. */
+#glass {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+body.hub #glass { clip-path: url(#scr-clip-all); }
+/* A sub-page is a document, not a view out of the cockpit, and its body text sits above the
+   glass rather than inside an opaque housing. Half strength keeps the canopy reading as wet
+   without a bead ever sitting on a word hard enough to cost legibility. */
+body.page #glass { opacity: .55; }
+/* Lightning through a wet windshield: every drop lights at once, for one rule and no extra
+   draw pass. Safe here -- the filter ban is on .pano-ring/.pano-slice/.target, where it would
+   flatten preserve-3d; a canvas has no 3D children. */
+#glass.flash { filter: brightness(2.2) contrast(1.1); }
+
 /* ---------- layer 3: the fixed cockpit frame ---------- */
 #frame {
   position: fixed;
@@ -478,6 +502,7 @@ a { color: inherit; }
   .pw { animation: none; }
   #screens.powering .shutter, #screens.powering .calib, #screens.powering .calib-spin,
   #screens.powering .seam { animation: none; }
+  #glass.flash { filter: none; }
 }
 
 /* ---------- 375px: no horizontal scroll, tilt reachable, 44px targets ---------- */

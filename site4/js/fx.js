@@ -29,11 +29,10 @@
     resizeTimer = setTimeout(resize, 150);
   });
 
-  // rain streaks + a few slow drops sliding on the canopy
+  // Rain out in the world. What lands on the canopy in front of you is glass.js's job — the
+  // five slow ellipses that used to stand in for it here are gone, replaced properly.
   function newStreak() { return { x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 18, speed: 6 + Math.random() * 6 }; }
-  function newDrop() { return { x: Math.random() * w, y: Math.random() * h, r: 2 + Math.random() * 3, speed: 0.6 + Math.random() * 0.6, drift: (Math.random() - 0.5) * 0.3 }; }
   var streaks = []; for (var i = 0; i < Math.round(70 * half); i++) streaks.push(newStreak());
-  var drops = []; for (var d = 0; d < Math.round(5 * half); d++) drops.push(newDrop());
 
   // distant beam flash every 6-12s at a random yaw, drawn only when that yaw is on screen
   var lastYaw = 0;
@@ -60,14 +59,6 @@
       ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - 2, s.y - s.len);
     }
     ctx.stroke();
-
-    ctx.fillStyle = 'rgba(220,231,238,' + (0.3 * half) + ')';
-    for (var d = 0; d < drops.length; d++) {
-      var dr = drops[d];
-      dr.y += dr.speed; dr.x += dr.drift;
-      if (dr.y > h) { dr.y = -dr.r; dr.x = Math.random() * w; }
-      ctx.beginPath(); ctx.ellipse(dr.x, dr.y, dr.r, dr.r * 1.6, 0, 0, Math.PI * 2); ctx.fill();
-    }
 
     if (beam) {
       var age = now - beam.t0;

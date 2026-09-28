@@ -1141,10 +1141,17 @@
     consoleTicks = el('g', { class: 'console-ticks' });
     seamBolts = el('g', { class: 'seam-bolts' });
     screensEl.appendChild(consoleTicks); screensEl.appendChild(seamBolts);
+    // One clipPath over all five screens. A clipPath's children union, so five polygons give
+    // exactly the five-monitor silhouette -- that is what canvas#glass clips to, so the water
+    // lands on the panes and the seams between them stay dry.
+    var allClip = el('clipPath', { id: 'scr-clip-all' });
+    defs.appendChild(allClip);
     SCREENS.forEach(function (s) {
       var clip = el('clipPath', { id: 'scr-clip-' + s[0] }), cpoly = el('polygon', {});
       clip.appendChild(cpoly);
       defs.appendChild(clip);
+      var upoly = el('polygon', {});
+      allClip.appendChild(upoly);
       var g = el('g', { class: 'screen' });
       var shutter = el('polygon', { class: 'shutter' });
       var calib = el('g', { class: 'calib', 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
@@ -1156,7 +1163,7 @@
       var seam = el('polygon', { class: 'seam' });
       g.appendChild(shutter); g.appendChild(calib); g.appendChild(seam);
       screensEl.appendChild(g);
-      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, spin: spin, seam: seam });
+      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, upoly: upoly, spin: spin, seam: seam });
     });
   }
   function toPts(poly, dx, dy) {
@@ -1201,6 +1208,7 @@
     screenParts.forEach(function (p) {
       var poly = polys[p.id], pts = toPts(poly), cx = 0, cy = 0;
       p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.seam.setAttribute('points', pts);
+      p.upoly.setAttribute('points', pts);
       poly.forEach(function (q) { cx += q[0]; cy += q[1]; });
       p.spin.style.setProperty('--cx', (cx / poly.length).toFixed(1) + 'px');
       p.spin.style.setProperty('--cy', (cy / poly.length).toFixed(1) + 'px');
@@ -1222,7 +1230,13 @@
         seamBolts.appendChild(el('circle', { cx: (b[0] + dx).toFixed(1), cy: (b[1] + 11).toFixed(1), r: 1.6, fill: 'currentColor' }));
       });
     });
+    lastPolys = polys;
+    emitScreens();
   }
+  // fx.js draws the water on the glass and needs the same polygons, to spawn inside them and to
+  // stop a runner dead at a seam. Cached rather than recomputed: place() already has them.
+  var lastPolys = null;
+  function emitScreens() { if (lastPolys) BUNNYS.emit('screens', { polys: lastPolys }); }
   function powerScreens() {
     if (!screensEl || BUNNYS.reduce) return;
     screenParts.forEach(function (p) { p.g.style.setProperty('--d', (SCREEN_LEAD + screenAt(p.id)) + 'ms'); });
@@ -1837,6 +1851,8 @@
       }, 1600);
       powerScreens();
       powerOn();
+      emitScreens();   // hud.js place()s before fx.js is parsed, so the first emit reached nobody
+
       scheduleCaution();
       scheduleComms(8000);
     });
