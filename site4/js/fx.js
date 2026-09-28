@@ -16,9 +16,18 @@
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Setting canvas.width clears the bitmap. Under reduced motion begin() draws the only
+    // frame there will ever be, so without this repaint one resize left the layer blank for
+    // good. Both callers route through here, so this is the one place it can be fixed.
+    if (started) draw(performance.now());
   }
   resize();
-  window.addEventListener('resize', resize);
+  // resize fires on every mobile URL-bar scroll; 150ms matches cockpit.js's own debounce
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 150);
+  });
 
   // rain streaks + a few slow drops sliding on the canopy
   function newStreak() { return { x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 18, speed: 6 + Math.random() * 6 }; }
