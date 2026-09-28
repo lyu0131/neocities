@@ -43,6 +43,34 @@ const specs = {
     }
   }
 
+  // The sphere's polar caps are CSS gradients, and they only meet the strip seamlessly if
+  // weather.js's SKY_EDGE/SEA_EDGE equal the strip's real first and last rows. DESIGN.md used
+  // to just tell a human to re-sample them by hand, which is the kind of instruction that
+  // rots. Measure it against the live values instead.
+  if (!only || only === 'pano') {
+    const rows = (file) => 'new Promise(function(res){var im=new Image();'
+      + 'im.onload=function(){var W=600,H=2000,c=document.createElement("canvas");c.width=W;c.height=H;'
+      + 'var x=c.getContext("2d");x.drawImage(im,0,0,W,H);'
+      + 'var row=function(y){var d=x.getImageData(0,y,W,1).data,s=[0,0,0];'
+      + 'for(var i=0;i<W;i++)for(var k=0;k<3;k++)s[k]+=d[i*4+k];'
+      + 'return s.map(function(v){return Math.round(v/W)})};'
+      + 'res(JSON.stringify([row(0),row(1999)]))};im.src="img/' + file + '";})';
+    const page = await launch({ width: 400, height: 300 });
+    for (const [file, id] of [['pano.svg', 'night-rain'], ['pano-day.svg', 'day-rain']]) {
+      if (!fs.existsSync(path.join(SITE, 'img/' + file))) continue;
+      await page.goto('index.html?wx=' + id, 900);
+      const caps = JSON.parse(await page.eval('JSON.stringify((window.BUNNYS && BUNNYS.wx && BUNNYS.wx.caps) || null)'));
+      const strip = await page.eval("getComputedStyle(document.querySelector('.pano-slice:not(.pole-top):not(.pole-bot)')).backgroundImage");
+      check(`${id} uses ${file}`, !!strip && strip.indexOf(file) > -1, String(strip).slice(0, 60));
+      if (!caps) { check(`${id} exposes caps`, false); continue; }
+      const got = JSON.parse(await page.eval(rows(file)));
+      const near = (a, b) => !!a && !!b && a.every((v, k) => Math.abs(v - b[k]) <= 2);
+      check(`${file} row 0 matches SKY_EDGE`, near(got[0], caps.SKY_EDGE), got[0] + ' vs ' + caps.SKY_EDGE);
+      check(`${file} last row matches SEA_EDGE`, near(got[1], caps.SEA_EDGE), got[1] + ' vs ' + caps.SEA_EDGE);
+    }
+    page.close();
+  }
+
   const pano = path.join(SITE, 'img/pano.svg');
   if ((!only || only === 'pano') && fs.existsSync(pano)) {  // seam render: the wrap from x=9200..9600 then 0..400 must look continuous
     const page = await launch({ width: 800, height: 400 });
