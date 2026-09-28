@@ -2,7 +2,9 @@ const fs = require('fs'), path = require('path');
 const { launch, check, SITE } = require('./cdp');
 const only = process.argv[2]; // optional: pano | frame | dmgmap
 const specs = {
-  pano:  [['img/pano.svg', '0 0 9600 2000', 350, []]],
+  // both weather strips: same geometry, different palette, so both inherit every check
+  pano:  [['img/pano.svg', '0 0 9600 2000', 350, []],
+          ['img/pano-day.svg', '0 0 9600 2000', 350, []]],
   frame: [['img/frame.svg', '0 0 1920 1080', 120, []]],
   dmgmap: [['img/dmgmap.svg', null, 120,
             ['dz-head','dz-chest','dz-body','dz-arm-r','dz-arm-l','dz-leg-r','dz-leg-l','dz-weapon']]]

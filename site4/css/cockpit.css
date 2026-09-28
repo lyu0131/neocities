@@ -107,6 +107,9 @@ a { color: inherit; }
   /* no will-change here: there are ~360 of these, and promoting every one to its own
      compositor layer cost more than it saved (measured: 166 -> 266 frames across the boot). */
 }
+/* weather.js puts wx-day on <html> before cockpit.js builds any .pano-slice, and a CSS
+   background only loads once an element matches it -- so exactly one strip is ever fetched. */
+.wx-day .pano-slice { background-image: url(../img/pano-day.svg); }
 
 /* boot: monitor panels flicker on one by one (js toggles this per slice) */
 .pano-slice.boot-flicker { animation: boot-flicker .5s steps(5, end) 1; }
@@ -187,6 +190,26 @@ a { color: inherit; }
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Weather over the scene. Overlay divs with a blend mode, never a filter: a filter on or
+   above .pano-ring flattens preserve-3d and collapses the sphere, which is why the
+   night-vision overlay is built the same way. weather.js sets the colour, blend and opacity
+   inline from the rolled condition. They sit before #fx in the DOM, so among the elements at
+   --z-fx the order is tint -> haze -> #fx -> #glass -> #screens -> nv-*: the sky is tinted,
+   and the rain and the water land on top of the tint rather than under it. */
+.wx-tint, .wx-haze {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-fx);
+  pointer-events: none;
+  opacity: 0;
+}
+/* denser toward the horizon, so it reads as the same atmosphere the panorama already bakes in
+   rather than a sheet laid over the whole view */
+.wx-haze {
+  mix-blend-mode: screen;
+  background: linear-gradient(to bottom, rgba(205,218,230,0) 16%, rgba(214,226,236,.92) 52%, rgba(198,212,225,.45) 100%);
 }
 
 /* The water on the canopy glass. Its own canvas, not part of #fx, for three reasons: the

@@ -42,8 +42,17 @@
   // sitting in the array as an invisible ghost.
   var WIPE = 1.4;
 
-  // Phase 1 is hardcoded to rain; weather.js replaces this wholesale in phase 2.
-  var wx = { beads: isPage ? 110 : 520, runners: isPage ? 0 : 20, spawn: 40, growth: 1 };
+  // Everything about how wet the glass gets comes from the one weather object, so the
+  // ENVIRONMENT panel's reading and what you see on the pane can never disagree. A sub-page
+  // is a document: beads only, no runners crawling behind the body text.
+  var WX = BUNNYS.wx || {};
+  var scale = isPage ? 0.21 : 1;
+  var wx = {
+    beads: Math.round((WX.beads != null ? WX.beads : 520) * scale),
+    runners: isPage ? 0 : (WX.runners != null ? WX.runners : 20),
+    spawn: (WX.spawn != null ? WX.spawn : 40) * scale,
+    growth: WX.growth != null ? WX.growth : 1
+  };
 
   var w = 0, h = 0;
   var beads = [];          // sorted by y, so a runner's absorption scan is a windowed walk
@@ -291,7 +300,7 @@
     if (document.hidden) { last = now; return; }
     var dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
     last = now;
-    step(dt, now, BUNNYS.wxShear ? BUNNYS.wxShear() : 34);
+    step(dt, now, WX.shear ? WX.shear() : 34);
   }
   function begin() {
     if (started) return;

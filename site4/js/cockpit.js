@@ -41,10 +41,13 @@
   // one ramp at each tile's true top and bottom latitude, so neighbouring bands agree
   // exactly at the seam and the 4% overlap matches whichever quad wins.
   var CAP_TOP = HORIZON_Y * DEG_PER_PX, CAP_BOT = (HORIZON_Y - IMG_H) * DEG_PER_PX;
-  var SKY_EDGE = [7, 12, 22], ZENITH = [3, 5, 11];
-  var SEA_EDGE = [9, 16, 31], NADIR = [4, 7, 14];
-  var CLOUD_LOW = [86, 63, 52];     // sodium bounce off the city, caught on the underside
-  var CLOUD_HIGH = [84, 96, 115];   // starlight only, up near the zenith
+  // weather.js owns the set, because the caps belong to whichever panorama it chose; these
+  // fallbacks are the night values, so cockpit.js stays correct standalone.
+  var CAPS = (BUNNYS.wx && BUNNYS.wx.caps) || {};
+  var SKY_EDGE = CAPS.SKY_EDGE || [7, 12, 22], ZENITH = CAPS.ZENITH || [3, 5, 11];
+  var SEA_EDGE = CAPS.SEA_EDGE || [9, 16, 31], NADIR = CAPS.NADIR || [4, 7, 14];
+  var CLOUD_LOW = CAPS.CLOUD_LOW || [86, 63, 52];    // sodium bounce off the city, underside
+  var CLOUD_HIGH = CAPS.CLOUD_HIGH || [84, 96, 115]; // starlight only, up near the zenith
   // x, y, rx, ry as % of the whole cap strip, then peak alpha, sliced per tile like the
   // panorama so one cloud spans several quads with no seam. x avoids 0/100: that's where
   // background-repeat's neighbouring copy sits, so a mass crossing the edge is cut, not wrapped.
