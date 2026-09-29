@@ -4,7 +4,7 @@ This repo holds plain static websites for Neocities: HTML, CSS and vanilla JS, w
 
 | folder | what it is |
 |---|---|
-| `index.html` | the first minimal Helvetica portfolio |
+| `site0/` | the first minimal Helvetica portfolio |
 | `site2/` | "light table": draggable xerox prints, ransom-note title, photocopy-on-click. Its Work page holds Sylas's real portfolio |
 | `site2-old/` | backup of site2 v1 (tidy grid) |
 | `site3/` | DOLOR/SIT: brutal CCTV, xerox and poster-wall style |
