@@ -4,7 +4,6 @@
   var BUNNYS = window.BUNNYS;
   var wrap360 = BUNNYS.wrap360, shortestDelta = BUNNYS.shortestDelta, clamp = BUNNYS.clamp;
   var state = BUNNYS.state;
-  var root = document.documentElement;
   var pano = document.getElementById('pano');
   var ring = pano.querySelector('.pano-ring');
   var targets = Array.prototype.slice.call(ring.querySelectorAll('.target'));
@@ -204,8 +203,8 @@
 
   var lastEmit = null;
   function emitView(yaw, pitch, vx, vy) {
-    root.style.setProperty('--yaw', yaw.toFixed(2) + 'deg');
-    root.style.setProperty('--pitch', pitch.toFixed(2) + 'deg');
+    // No --yaw/--pitch on :root here: nothing read them, and an inherited custom property
+    // changed per frame on the root restyled every node in the document (~9k) each frame.
     if (!lastEmit || Math.abs(lastEmit.yaw - yaw) > 0.01 || Math.abs(lastEmit.pitch - pitch) > 0.01) {
       lastEmit = { yaw: yaw, pitch: pitch };
       BUNNYS.emit('view', { yaw: yaw, pitch: pitch, vx: vx || 0, vy: vy || 0 });
