@@ -828,9 +828,13 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
 @keyframes pop-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
 
 /* DECLUTTER strips the secondary instruments and leaves the flight HUD: reticle, tape,
-   SPD/ALT, radar, status line. CSS beats the opacity attributes hud.js sets. */
+   SPD/ALT, radar, status line. CSS beats the opacity attributes hud.js sets. On a hostile
+   lock it keeps TARGET ID, the reticle readouts and the anchor warning, but drops the UNIT
+   DATA and ARMAMENT boxes and the COMMS popup (display, so its ACK leaves the tab order). */
 .declutter #hud .panel, .declutter #hud .dmgmap,
-.declutter #hud .foot, .declutter #hud .lane { opacity: 0; }
+.declutter #hud .foot, .declutter #hud .lane,
+.declutter #hud .hx-spec, .declutter #hud .hx-arms { opacity: 0; }
+.declutter #comms { display: none; }
 
 /* NIGHT VISION tints the scene only -- both layers sit at --z-fx, under the frame and the
    HUD, so the instruments stay crisp. No filter on the sphere: a filter flattens

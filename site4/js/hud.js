@@ -942,11 +942,11 @@
     d.idRows.forEach(function (r) { hxRow(idb, r[0], r[1], r[2]); });
     hxSeal(idb);
 
-    var sp = hxBox('UNIT DATA', 196, 'BNS-TAQ-0704');
+    var sp = hxBox('UNIT DATA', 196, 'BNS-TAQ-0704', 'hx-spec');
     d.spec.forEach(function (r) { hxRow(sp, r[0], r[1], r[2], false, r[3]); });
     hxSeal(sp);
 
-    var ar = hxBox('ARMAMENT DETECTED', 190, 'BNS-TAQ-0708');
+    var ar = hxBox('ARMAMENT DETECTED', 190, 'BNS-TAQ-0708', 'hx-arms');
     d.arms.forEach(function (r) { hxRow(ar, r[0], r[1], r[2], true); });
     hxSeal(ar);
 
