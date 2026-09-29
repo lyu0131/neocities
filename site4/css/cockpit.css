@@ -799,6 +799,9 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   letter-spacing: .1em;
 }
 .pop[hidden] { display: none; }
+/* HTML panels placed in HUD units: hud.js sets --ui on a short laptop screen and scales the
+   SVG HUD by the same factor, so these zoom with it (see uiScale() there) */
+.slew, .pop { zoom: var(--ui, 1); }
 .comms { padding: 14px 14px 12px; }
 .pop-head {
   display: flex;

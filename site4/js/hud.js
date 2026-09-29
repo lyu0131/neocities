@@ -16,6 +16,25 @@
   var NS = 'http://www.w3.org/2000/svg';
   var W = 0, H = 0;
 
+  // UI scale. The hub is laid out for about UI_REF_W x UI_REF_H of room; below that the columns
+  // stand instruments down and the UNKNOWN lock-on's boxes pile onto each other. The owner's
+  // laptop (~1280x668 inside Firefox) only looked right at Ctrl+- 70%, i.e. ~1830x950, so the
+  // hub shrinks itself to that instead. W/H become HUD units -- the viewBox is W x H over the full viewport, so every SVG
+  // instrument scales by K -- and .slew/.pop get CSS zoom: var(--ui), so their px lengths are
+  // HUD units too. Only getBoundingClientRect() reports on-screen px; rectOf() converts it.
+  // Not a root zoom: that shrinks 100vw with it and would break the pano's vw perspective.
+  var UI_REF_W = 1800, UI_REF_H = 940, UI_MIN = 0.65;
+  var K = 1;
+  function uiScale() {
+    if (isPage || innerWidth < 1000 || innerWidth < innerHeight) return 1;
+    return clamp(Math.min(innerWidth / UI_REF_W, innerHeight / UI_REF_H), UI_MIN, 1);
+  }
+  function rectOf(e) {
+    var r = e.getBoundingClientRect();
+    return { left: r.left / K, top: r.top / K, right: r.right / K, bottom: r.bottom / K,
+             width: r.width / K, height: r.height / K };
+  }
+
   function el(tag, attrs) {
     var e = document.createElementNS(NS, tag);
     for (var k in attrs) e.setAttribute(k, attrs[k]);
@@ -1471,7 +1490,9 @@
 
   // ---------------------------------------------------------------- responsive placement
   function place() {
-    W = Math.max(1, innerWidth); H = Math.max(1, innerHeight);
+    K = uiScale();
+    document.documentElement.style.setProperty('--ui', K);
+    W = Math.max(1, innerWidth / K); H = Math.max(1, innerHeight / K);
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     barH = Math.round(clamp(H * 0.2, 70, 160));
     var cx = W / 2, cy = H / 2;
@@ -1540,12 +1561,12 @@
       var slewEl = document.getElementById('slew');
       // back to their natural heights; the pod block below may stretch them again
       [slewEl, modeEl].forEach(function (e) { if (e) e.style.height = ''; });
-      var slewR = slewEl && slewEl.getBoundingClientRect();
+      var slewR = slewEl && rectOf(slewEl);
       if (slewEl && room) {
         slewEl.style.left = colRx + 'px';
         slewEl.style.right = 'auto';
         slewEl.style.width = colW + 'px';
-        slewR = slewEl.getBoundingClientRect();
+        slewR = rectOf(slewEl);
       }
       var slewVisible = !!(slewR && slewR.height);
       var modeR = null;
@@ -1553,7 +1574,7 @@
         modeEl.style.left = colRx + 'px';
         modeEl.style.width = colW + 'px';
         modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
-        modeR = modeEl.getBoundingClientRect();
+        modeR = rectOf(modeEl);
       }
       // The slew panel's media query hides it below 860px/520px, and a hidden element's rect is
       // all zeros -- then there's no right pod and a fixed foot margin instead. -16 under a pod
@@ -1583,9 +1604,9 @@
             var grow = (podTopR - radarTop) / 2;
             slewEl.style.height = (slewEl.offsetHeight + grow) + 'px';
             modeEl.style.height = (modeEl.offsetHeight + grow) + 'px';
-            slewR = slewEl.getBoundingClientRect();
+            slewR = rectOf(slewEl);
             modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
-            modeR = modeEl.getBoundingClientRect();
+            modeR = rectOf(modeEl);
           }
         }
       }
