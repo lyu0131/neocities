@@ -29,24 +29,10 @@
     resizeTimer = setTimeout(resize, 150);
   });
 
-  // Rain and snow out in the world. What lands on the canopy in front of you is glass.js's
-  // job -- the five slow ellipses that used to stand in for it here are gone, replaced
-  // properly. Everything here is sized by the rolled condition.
-  var WX = BUNNYS.wx || {};
-  var KIND = WX.kind !== undefined ? WX.kind : 'rain';
-  function shear() { return WX.shear ? WX.shear() : 34; }
-  function newStreak() { return { x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 18, speed: 360 + Math.random() * 360 }; }
-  // three parallax bands: the near flakes are big, fast and pale, the far ones small and faint
-  function newFlake() {
-    var band = Math.random();
-    return { x: Math.random() * w, y: Math.random() * h, band: band,
-             r: 0.7 + band * 2.4, speed: 18 + band * 62,
-             sway: 8 + band * 26, phase: Math.random() * 6.28 };
-  }
-  var N_WORLD = Math.round((WX.world != null ? WX.world : 70) * half);
-  var streaks = [], flakes = [], i;
-  if (KIND === 'rain') for (i = 0; i < N_WORLD; i++) streaks.push(newStreak());
-  if (KIND === 'snow') for (i = 0; i < N_WORLD; i++) flakes.push(newFlake());
+  // Rain out in the world. What lands on the canopy in front of you is glass.js's job — the
+  // five slow ellipses that used to stand in for it here are gone, replaced properly.
+  function newStreak() { return { x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 18, speed: 6 + Math.random() * 6 }; }
+  var streaks = []; for (var i = 0; i < Math.round(70 * half); i++) streaks.push(newStreak());
 
   // distant beam flash every 6-12s at a random yaw, drawn only when that yaw is on screen
   var lastYaw = 0;
@@ -60,67 +46,19 @@
   var fireT = -1;
   BUNNYS.on('fire', function () { fireT = performance.now(); });
 
-  // Lightning: a sky flash, not a drawn bolt -- branching geometry reads as a cartoon at this
-  // scale. Each strike also lights every drop on the glass at once, via one CSS rule on
-  // #glass, which is the half that sells it. Never under reduced motion: a full-screen flash
-  // is a safety matter there, not a preference.
-  var glassEl = document.getElementById('glass');
-  var strike = null;
-  function scheduleStrike() {
-    setTimeout(function () {
-      var n = 1 + Math.floor(Math.random() * 3);
-      strike = { t0: performance.now(), n: n, gap: 40 + Math.random() * 50, a: 0.10 + Math.random() * 0.25 };
-      scheduleStrike();
-    }, 8000 + Math.random() * 12000);
-  }
-  function lightning(now) {
-    if (!strike) return;
-    var age = now - strike.t0, span = strike.n * strike.gap + 120;
-    if (age > span) { strike = null; if (glassEl) glassEl.classList.remove('flash'); return; }
-    var sub = Math.floor(age / strike.gap);
-    var on = sub < strike.n && (age % strike.gap) < strike.gap * 0.6;
-    if (glassEl) glassEl.classList.toggle('flash', on);
-    if (!on) return;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = 'rgba(190,215,255,' + (strike.a * half).toFixed(3) + ')';
-    ctx.fillRect(0, 0, w, h);
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  var lastT = 0;
   function draw(now) {
     ctx.clearRect(0, 0, w, h);
 
-    var dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 1 / 60;
-    lastT = now;
-    var sh = shear();
-
-    if (streaks.length) {
-      ctx.strokeStyle = 'rgba(200,220,230,' + (0.25 * half) + ')';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      // the streak leans by the same wind the ENVIRONMENT panel prints, so turning the
-      // cockpit turns you into the weather and the rain slants the other way
-      for (var i = 0; i < streaks.length; i++) {
-        var s = streaks[i];
-        s.y += s.speed * dt; s.x += sh * dt;
-        if (s.y > h) { s.y = -s.len; s.x = Math.random() * w; }
-        else if (s.x < -40) s.x = w + 20; else if (s.x > w + 40) s.x = -20;
-        var lean = sh / s.speed * s.len;
-        ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - lean, s.y - s.len);
-      }
-      ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,220,230,' + (0.25 * half) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var i = 0; i < streaks.length; i++) {
+      var s = streaks[i];
+      s.y += s.speed; s.x += 0.6;
+      if (s.y > h) { s.y = -s.len; s.x = Math.random() * w; }
+      ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - 2, s.y - s.len);
     }
-
-    for (var fi = 0; fi < flakes.length; fi++) {
-      var fl = flakes[fi];
-      fl.y += fl.speed * dt;
-      fl.x += (sh * (0.25 + fl.band * 0.75) + Math.sin(now * 0.001 + fl.phase) * fl.sway) * dt;
-      if (fl.y > h + 4) { fl.y = -4; fl.x = Math.random() * w; }
-      if (fl.x < -20) fl.x = w + 10; else if (fl.x > w + 20) fl.x = -10;
-      ctx.fillStyle = 'rgba(232,242,250,' + ((0.18 + fl.band * 0.5) * half).toFixed(3) + ')';
-      ctx.beginPath(); ctx.arc(fl.x, fl.y, fl.r, 0, 6.2832); ctx.fill();
-    }
+    ctx.stroke();
 
     if (beam) {
       var age = now - beam.t0;
@@ -141,8 +79,6 @@
     ctx.fillStyle = 'rgba(140,255,193,' + (sl * half) + ')';
     ctx.fillRect(0, Math.floor(Math.random() * h), w, 1);
 
-    lightning(now);
-
     if (fireT >= 0) {
       var fAge = now - fireT;
       if (fAge < 280) { ctx.fillStyle = 'rgba(255,255,255,' + ((1 - fAge / 280) * 0.5) + ')'; ctx.fillRect(0, 0, w, h); }
@@ -157,7 +93,6 @@
     started = true;
     if (BUNNYS.reduce) { draw(performance.now()); return; } // one static frame, then stop
     scheduleBeam();
-    if (WX.lightning) scheduleStrike();
     raf = requestAnimationFrame(loop);
   }
   document.addEventListener('visibilitychange', function () {

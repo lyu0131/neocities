@@ -25,30 +25,9 @@ D_CITY, D_MID, D_NEAR = 1800., 1100., 600.
 # horizon, so feet at sea level need D > 18 / tan(31.875) = 28.96 m to stay on the image.
 D_BRIDGE, D_SHIP, D_HEAD, D_DOCK, D_SUIT = 1800., 1500., 4000., 92., 33.
 SEA_CITY, SEA_NEAR = ey(0, D_CITY), ey(0, D_NEAR)   # the far and near shorelines
-# Two variants off one geometry: python tools/gen_pano.py [night|day].  The layout is
-# identical in both -- ey() and the distances above own it, and no colour touches them -- so
-# the city, the bridge, the dock and the suit stand in exactly the same places by day.
-#
-# NIGHT was doing three jobs that only agree in the dark: the zenith sky, the body of the
-# storm deck, and the ink of every foreground silhouette.  By day they invert relative to one
-# another (a mid-grey cloud over a blue sky over near-black buildings), so they are three
-# constants now.  In the night row all three are the same value, which is what keeps the night
-# strip byte-for-byte what it always was.
-VARIANT = (sys.argv[1] if len(sys.argv) > 1 else 'night').lower()
-PAL = {
-    #          SKY        INK        CLOUD      INDIGO     TEAL       SOD        LIT  WIN  WET
-    'night': ('#060A12', '#060A12', '#060A12', '#0E1830', '#1F4E5F', '#FF9A3D', 1.0, 1.0, 1.0),
-    'day':   ('#2E5C8A', '#1A2430', '#41505E', '#6B93B8', '#C7D6E0', '#6E7F8E', .05, .30, .35),
-}
-assert VARIANT in PAL, 'unknown variant %r' % VARIANT
-SKY, INK, CLOUD, INDIGO, TEAL, SOD, LIT, WIN_LIT, WET = PAL[VARIANT]
-NIGHT = INK          # the ink job keeps the old name, so the silhouette call sites are untouched
-WHITE = '#FFFFFF'
-# LIT is the emissive scale, applied where a light is EMITTED, never where it is placed: every
-# element stays in the scene at the same index of the rnd stream, and only its opacity moves.
-# Skipping elements instead would reshuffle every later draw and give a different city.
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'img',
-                   'pano.svg' if VARIANT == 'night' else 'pano-%s.svg' % VARIANT)
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'img', 'pano.svg')
+
+NIGHT, INDIGO, TEAL, SOD, WHITE = '#060A12', '#0E1830', '#1F4E5F', '#FF9A3D', '#FFFFFF'
 def rgb(h): h = h.lstrip('#'); return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
 def mix(a, b, t):
     a, b = rgb(a), rgb(b)
@@ -85,9 +64,8 @@ def hgrad(id, st):  # periodic across the strip
     D.append('<linearGradient id="%s" x1="0" y1="0" x2="%d" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">%s</linearGradient>' % (id, W, stops(st)))
 def bgrad(id, st, x2=0, y2=1):  # per-shape
     D.append('<linearGradient id="%s" x1="0" y1="0" x2="%s" y2="%s">%s</linearGradient>' % (id, x2, y2, stops(st)))
-def rgrad(id, c, st=((0, 1), (.3, .55), (.65, .16), (1, 0)), lit=True):
-    k = LIT if lit else 1
-    D.append('<radialGradient id="%s">%s</radialGradient>' % (id, stops([(o, c, a * k) for o, a in st])))
+def rgrad(id, c, st=((0, 1), (.3, .55), (.65, .16), (1, 0))):
+    D.append('<radialGradient id="%s">%s</radialGradient>' % (id, stops([(o, c, a) for o, a in st])))
 
 rgrad('gS', SOD); rgrad('gT', GLINT); rgrad('gW', WHITE)
 def glow(x, y, rx, ry, g, op):
@@ -98,7 +76,7 @@ D.append('<symbol id="lp" overflow="visible"><circle r="15" fill="url(#gS)" opac
 D.append('<symbol id="lq" overflow="visible"><circle r="9" fill="url(#gS)" opacity=".45"/><circle r="2" fill="%s"/></symbol>' % SOD)
 
 # ---------------------------------------------------------------- sky
-vgrad('sky', 0, HZ, [(0, SKY, 1), (.38, mix(SKY, INDIGO, .85), 1), (.72, mix(INDIGO, TEAL, .14), 1), (1, mix(INDIGO, TEAL, .32), 1)])
+vgrad('sky', 0, HZ, [(0, NIGHT, 1), (.38, mix(NIGHT, INDIGO, .85), 1), (.72, mix(INDIGO, TEAL, .14), 1), (1, mix(INDIGO, TEAL, .32), 1)])
 add('<rect x="-10" y="-10" width="%d" height="%d" fill="url(#sky)"/>' % (W + 20, HZ + 20))
 for x, rx, ry, op in [(0, 2900, 600, .34), (650, 1000, 420, .2), (8900, 1000, 420, .2), (2750, 1100, 360, .17),
                       (6950, 1000, 320, .12), (7700, 800, 360, .15)]:
@@ -106,7 +84,7 @@ for x, rx, ry, op in [(0, 2900, 600, .34), (650, 1000, 420, .2), (8900, 1000, 42
 glow(4800, 1000, 1000, 380, 'gT', .2)    # cold haze the enemy stands against
 
 # ---------------------------------------------------------------- searchlights (drawn before the deck so the tips vanish into it)
-bgrad('beam', [(0, BEAM, 0), (.55, BEAM, .10 * LIT), (1, BEAM, .30 * LIT)])
+bgrad('beam', [(0, BEAM, 0), (.55, BEAM, .10), (1, BEAM, .30)])
 BEAMS = [(2330, 1100, -260, 430), (3880, 1110, 420, 480), (6880, 1105, -380, 430)]
 for bx, by, dx, ty in BEAMS:
     for o in images(min(bx, bx + dx) - 80, max(bx, bx + dx) + 80):
@@ -115,7 +93,7 @@ for bx, by, dx, ty in BEAMS:
         add('<path d="M%s %sL%s %s %s %s %s %sZ" fill="url(#beam)" opacity=".7"/>' % (f(x - 2), f(by), f(x + dx - 16), f(ty), f(x + dx + 16), f(ty), f(x + 2), f(by)))
 
 # rain curtains hanging from the deck: soft-edged, fading toward the sea
-bgrad('shaft', [(0, GLINT, 0), (.5, GLINT, .09 * WET), (1, GLINT, 0)], x2=1, y2=0)
+bgrad('shaft', [(0, GLINT, 0), (.5, GLINT, .09), (1, GLINT, 0)], x2=1, y2=0)
 for x, y, w, sl in [(1900, 560, 260, 60), (3450, 600, 340, 80), (5450, 560, 420, 70), (6250, 540, 260, 60), (4050, 600, 200, 50)]:
     k = sl / (HZ - y)
     for o in images(x, x + w + sl):
@@ -170,11 +148,11 @@ BANDS = [  # id, base(x), amplitude, glow step, body top/bottom colour, glow str
     ('c4', lambda x: 610 + 70 * gauss(x, 3050, 500) + 60 * gauss(x, 6950, 500) - 110 * calmw(x), 150, 6,
      (mix(INDIGO, TEAL, .05), mix(INDIGO, TEAL, .2)), .62, c4_pres),
     ('c3', lambda x: 480 + 60 * gauss(x, 2700, 900) + 70 * gauss(x, 6600, 800) - 60 * calmw(x), 160, 5,
-     (mix(CLOUD, INDIGO, .8), mix(INDIGO, TEAL, .12)), .46, None),
+     (mix(NIGHT, INDIGO, .8), mix(INDIGO, TEAL, .12)), .46, None),
     ('c2', lambda x: 360 + 60 * gauss(x, 4800, 1600) - 40 * calmw(x), 150, 5,
-     (mix(CLOUD, INDIGO, .55), mix(INDIGO, TEAL, .05)), .3, None),
+     (mix(NIGHT, INDIGO, .55), mix(INDIGO, TEAL, .05)), .3, None),
     ('c1', lambda x: 215 + 50 * gauss(x, 4800, 1600), 130, 4,
-     (CLOUD, mix(CLOUD, INDIGO, .7)), .18, 'full'),
+     (NIGHT, mix(NIGHT, INDIGO, .7)), .18, 'full'),
 ]
 for bid, base, amp, step, (ct, cb), gs, pres in BANDS:
     big = billow(terms([rnd.choice(r) for r in ([3, 4, 5], [7, 9, 11], [15, 17, 19], [27, 31], [47, 53], [83, 89])]))
@@ -232,7 +210,7 @@ add('<path d="%s" fill="%s"/>' % (ridge(headland), mix(NIGHT, INDIGO, .8)))
 def dots(pts, col, op, s=3):
     if pts:
         pts = pts + [(x - W, y) for x, y in pts if x > W - s]
-        add('<path fill="%s" opacity="%s" d="%s"/>' % (col, f(op * LIT, 2), ''.join('M%s %sh%sv%sh-%sz' % (f(x), f(y), s, s, s) for x, y in pts)))
+        add('<path fill="%s" opacity="%s" d="%s"/>' % (col, f(op, 2), ''.join('M%s %sh%sv%sh-%sz' % (f(x), f(y), s, s, s) for x, y in pts)))
 hl = {.3: [], .55: [], .85: []}
 for _ in range(1100):
     x = rnd.uniform(0, W); h = hills_far(x)
@@ -272,7 +250,7 @@ def win_pattern(pid, cw, ch, ww, wh, cols, rows, plit, strip=False):
             run = rnd.randint(2, 6) if strip else 1
             if rnd.random() < pr:
                 col = SOD if rnd.random() > .1 else mix(TEAL, WHITE, .55)
-                op = rnd.choice([.3, .5, .5, .75, 1]) * WIN_LIT
+                op = rnd.choice([.3, .5, .5, .75, 1])
                 x = c * cw + (cw - ww) / 2; y = r * ch + (ch - wh) / 2
                 wr = min(run, cols - c) * cw - (cw - ww)
                 groups.setdefault((col, op), []).append('M%s %sh%sv%sh-%sz' % (f(x), f(y), f(wr), f(wh), f(wr)))
@@ -422,7 +400,7 @@ def refl_symbol(sid, L):
         w = rnd.uniform(4, 13) * (1 + t * 1.3); x = rnd.gauss(0, 1.5 + t * 6) - w / 2
         groups[.8 if t < .25 else .45 if t < .6 else .2].append('M%s %sh%sv3h-%sz' % (f(x), f(y), f(w), f(w)))
         y += rnd.uniform(5, 11) * (1 + t * 1.6)
-    D.append('<symbol id="%s" overflow="visible">%s</symbol>' % (sid, ''.join('<path fill="%s" opacity="%s" d="%s"/>' % (SOD, f(o * LIT, 2), ''.join(v)) for o, v in groups.items())))
+    D.append('<symbol id="%s" overflow="visible">%s</symbol>' % (sid, ''.join('<path fill="%s" opacity="%s" d="%s"/>' % (SOD, f(o, 2), ''.join(v)) for o, v in groups.items())))
 for i, L in enumerate([120, 180, 250, 320, 400]): refl_symbol('r%d' % i, L)
 for x, s, b in REFL:
     k, op = min(4, int(s * 4.5 * rnd.uniform(.6, 1.1))), min(1, s * rnd.uniform(.6, 1))
@@ -554,7 +532,7 @@ CRANE = ('M0 0h12v-430h-12Z M150 0h12v-430h-12Z M-8 -448h178v20h-178Z M-8 -262h1
          'M76 -664L-428 -482L-424 -476L80 -656Z M86 -664L338 -482L334 -476L82 -656Z '
          'M150 -506h110v28h-110Z M-214 -456h40v14h-40Z M-196 -442h4v88h-4Z M-222 -354h56v10h-56Z')
 D.append('<symbol id="crane" overflow="visible"><path d="%s"/></symbol>' % CRANE)
-bgrad('cone', [(0, SOD, .16 * LIT), (1, SOD, 0)])
+bgrad('cone', [(0, SOD, .16), (1, SOD, 0)])
 for cx, sc in [(2440, CRANE_SC), (3260, round(CRANE_SC * .76, 2))]:   # 34 m and a shorter ~26 m crane
     for fx in (-300, -120, 240):   # floodlight cones under the boom
         lx, ly = cx + fx * sc, DKY - 454 * sc

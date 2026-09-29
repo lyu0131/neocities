@@ -493,17 +493,12 @@
         // Weather is decoration, so it holds still under reduced motion; the clock below doesn't,
         // since it's information.
         var hold = BUNNYS.reduce;
-        var WX = BUNNYS.wx || {};
-        var temp = (WX.tempC != null ? WX.tempC : 14.2) + (hold ? 0 : Math.sin(now / 5000) * 0.4);
-        setText(spec.wx, (WX.label || 'LIGHT RAIN') + ' ' + temp.toFixed(1) + '°C');
+        var temp = 14.2 + (hold ? 0 : Math.sin(now / 5000) * 0.4);
+        setText(spec.wx, 'LIGHT RAIN ' + temp.toFixed(1) + '°C');
 
-        // Same numbers the rain leans by: weather.js owns them, fx.js and glass.js read the
-        // same object, so the instrument cannot disagree with what is on the glass.
-        var windDeg = (WX.windDeg != null ? WX.windDeg : 240) + (hold ? 0 : Math.sin(now / 6100) * 8);
-        var windKt = (WX.windKt != null ? WX.windKt : 12) + (hold ? 0 : Math.sin(now / 4300 + 1) * 3);
-        // pad3, not toFixed(0): a bearing like 020 would otherwise shrink the string and force
-        // the arrow's x to be re-measured every frame
-        var windStr = pad3(windDeg) + '° ' + windKt.toFixed(0) + ' KT';
+        var windDeg = 240 + (hold ? 0 : Math.sin(now / 6100) * 8);
+        var windKt = 12 + (hold ? 0 : Math.sin(now / 4300 + 1) * 3);
+        var windStr = windDeg.toFixed(0) + '° ' + windKt.toFixed(0) + ' KT';
         if (spec.wind.textContent !== windStr) {
           spec.wind.textContent = windStr;
           // Positioned just left of the value text's rendered box, not a fixed offset (the string
@@ -514,8 +509,7 @@
         spec.windArrow.setAttribute('transform', 'translate(' + spec.windArrowX.toFixed(1) + ',' +
           spec.windArrowY.toFixed(1) + ') rotate(' + windDeg.toFixed(1) + ')');
 
-        var mm = BUNNYS.wx && BUNNYS.wx.mm != null ? BUNNYS.wx.mm : 3.75;
-        var precip = Math.max(0, mm + (hold || !mm ? 0 : Math.sin(now / 3700 + 2) * mm * 0.33));
+        var precip = 3.75 + (hold ? 0 : Math.sin(now / 3700 + 2) * 1.25);
         setText(spec.precip, precip.toFixed(1) + ' MM/H');
 
         // The viewer's own clock; rewritten only when its string changes, so a steady second
