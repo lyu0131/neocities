@@ -10,7 +10,6 @@
   var nav = document.getElementById('targets-nav');
   var navLinks = Array.prototype.slice.call(nav.querySelectorAll('a[data-target]'));
   var lockStatus = document.getElementById('lock-status');
-  var tiltBtn = document.getElementById('tilt');
 
   var SLICES = 24, SLICE_DEG = 15, HALF_SLICE = SLICE_DEG / 2;
   // The world is a sphere: the strip tessellates into LAT_BANDS rows of SLICES quads, each
@@ -304,15 +303,18 @@
 
   var dragging = false, lastDragX = 0, lastDragY = 0, velYaw = 0, dragDist = 0;
   var DRAG_SLOP = 6;   // px of travel past which a release is a drag, not a click
-  document.addEventListener('mousedown', function (e) {
-    if (!state.booted || e.button !== 0) return;
-    if (e.target.closest && e.target.closest('#targets-nav, .hud-btn')) return;
+  // Pointer events, so a mouse drag and a finger swipe are one input (a swipe never fires mouse
+  // events: the browser reads it as a pan or zoom -- #cockpit sets touch-action: none for that).
+  // Only the first finger steers; a second one, or the browser cancelling the gesture, ends it.
+  document.addEventListener('pointerdown', function (e) {
+    if (!state.booted || e.button !== 0 || !e.isPrimary) return;
+    if (e.target.closest && e.target.closest('#targets-nav, .hud-btn, button')) return;
     dragging = true; state.dragging = true; velYaw = 0; dragDist = 0; lastDragX = e.clientX; lastDragY = e.clientY;
     dropKeyLock();
     markInput();
   });
-  document.addEventListener('mousemove', function (e) {
-    if (!dragging) return;
+  document.addEventListener('pointermove', function (e) {
+    if (!dragging || !e.isPrimary) return;
     var dx = e.clientX - lastDragX, dy = e.clientY - lastDragY;
     dragDist += Math.abs(dx) + Math.abs(dy);
     targetYaw = wrap360(targetYaw - dx * 0.25);
@@ -321,7 +323,9 @@
     lastDragX = e.clientX; lastDragY = e.clientY;
     markInput();
   });
-  addEventListener('mouseup', function () { dragging = false; state.dragging = false; });
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    addEventListener(t, function (e) { if (e.isPrimary) { dragging = false; state.dragging = false; } });
+  });
   // A target label is a link, so a drag that starts and ends on one still fires a click and
   // navigates
   // away mid-turn. Swallow it past DRAG_SLOP, in the capture phase so it lands before the link's
@@ -401,28 +405,6 @@
     var m = /[?&]face=([\w-]+)/.exec(location.search), c = m && document.getElementById(m[1]);
     if (c && c.classList.contains('target')) turnTo(parseFloat(c.dataset.yaw) || 0);
   });
-
-  // phone tilt: ask permission once, then map gamma/beta relative to the enable point
-  if (!BUNNYS.fine && typeof DeviceOrientationEvent !== 'undefined') {
-    tiltBtn.hidden = false;
-    var tiltBase = null, tiltBaseYaw = 0, tiltLastG = 0;
-    tiltBtn.addEventListener('click', function () {
-      var start = function () {
-        tiltBase = null;
-        addEventListener('deviceorientation', function (e) {
-          if (e.gamma == null) return;
-          if (!tiltBase) { tiltBase = { g: e.gamma, b: e.beta || 0 }; tiltBaseYaw = state.yaw; tiltLastG = e.gamma; }
-          if (Math.abs(e.gamma - tiltLastG) > 1.5) { dropKeyLock(); tiltLastG = e.gamma; }
-          targetYaw = wrap360(tiltBaseYaw + (e.gamma - tiltBase.g));
-          targetPitch = clampPitch(-(e.beta - tiltBase.b) * 0.3);
-          markInput();
-        });
-        tiltBtn.hidden = true;
-      };
-      if (DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().then(function (r) { if (r === 'granted') start(); });
-      else start();
-    });
-  }
 
   // slew panel: turn the view onto a contact without dragging for it
   Array.prototype.forEach.call(document.querySelectorAll('#slew button[data-slew]'), function (b) {

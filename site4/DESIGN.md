@@ -17,7 +17,7 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 - `#cockpit` holds:
   - `#pano` > `.pano-ring` > the 24 `.pano-slice` elements (generated) plus the `.target` elements (`#t-pilot`, `#t-missions`, `#t-hangar`, `#t-unknown`), with `data-yaw`, `data-href` (not on unknown), `data-label` and `data-readout`;
   - `canvas#fx`, `img#frame`, `svg#hud` (hud.js builds its contents; the heading number is in `.hdg-readout`);
-  - `nav#targets-nav` (links carry `data-target`), `p#lock-status.sr-only[aria-live]` and `button#tilt.hud-btn`.
+  - `nav#targets-nav` (links carry `data-target`) and `p#lock-status.sr-only[aria-live]`.
 - `canvas#boot-scene` (the boot's picture: fixed, at the panorama's z-index but after `main`, so it paints over the panorama and under `#screens`, `#frame` and `#hud` -- the boot is seen through the five canopy screens the whole time) and `#boot` > `.boot-readout` (one HUD-style housing: `.boot-stage` with `.pips > i` and `.boot-stage-txt`, then `pre#boot-log`, fixed at four rows), `.boot-cap` (`.boot-title`, `.boot-note`, tone in `data-tone`), `.boot-bar > i`, `button#skip`. While `#boot` is up (and not `.boot-out`) the instruments stay hidden; the boot lands at yaw −52 (PILOT).
 - Z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, link 9, boot 10.
 - Sub-pages use `body.page`. They carry none of the cockpit HUD (no `#frame`, `#fx`, `#hud`, hud.js or fx.js);
@@ -78,7 +78,11 @@ Built at load from the page itself; nothing in the HTML. Instruments for reading
 
 ## Hub controls
 Drag, wheel, arrow keys **and WASD** (A/D yaw, W/S pitch; held keys turn continuously),
-`Home` faces forward, the slew panel turns onto a contact, and tilt on touch devices.
+`Home` faces forward, and the slew panel turns onto a contact. Drag is **pointer events**, so a mouse
+drag and a finger swipe are one input (only the first finger steers); `#cockpit` sets `touch-action: none`
+so the browser doesn't take a swipe as a pan or pinch. Phone tilt was removed (owner, 2026-10-01).
+On a screen too narrow for it (a phone, where the HUD isn't scaled), the lock-on card scales to fit
+with a 24px margin, still 20 over the deck, and its hint says TAP THE CONTACT TO OPEN.
 **Enter fires whatever is locked** (boresight, hover or a focused nav link), as the dossier's "PRESS
 ENTER OR CLICK TO OPEN" says. A focused control keeps its own Enter, except a SLEW button whose
 contact is already locked: Enter once turns onto it, Enter again opens it.

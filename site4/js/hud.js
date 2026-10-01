@@ -733,7 +733,9 @@
     // A target with an approach (href) reads as friendly/known; the unknown target (no href) never
     // resolves an IFF handshake.
     var iff = d.href ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
-    dosHint.textContent = (d.href ? 'PRESS ENTER OR CLICK TO OPEN' : 'NO APPROACH AUTHORISED') + ' — ' + iff;
+    // a phone has no Enter key and no cursor: say what works there
+    var open = BUNNYS.fine ? 'PRESS ENTER OR CLICK TO OPEN' : 'TAP THE CONTACT TO OPEN';
+    dosHint.textContent = (d.href ? open : 'NO APPROACH AUTHORISED') + ' — ' + iff;
     if (d.id !== dosLastId) {
       // Acquiring for the same 350ms the target's own bracket close-in takes (see .target
       // transition in cockpit.css), then locked.
@@ -1675,9 +1677,13 @@
     // Low in the frame, clear of the reticle and any contact under it, but never closer
     // than 18px to the status line -- derived from the card's own box height, not a
     // fixed fraction, since a fixed fraction runs through the status line at short sizes.
+    // The card is drawn a fixed width; where that won't fit with a margin (a phone, where the HUD
+    // isn't scaled down) it scales to fit instead of running off both edges and covering a
+    // quarter of the screen. Scaled from its own origin, so its bottom still sits 20 over the deck.
     var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
-    var dosY = deckY - 20 - dosBot;
-    xf(dossier, cx, dosY);
+    var dosS = Math.min(1, (W - 48) / parseFloat(dosBox.getAttribute('width')));
+    var dosY = deckY - 20 - dosBot * dosS;
+    xf(dossier, cx, dosY, dosS < 1 ? ' scale(' + dosS.toFixed(3) + ')' : '');
 
     // UNIT DATA and ARMAMENT are placed beside the contact, not in a column, so they read
     // as belonging to the suit and both side columns stay free for your own instruments.

@@ -101,6 +101,7 @@ function forceBanner(pg, text) {
   return pg.eval(`(() => { const g = document.querySelector('#hud .warn');
     g.setAttribute('opacity', 1); g.querySelector('.warn-text').textContent = ${JSON.stringify(text)}; })()`);
 }
+function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
 (async () => {
   const p = await launch({ width: 1440, height: 900 });
   await p.goto('index.html', 800);
@@ -436,6 +437,28 @@ function forceBanner(pg, text) {
   check('wind arrow stays >=6px clear of the value text across headings',
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
+
+  // phones: a finger swipe turns the view (pointer events; tilt is gone), and the lock-on card
+  // fits the screen instead of running off both edges
+  {
+    const m = await launch({ width: 375, height: 812 });
+    await m.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    await m.goto('index.html', 900);
+    for (let i = 0; i < 40 && !(await m.eval('BUNNYS.state.booted')); i++) { await m.key(' ', 'Space', 32); await m.sleep(150); }
+    await m.sleep(1500);
+    const y0 = await m.eval('BUNNYS.state.yaw');
+    await m.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 300, y: 300, id: 1 }] });
+    for (let k = 1; k <= 8; k++) { await m.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 300 - k * 12, y: 300, id: 1 }] }); await m.sleep(30); }
+    await m.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await m.sleep(600);
+    check('a finger swipe turns the view', Math.abs(BUNNYS_delta(y0, await m.eval('BUNNYS.state.yaw'))) > 10);
+    check('no tilt button', !(await m.eval("document.getElementById('tilt')")));
+    await m.eval("BUNNYS.emit('face', {yaw: 52})"); await m.sleep(1800);
+    const d = await m.eval("(() => { const b = document.querySelector('#hud > g.dossier > rect.plate').getBoundingClientRect(); return b.left >= 8 && b.right <= innerWidth - 8; })()");
+    check('lock-on card fits a 375px screen', d);
+    check('phone hint says tap', /TAP THE CONTACT/.test(await m.eval("document.querySelector('#hud .dos-hint').textContent")));
+    m.close();
+  }
 
   // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short. Since the
   // HUD scales itself down on laptop screens (K, hud.js uiScale), 1440x900 is no longer short --
