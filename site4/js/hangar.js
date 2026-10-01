@@ -13,7 +13,7 @@
   var gl = canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: false });
   function nogl() { var no = document.querySelector('.suit-nogl'); if (no) no.hidden = false; }
   if (!gl) { nogl(); return; }
-  var reduce = !!(window.BUNNYS && window.BUNNYS.reduce);
+  var BUNNYS = window.BUNNYS, reduce = BUNNYS.reduce, wrap360 = BUNNYS.wrap360;
   var readout = document.querySelector('.suit-yaw');
 
   function buf(b64) { var s = atob(b64), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a.buffer; }
@@ -82,11 +82,10 @@
 
   // ---- state ----
   var yaw = 20, hotZone = -1, lastInput = -1e9, swing = null, dragging = false;
-  var fit = fitAt(20).slice();
+  var fit = fitAt(yaw).slice();
   var hold = 4000;                              // how long a person's input pauses the turntable
   var SPIN = 12;                                // deg/s
 
-  function norm(a) { return ((a % 360) + 360) % 360; }
   function size() {
     var dpr = Math.min(window.devicePixelRatio || 1, 1.5);   // the spec's canvas cap
     var w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
@@ -120,14 +119,14 @@
       gl.uniform1f(U.hot, z === hotZone ? 1 : 0);
       gl.drawElements(gl.LINES, (ea[z + 1] - ea[z]) * 2, gl.UNSIGNED_SHORT, ea[z] * 4);
     }
-    var yawText = ('00' + Math.round(norm(yaw)) % 360).slice(-3);
+    var yawText = BUNNYS.pad(Math.round(wrap360(yaw)) % 360, 3);
     if (readout && readout.textContent !== yawText) readout.textContent = yawText;
   }
 
   // Draw only when the picture would change, and not at all while the model is off screen or the
   // tab is hidden: 18.5k triangles redrawn at 60-120Hz for nothing is battery.
-  var onScreen = true, drawn = '';
-  if (window.IntersectionObserver) new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; }).observe(canvas);
+  var onScreen = true, look = new Float64Array(9), drawn = new Float64Array(9).fill(NaN);
+  new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; }).observe(canvas);
   var last = performance.now();
   function frame(now) {
     requestAnimationFrame(frame);
@@ -138,23 +137,24 @@
       yaw = swing.from + swing.by * e;
       if (p >= 1) swing = null;
     } else if (!reduce && !dragging && now - lastInput > hold) {
-      yaw = norm(yaw + SPIN * dt);
+      yaw = wrap360(yaw + SPIN * dt);
     }
     // ease the framing toward this angle's fit, so the camera follows instead of jumping
-    var f = fitAt(Math.round(norm(yaw)) % 360), a = reduce ? 1 : 1 - Math.pow(0.002, dt);
+    var f = fitAt(Math.round(wrap360(yaw)) % 360), a = reduce ? 1 : 1 - Math.pow(0.002, dt);
     for (var i = 0; i < 4; i++) fit[i] += (f[i] - fit[i]) * a;
-    var key = [yaw.toFixed(2), fit.map(function (v) { return v.toFixed(3); }), hotZone,
-               canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio].join();
-    if (key !== drawn) { drawn = key; draw(); }
+    // what the picture depends on, compared as numbers (no per-frame strings); NaN-safe first draw
+    look[0] = yaw; look[1] = fit[0]; look[2] = fit[1]; look[3] = fit[2]; look[4] = fit[3];
+    look[5] = hotZone; look[6] = canvas.clientWidth; look[7] = canvas.clientHeight; look[8] = window.devicePixelRatio;
+    for (i = 0; i < 9; i++) if (!(Math.abs(look[i] - drawn[i]) <= 1e-3)) { drawn.set(look); draw(); break; }
   }
   requestAnimationFrame(frame);
 
   // ---- input ----
   function touch() { lastInput = performance.now(); }
   function swingTo(target) {
-    var by = ((norm(target) - norm(yaw) + 540) % 360) - 180;
+    var by = BUNNYS.shortestDelta(yaw, target);
     touch();
-    if (reduce) { yaw = norm(target); swing = null; return; }
+    if (reduce) { yaw = wrap360(target); swing = null; return; }
     swing = { from: yaw, by: by, t0: performance.now(), ms: 500 + Math.abs(by) * 3 };
   }
   var dragX = 0;
@@ -164,17 +164,17 @@
   });
   canvas.addEventListener('pointermove', function (e) {
     if (!dragging) return;
-    yaw = norm(yaw - (e.clientX - dragX) * 0.45); dragX = e.clientX; touch();
+    yaw = wrap360(yaw - (e.clientX - dragX) * 0.45); dragX = e.clientX; touch();
   });
   ['pointerup', 'pointercancel'].forEach(function (t) { canvas.addEventListener(t, function () { dragging = false; touch(); }); });
-  // keys work page-wide, not only with the model focused: arrows turn it, F / S / R swing to a view
-  var VIEW_KEYS = { f: 0, s: 90, r: 180 };
+  // keys work page-wide, not only with the model focused: arrows turn it, and F / S / R press the
+  // view button that carries that key (the angles live once, on the buttons)
   document.addEventListener('keydown', function (e) {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.target.closest && e.target.closest('input, textarea, select')) return;
-    if (e.key === 'ArrowLeft') { e.preventDefault(); swingTo(yaw + 30); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); swingTo(yaw - 30); }
-    else if (!e.repeat && e.key.toLowerCase() in VIEW_KEYS) { e.preventDefault(); swingTo(VIEW_KEYS[e.key.toLowerCase()]); }
+    if (!BUNNYS.keyable(e)) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); swingTo(yaw + 30); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); swingTo(yaw - 30); return; }
+    var vb = !e.repeat && /^[a-z]$/i.test(e.key) && document.querySelector('button[data-view][aria-keyshortcuts="' + e.key.toUpperCase() + '"]');
+    if (vb) { e.preventDefault(); vb.click(); }
   });
   Array.prototype.forEach.call(document.querySelectorAll('button[data-view]'), function (b) {
     b.addEventListener('click', function () { swingTo(parseFloat(b.dataset.view) || 0); });

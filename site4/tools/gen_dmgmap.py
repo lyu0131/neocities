@@ -137,7 +137,8 @@ def write_suit_mesh():
     # triangles grouped by zone, so each zone is one contiguous draw range
     order = np.argsort(zone, kind='stable')
     tri = faces[order].astype('<u2')
-    tri_at = [0] + list(np.cumsum([counts[z[0]] for z in ZONES]))
+    starts = lambda zs: [0] + list(np.cumsum(np.bincount(zs, minlength=8)))   # each zone's start
+    tri_at = starts(zone)
     # crease edges -- where the surface turns by more than CREASE degrees, or an open edge --
     # drawn as lines: the blueprint read of the old three-view, on the real geometry
     CREASE = 32.0
@@ -150,14 +151,14 @@ def write_suit_mesh():
     srt = np.argsort(einv, kind='stable')
     first = np.r_[0, np.cumsum(ecnt)[:-1]]
     fa = fid[srt][first]
-    keep = ecnt != 2
     two = ecnt == 2
-    fb = fid[srt][np.minimum(first + 1, len(srt) - 1)]
-    keep[two] = (fn[fa[two]] * fn[fb[two]]).sum(1) < np.cos(np.radians(CREASE))
+    keep = ~two
+    fb = fid[srt][first[two] + 1]      # an edge's second face, where it has exactly two
+    keep[two] = (fn[fa[two]] * fn[fb]).sum(1) < np.cos(np.radians(CREASE))
     ez = zone[fa[keep]]
     eo = np.argsort(ez, kind='stable')
     edges = uniq[keep][eo].astype('<u2')
-    edge_at = [0] + list(np.cumsum([int((ez == i).sum()) for i in range(8)]))
+    edge_at = starts(ez)
     assert len(verts) < 65536, 'too many vertices for 16-bit indices'
     b64 = lambda a: base64.b64encode(a.tobytes()).decode('ascii')
     out = os.path.join(HERE, '..', 'js', 'suitmesh.js')

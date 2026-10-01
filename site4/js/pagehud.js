@@ -8,19 +8,17 @@
    - a status line and progress bar along the foot (the only parts shown on a narrow screen). */
 (function () {
   'use strict';
-  var BUNNYS = window.BUNNYS || {};
-  var reduce = !!BUNNYS.reduce;
+  var BUNNYS = window.BUNNYS, pad = BUNNYS.pad, clamp = BUNNYS.clamp;
+  var reduce = BUNNYS.reduce;
   var screen = document.querySelector('.screen');
   if (!screen) return;
 
-  // the three contacts, as the cockpit places them (index.html data-yaw / data-readout)
-  var CONTACTS = [
-    { page: 'pilot', code: 'PIL', label: 'PILOT', brg: 308, rng: '0.4 KM' },
-    { page: 'missions', code: 'MIS', label: 'MISSIONS', brg: 0, rng: '1.2 KM' },
-    { page: 'hangar', code: 'HGR', label: 'HANGAR', brg: 52, rng: '0.1 KM' },
-    { page: null, code: 'UNK', label: 'UNKNOWN', brg: 180 }
-  ];
-  var here = (/([^\/]*?)(?:\.html)?$/.exec(location.pathname) || [])[1] || '';
+  // the cockpit's contacts (bunnys.js), each with its bearing on the scope; the pages among them
+  // are Q/E's order; link.js has already named the page we're on
+  // (copies, so the scope's DOM nodes don't land on the shared table)
+  var CONTACTS = BUNNYS.contacts.map(function (c) { return Object.assign({ brg: BUNNYS.wrap360(c.yaw) }, c); });
+  var PAGES = BUNNYS.contacts.filter(function (c) { return c.page; }).map(function (c) { return c.page; });
+  var here = document.documentElement.dataset.page;
   var me = CONTACTS.filter(function (c) { return c.page === here; })[0] || CONTACTS[0];
 
   function el(tag, cls, text) {
@@ -29,19 +27,13 @@
     if (text != null) e.textContent = text;
     return e;
   }
-  function pad(n, w) { return ('000' + n).slice(-w); }
 
   // ---- sectors: every panel on the page, in reading order ----
-  var used = {};
-  var sectors = Array.prototype.map.call(screen.querySelectorAll('.panel'), function (p) {
+  var sectors = Array.prototype.map.call(screen.querySelectorAll('.panel'), function (p, i) {
     var h = p.querySelector('h2, h3');
     // a panel with a long title names its own rung (data-sector), so the ladder stays legible
     var name = p.dataset.sector || (h ? h.textContent : 'Sector');
-    if (!p.id) {
-      var id = 's-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      while (used[id]) id += '-';
-      used[id] = 1; p.id = id;
-    }
+    p.id = p.id || 's-' + (i + 1);
     return { el: p, name: name.trim() };
   });
   if (!sectors.length) return;
@@ -109,11 +101,8 @@
   document.body.appendChild(prog);
 
   // ---- follow the scroll. The page's scroller is <body> (html and body are 100% tall), not the
-  // window, so read whichever box actually scrolls. ----
+  // window, so read it (and listen with capture: a body scroll doesn't reach window). ----
   var sc = document.body;
-  function scroller() {
-    return sc.scrollHeight > sc.clientHeight + 1 ? sc : document.scrollingElement;
-  }
   var cur = -1, queued = false, locked = null;
   // J/K (and a rung click) keep their own cursor, shown until the next manual scroll. Reading it
   // back off the scroll position fails three ways: two panels side by side share a top, the last
@@ -121,7 +110,7 @@
   // next key lands.
   var forced = null;
   function goSector(i) {
-    forced = Math.max(0, Math.min(sectors.length - 1, i));
+    forced = clamp(i, 0, sectors.length - 1);
     sectors[forced].el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     update();
   }
@@ -129,8 +118,7 @@
   ['wheel', 'touchstart', 'mousedown'].forEach(function (t) { addEventListener(t, manual, { passive: true }); });
   function update() {
     queued = false;
-    var s = scroller(), max = Math.max(1, s.scrollHeight - s.clientHeight);
-    var frac = Math.min(1, Math.max(0, s.scrollTop / max));
+    var frac = clamp(sc.scrollTop / Math.max(1, sc.scrollHeight - sc.clientHeight), 0, 1);
     // the panel under the reading line (40% down the viewport); the last one once at the bottom
     // (a panel beside another shares its top: the first of the row is the one being read)
     var line = innerHeight * 0.4, at = 0, atTop = -Infinity;
@@ -146,14 +134,16 @@
       cur = at;
     }
     var n = pad(at + 1, 2) + '/' + pad(sectors.length, 2);
-    secOut.textContent = n;
-    pctOut.textContent = pad(Math.round(frac * 100), 3) + '%';
-    status.textContent = locked
+    // text only when it changed: a rewrite every scroll frame re-lays-out the readouts for nothing
+    setText(secOut, n);
+    setText(pctOut, pad(Math.round(frac * 100), 3) + '%');
+    setText(status, locked
       ? 'LOCK ▸ ' + locked.label + ' · ENTER TO OPEN · ESC TO RELEASE'
-      : 'LINK ▸ ' + me.label + ' · ' + n + ' · ' + sectors[at].name.toUpperCase();
+      : 'LINK ▸ ' + me.label + ' · ' + n + ' · ' + sectors[at].name.toUpperCase());
     fill.style.transform = 'scaleY(' + frac.toFixed(4) + ')';
     prog.style.transform = 'scaleX(' + frac.toFixed(4) + ')';
   }
+  function setText(node, s) { if (node.textContent !== s) node.textContent = s; }
   function queue() { if (!queued) { queued = true; requestAnimationFrame(update); } }
   document.addEventListener('scroll', queue, { capture: true, passive: true });
   addEventListener('resize', queue);
@@ -164,7 +154,7 @@
   // ---- keys, the same map as the cockpit's: 1-4 lock a contact on the scope and Enter opens it
   // (the unknown one opens the cockpit facing it), Esc releases a lock or else goes back to the
   // cockpit, J/K the next/previous sector ----
-  function go(href) { if (BUNNYS.link) BUNNYS.link.go(href); else location.href = href; }
+  function go(href) { BUNNYS.link.go(href); }   // link.js: the shutters, or straight there under reduced motion
   function lock(c) {
     if (locked) locked.node.classList.remove('is-lock');
     locked = c === me ? null : c;            // this page's own contact is already "locked": it's here
@@ -172,7 +162,7 @@
     update();
   }
   document.addEventListener('keydown', function (e) {
-    if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!BUNNYS.keyable(e) || e.repeat) return;
     var n = '1234'.indexOf(e.key);
     if (n >= 0) { e.preventDefault(); lock(CONTACTS[n]); return; }
     if (e.key === 'Enter' && locked && !(e.target.closest && e.target.closest('a, button, summary, input, select, textarea'))) {
@@ -180,9 +170,11 @@
     }
     if (e.key === 'Escape') { e.preventDefault(); if (locked) lock(null); else go('index.html'); return; }
     var k = e.key.toLowerCase();
-    // Q / E: the page to the left / right, in the cockpit's order (pilot -52, missions 0, hangar +52), wrapping
-    var order = ['pilot', 'missions', 'hangar'], at = order.indexOf(here);
-    if ((k === 'q' || k === 'e') && at >= 0) { e.preventDefault(); go(order[(at + (k === 'e' ? 1 : 2)) % 3] + '.html'); return; }
+    // Q / E: the page to the left / right, in the cockpit's order, wrapping
+    var at = PAGES.indexOf(here);
+    if ((k === 'q' || k === 'e') && at >= 0) {
+      e.preventDefault(); go(PAGES[(at + (k === 'e' ? 1 : PAGES.length - 1)) % PAGES.length] + '.html'); return;
+    }
     if (k === 'j' || k === 'k') { e.preventDefault(); goSector(cur + (k === 'j' ? 1 : -1)); return; }
     // any other way of scrolling hands the ladder back to the scroll position
     if (/^(Arrow(Up|Down)|Page(Up|Down)|Home|End| )$/.test(e.key)) manual();

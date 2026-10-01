@@ -6,10 +6,9 @@
    Loaded in <head> without defer, so an arriving page is dark from its first paint. */
 (function () {
   'use strict';
-  var KEY = 'bunnys-link';      // {to, polys, W, H, t}: written as a page leaves, read once by the next
+  var KEY = 'bunnys-link';      // {to, t}: written as a page leaves, read once by the next
   var GEO = 'bunnys-canopy';    // the cockpit's last measured screens {polys, W, H}
   var OWN = /^(index|pilot|missions|hangar)\.html$/;
-  var LABEL = { index: 'COCKPIT', pilot: 'PILOT', missions: 'MISSIONS', hangar: 'HANGAR' };
   // A rough canopy at 1440x900, scaled to the viewport, for a page that has never measured the
   // cockpit's own (a visitor who landed straight on a sub-page).
   var FALLBACK = [
@@ -28,9 +27,11 @@
   // 'hangar.html', '/site4/hangar' and '/site4/' all name a page; a bare directory is the cockpit
   function pageOf(path) { var m = /([^\/]*?)(?:\.html)?$/.exec(path); return (m && m[1]) || 'index'; }
 
+  // the page we're on, once, for every script after this one (pagehud reads it)
+  var here = root.dataset.page = pageOf(location.pathname);
   var arriving = read(KEY);
   try { sessionStorage.removeItem(KEY); } catch (e) {}
-  if (reduce || !arriving || Date.now() - arriving.t > 6000 || arriving.to !== pageOf(location.pathname)) arriving = null;
+  if (reduce || !arriving || Date.now() - arriving.t > 6000 || arriving.to !== here) arriving = null;
   if (arriving) root.classList.add('link-in', 'linked');
 
   function scale(p, sx, sy) {
@@ -71,7 +72,8 @@
     var ys = polys[1].trim().split(/\s+/).map(function (q) { return +q.split(',')[1]; });
     label = document.createElement('p'); label.className = 'link-label';
     label.style.top = ((Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2).toFixed(0) + 'px';
-    label.textContent = 'LINK ▸ ' + (LABEL[to] || to.toUpperCase());
+    var c = to === 'index' ? { label: 'COCKPIT' } : (window.BUNNYS.contacts.filter(function (k) { return k.page === to; })[0] || {});
+    label.textContent = 'LINK ▸ ' + (c.label || to.toUpperCase());
     var small = document.createElement('small'); small.textContent = 'CHANNEL OPEN'; label.appendChild(small);
     ov.appendChild(label);
     document.body.appendChild(ov);
@@ -88,17 +90,18 @@
     leaving = true;
     var to = pageOf(href.split(/[?#]/)[0]), polys = geometry();
     build(polys, to);
-    anim(seams, [{ opacity: 0 }, { opacity: 0 }], 1);
-    anim(label, [{ opacity: 0 }, { opacity: 0 }], 1);
+    // start fetching the next page now, so it loads behind the shutters, not after them
+    var pre = document.createElement('link'); pre.rel = 'prefetch'; pre.href = href; document.head.appendChild(pre);
     lead = lead || 0;
+    // blades slide (transform, composited) inside each screen's clip, rather than animating a clip
     blades.forEach(function (b, i) {
-      anim(b, [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], 260, lead + i * 55, EASE_IN);
+      anim(b, [{ transform: 'translateY(-100%)' }, { transform: 'translateY(0)' }], 260, lead + i * 55, EASE_IN);
     });
     var shut = lead + 260 + 4 * 55;
     anim(seams, [{ opacity: 0 }, { opacity: 1 }, { opacity: .35 }], 260, shut);
     anim(label, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)' }], 200, shut, 'steps(8, end)');
     setTimeout(function () {
-      write(KEY, { to: to, polys: polys, W: innerWidth, H: innerHeight, t: Date.now() });
+      write(KEY, { to: to, t: Date.now() });
       location.href = href;
     }, shut + 260);
   }
@@ -109,7 +112,7 @@
     var o = ov;
     anim(label, [{ opacity: 1 }, { opacity: 0 }], 90, hold);
     blades.forEach(function (b, i) {
-      anim(b, [{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(100% 0 0 0)' }], 300, hold + i * 45, EASE_IO);
+      anim(b, [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], 300, hold + i * 45, EASE_IO);
     });
     anim(seams, [{ opacity: .35 }, { opacity: 0 }], 520, hold).finished.then(function () { o.remove(); if (ov === o) ov = null; });
   }
@@ -122,10 +125,10 @@
       // cover lifted. A sub-page shows the glass exactly as the last page left it, waits for its
       // type, then opens.
       if (!document.getElementById('screens')) {
-        var polys = arriving.W === innerWidth && arriving.H === innerHeight ? arriving.polys : geometry();
-        build(polys, arriving.to);
-        anim(seams, [{ opacity: .35 }, { opacity: .35 }], 1);
-        anim(label, [{ opacity: 1 }, { opacity: 1 }], 1);
+        // the same glass the last page closed (geometry() reads back the cockpit's saved screens)
+        build(geometry(), arriving.to);
+        blades.forEach(function (b) { b.style.transform = 'none'; });
+        seams.style.opacity = .35; label.style.opacity = 1;
         var fonts = document.fonts ? document.fonts.ready : Promise.resolve();
         Promise.race([fonts, new Promise(function (r) { setTimeout(r, 700); })]).then(function () { open(150); });
       }
@@ -139,7 +142,7 @@
       var a = e.target.closest && e.target.closest('a[href]');
       if (!a || a.target || a.hasAttribute('download')) return;
       var href = a.getAttribute('href');
-      if (!OWN.test(href) || pageOf(href) === pageOf(location.pathname)) return;
+      if (!OWN.test(href) || pageOf(href) === here) return;
       e.preventDefault();
       go(href);
     });

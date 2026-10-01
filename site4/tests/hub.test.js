@@ -235,6 +235,8 @@ function forceBanner(pg, text) {
   await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(900);
   check('unknown does not navigate', /index\.html$/.test(await p.eval('location.pathname')));
 
+  // the one contacts table (bunnys.js) and the cockpit's targets must agree
+  check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label && (!c.rng || t.dataset.readout.includes(c.rng)); })"));
   // Enter fires whatever is locked, not just a focused nav link
   const backToHub = async () => {
     await p.goto('index.html', 800); await ready(p);

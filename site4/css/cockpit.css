@@ -556,23 +556,24 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 /* ---------- sub-pages: a cockpit display in a bevelled screen ---------- */
 body.page { background: var(--night); overflow-x: hidden; }
 /* Out through the canopy: each sub-page looks at the cockpit's own panorama at the bearing its
-   target sits on (--pano-x = yaw x 26.667 in pano.svg units, set on <body>: pilot -52 deg, missions 0,
-   hangar +52). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw
+   target sits on (--brg on <body>, in degrees: pilot 308, missions 0, hangar 52; pano.svg is 26.667
+   units a degree). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw
    past each side so the drift never shows an edge. Dimmed and vignetted: the panels stay the read. */
 body.page::before {
   content: ""; position: fixed; inset: 0 -4vw; z-index: 0; pointer-events: none;
   background:
     radial-gradient(ellipse 80% 70% at 50% 58%, rgba(6, 10, 18, .2), rgba(6, 10, 18, .78)),
     linear-gradient(rgba(6, 10, 18, .6), rgba(6, 10, 18, 0) 38%, rgba(6, 10, 18, 0) 70%, rgba(6, 10, 18, .7)),
-    url(../img/pano.svg) calc(54vw - var(--pano-x, 0) * .085vh) -37.75vh / auto 170vh repeat-x;
-  animation: pano-drift 70s ease-in-out infinite alternate;
+    url(../img/pano.svg) calc(54vw - var(--brg, 0) * 26.6667 * .085vh) -37.75vh / auto 170vh repeat-x;
 }
+/* a slow drift, only where there's a mouse: on a phone it would keep the compositor awake for 1px/s */
+@media (hover: hover) { body.page::before { animation: pano-drift 70s ease-in-out infinite alternate; } }
 @keyframes pano-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
 @media (prefers-reduced-motion: reduce) { body.page::before { animation: none; } }
 
 .strip {
   /* above .screen (z 6), or the page scrolls up over the nav */
-  position: fixed; inset: 0 0 auto 0; z-index: 7;
+  position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
   display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
   padding: 12px 20px;
   background: linear-gradient(var(--housing-lip), var(--housing) 2px, var(--housing));
@@ -586,7 +587,7 @@ body.page::before {
 .strip .ret { color: var(--amber); }
 
 .screen {
-  position: relative; z-index: 6;
+  position: relative; z-index: 1;   /* over the panorama (body.page::before, z 0); page chrome is --z-nav */
   max-width: 1080px; margin: 0 auto; padding: 136px 20px 80px;
   color: var(--ice); font: 400 15px/1.6 'B612', system-ui, sans-serif;
 }
@@ -969,7 +970,7 @@ html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc
 #link { position: fixed; inset: 0; z-index: var(--z-link); pointer-events: none; }
 #link .link-shut { position: absolute; inset: 0; }
 #link .link-blade {
-  position: absolute; inset: 0; clip-path: inset(0 0 100% 0);
+  position: absolute; inset: 0; transform: translateY(-100%);
   background:
     repeating-linear-gradient(0deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
     repeating-linear-gradient(90deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
@@ -994,10 +995,11 @@ html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc
    width (never below 180px a side) so they always fit -- 1366 laptops included -- and they sit
    24px off its edge, or 20px off the window's on a narrow one. */
 @media (min-width: 1200px) {
-  .screen { max-width: min(1080px, calc(100vw - 360px)); }
-  .phud-ladder, .phud-scope { display: block; position: fixed; top: 132px; z-index: 5; width: 140px; }
-  .phud-ladder { left: max(20px, calc(50vw - min(540px, 50vw - 180px) - 164px)); }
-  .phud-scope { right: max(20px, calc(50vw - min(540px, 50vw - 180px) - 164px)); }
+  :root { --screen-w: min(1080px, 100vw - 360px); }
+  .screen { max-width: var(--screen-w); }
+  .phud-ladder, .phud-scope { display: block; position: fixed; top: 132px; z-index: var(--z-nav); width: 140px; }
+  .phud-ladder { left: max(20px, calc(50vw - var(--screen-w) / 2 - 164px)); }
+  .phud-scope { right: max(20px, calc(50vw - var(--screen-w) / 2 - 164px)); }
 }
 .phud-cap {
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
@@ -1044,39 +1046,32 @@ html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc
 a.phud-blip::after { content: ""; position: absolute; inset: -9px; }   /* a 26px target for an 8px mark */
 a.phud-blip:hover, a.phud-blip:focus-visible { background: var(--hud); outline: none; }
 a.phud-blip:focus-visible span { color: var(--amber); }
-.phud-blip.is-me { border-color: var(--amber); background: var(--amber); }
-.phud-blip.is-me span { color: var(--amber); }
-.phud-blip.is-me::before {         /* lock brackets */
-  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--amber), var(--amber));
+/* lock brackets: this page amber, a 1-4 lock red (the cockpit's lock-on colour) */
+.phud-blip.is-me { --bc: var(--amber); }
+.phud-blip.is-lock { --bc: var(--lock); opacity: 1; }
+.phud-blip.is-me, .phud-blip.is-lock { border-color: var(--bc); background: var(--bc); }
+.phud-blip.is-me span, .phud-blip.is-lock span { color: var(--bc); }
+.phud-blip.is-me::before, .phud-blip.is-lock::before {
+  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--bc), var(--bc));
   background: var(--c) top left / 6px 1.5px no-repeat, var(--c) top left / 1.5px 6px no-repeat,
     var(--c) top right / 6px 1.5px no-repeat, var(--c) top right / 1.5px 6px no-repeat,
     var(--c) bottom left / 6px 1.5px no-repeat, var(--c) bottom left / 1.5px 6px no-repeat,
     var(--c) bottom right / 6px 1.5px no-repeat, var(--c) bottom right / 1.5px 6px no-repeat;
 }
 .phud-blip.is-unk { border-color: var(--lock); opacity: .55; }
-/* locked with 1-4: red lock brackets, the same colour as a cockpit lock-on */
-.phud-blip.is-lock { opacity: 1; background: var(--lock); border-color: var(--lock); }
-.phud-blip.is-lock span { color: var(--lock); }
-.phud-blip.is-lock::before {
-  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--lock), var(--lock));
-  background: var(--c) top left / 6px 1.5px no-repeat, var(--c) top left / 1.5px 6px no-repeat,
-    var(--c) top right / 6px 1.5px no-repeat, var(--c) top right / 1.5px 6px no-repeat,
-    var(--c) bottom left / 6px 1.5px no-repeat, var(--c) bottom left / 1.5px 6px no-repeat,
-    var(--c) bottom right / 6px 1.5px no-repeat, var(--c) bottom right / 1.5px 6px no-repeat;
-}
 .phud-blip.is-unk span { color: var(--lock); }
 .phud-tel { display: grid; grid-template-columns: max-content 1fr; gap: 5px 12px; margin: 0; font: 700 10px/1.3 'B612 Mono', monospace; letter-spacing: .1em; }
 .phud-tel dt { color: var(--hud); }
 .phud-tel dd { margin: 0; color: var(--ice); text-align: right; font-variant-numeric: tabular-nums; }
 /* along the foot, at every size: where you are and how far through */
 .phud-status {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; margin: 0; padding: 20px 16px 11px;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); margin: 0; padding: 20px 16px 11px;
   pointer-events: none; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .18em; color: var(--hud);
   background: linear-gradient(transparent, rgba(6, 10, 18, .92) 55%);
 }
 .phud-prog {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; height: 2px; pointer-events: none;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); height: 2px; pointer-events: none;   /* after the status in the DOM, so on top of it */
   background: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .6); transform-origin: left; transform: scaleX(0);
 }
 @media (max-width: 480px) { .phud-status { font-size: 10px; letter-spacing: .1em; } }
@@ -1089,8 +1084,8 @@ kbd {
   border: 1px solid currentColor; border-radius: 2px; opacity: .6;
   font: 700 9px/1.1 'B612 Mono', monospace; letter-spacing: .04em; vertical-align: 1px;
 }
-#skip kbd, .strip .ret kbd { margin: 0 0 0 .6em; }
-.phud-cap kbd { margin: 0 0 0 4px; }
+/* a key before its label (the default) or after it */
+#skip kbd, .strip .ret kbd, .phud-cap kbd { margin: 0 0 0 .5em; }
 .strip li:has(> kbd) { display: flex; align-items: center; }
 .strip li > kbd { margin: 0; }
 @media (hover: none) { kbd { display: none; } }

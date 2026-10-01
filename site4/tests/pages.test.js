@@ -20,6 +20,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
     check(`${pg} nav marks current page`, await p.eval(`!!document.querySelector('a[aria-current="page"][href$="${pg}"]')`));
     // the sub-page HUD (js/pagehud.js): one ladder rung per panel, and it follows the scroll
     check(`${pg} HUD has a rung per panel`, await p.eval("document.querySelectorAll('.phud-ladder li').length === document.querySelectorAll('.screen .panel').length"));
+    check(`${pg} background bearing matches its contact`, await p.eval("(() => { const c = BUNNYS.contacts.find(c => c.page === document.documentElement.dataset.page); return +getComputedStyle(document.body).getPropertyValue('--brg') === BUNNYS.wrap360(c.yaw); })()"));
     check(`${pg} has none of the cockpit HUD`, await p.eval("!document.getElementById('hud') && !document.getElementById('frame')"));
     // J/K step one sector at a time, fast presses included, and K comes back from the very end
     const rung = () => p.eval("[...document.querySelectorAll('.phud-ladder a')].findIndex(a => a.classList.contains('is-on')) + 1");

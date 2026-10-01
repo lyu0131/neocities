@@ -266,7 +266,7 @@
     var href = t.dataset.href;
     if (!href) return; // t-unknown locks but never fires
     markInput();
-    if (BUNNYS.reduce || !BUNNYS.link) { location.href = href; return; }
+    if (!BUNNYS.link) { location.href = href; return; }   // link.go itself goes straight there under reduced motion
     t.classList.add('is-fired');
     setTimeout(function () { t.classList.remove('is-fired'); }, 200);
     BUNNYS.link.go(href, 160);
@@ -356,8 +356,7 @@
   window.addEventListener('blur', function () { held = {}; });
 
   document.addEventListener('keydown', function (e) {
-    if (!state.booted) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!state.booted || !BUNNYS.keyable(e)) return;
     var role = keyRole(e);
     if (role) {
       dropKeyLock();
@@ -374,7 +373,7 @@
     // Enter fires whatever is locked -- boresight, hover or focus -- as the dossier's "PRESS ENTER
     // OR CLICK TO OPEN" says. A focused control keeps its own Enter, except a SLEW button whose
     // contact is already locked: Enter once turns onto it, Enter again opens it.
-    if (e.key === 'Enter' && !e.defaultPrevented && !e.repeat) {
+    if (e.key === 'Enter' && !e.repeat) {
       var t = currentTarget();
       var ctl = e.target.closest && e.target.closest('button, a, input, textarea, select');
       if (ctl && !(t && ctl.dataset.slew === t.id)) return;
@@ -382,11 +381,11 @@
       return;
     }
     if (e.repeat) return;
-    // 1-4: swing onto a contact and lock it; Enter then opens it
+    // 1-4: what the matching SLEW button does -- swing onto that contact and lock it; Enter opens it
     var n = '1234'.indexOf(e.key);
     if (n >= 0) {
-      var c = document.getElementById(CONTACT_KEYS[n]);
-      if (c) { e.preventDefault(); keyTarget = c; turnTo(parseFloat(c.dataset.yaw) || 0); refreshLock(); }
+      var sb = document.querySelector('#slew [data-slew="' + BUNNYS.contacts[n].id + '"]');
+      if (sb) { e.preventDefault(); sb.click(); }
       return;
     }
     // HUD MODE by key -- X declutter, N night vision, R run diag, C comms -- and Esc acknowledges comms
@@ -395,7 +394,6 @@
     if (mb) { e.preventDefault(); mb.click(); return; }
     if (e.key === 'Escape') { var ack = document.querySelector('#comms:not([hidden]) .comms-ack'); if (ack) ack.click(); }
   });
-  var CONTACT_KEYS = ['t-pilot', 't-missions', 't-hangar', 't-unknown'];
   // index.html?face=t-unknown (a sub-page's 4 + Enter) arrives facing that contact. A query, not a
   // #fragment: a fragment sends the browser scrolling toward the element, inside the overflow:hidden,
   // 3D-transformed panorama.
