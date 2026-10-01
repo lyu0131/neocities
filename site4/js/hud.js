@@ -6,7 +6,18 @@
    Layout is responsive: the viewBox tracks the real viewport and every group is
    placed against an edge in place(). A fixed 1920x1080 viewBox desynced from
    frame.svg's xMidYMax crop at any aspect but 16:9, which pushed the status line
-   and the bottoms of both bars off screen on a wide, short window. */
+   and the bottoms of both bars off screen on a wide, short window.
+
+   Sections, top to bottom: shared drawing helpers (el/corners/housing/header/
+   stencil); heading tape; boresight; status line; SPD/ALT bars; radar scope;
+   instrument panels (reactor/thruster/combat/environment); damage map; target
+   dossier; caution banner; hostile contact; hostile alarm log; power-on; five
+   canopy screens; HUD MODE/comms/toast; foot bars; responsive placement
+   (place(), the biggest single function -- it positions everything above);
+   pitch ladder; flight-path marker; init & main loop (builds everything once,
+   wires bunnys: events, runs the rAF tick()). One IIFE throughout; functions
+   call forward and back across sections freely, so this order is a reading
+   aid, not a dependency boundary. */
 (function () {
   'use strict';
   var BUNNYS = window.BUNNYS;
@@ -47,6 +58,7 @@
   function cardinal(h) { return h === 0 ? 'N' : h === 90 ? 'E' : h === 180 ? 'S' : h === 270 ? 'W' : null; }
   function xf(g, x, y, extra) { g.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' + (extra || '')); }
 
+  // ---------------------------------------------------------------- shared drawing helpers
   // Registration-mark corner brackets, ruler tick scales and stencilled part-number captions,
   // shared by every panel so they read as machined housings. Fictional but fixed, not per-frame.
   function corners(x0, y0, w, h, len) {
@@ -1098,6 +1110,7 @@
   // rect could leave them out of phase -- one shared clock can't drift against itself.
   var ALARM_HALF = 400;
 
+  // ---------------------------------------------------------------- power-on
   // Instruments power on one after another as the cockpit opens: flight instruments first, then
   // the left column top to bottom, the right column, the foot row. The CSS keyframes fill
   // backwards only, so once a group's flicker ends its own opacity attribute rules again and a
@@ -1788,6 +1801,7 @@
   // against cy - 40 so the log always clears the reticle readouts (hx.left/hx.right).
   function logBottom() { return hxLogBottom; }
 
+  // ---------------------------------------------------------------- pitch ladder
   // Pitch ladder: rungs built once (this runs beside a 360-element CSS-3D panorama, so no
   // per-frame DOM churn), values rewritten per frame by updateLadder(). Roll/dx/dy come
   // from a damped spring in tick() below, off real yaw/pitch rate rather than drag-only
@@ -1830,6 +1844,7 @@
     fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
   });
 
+  // ---------------------------------------------------------------- init & main loop
   buildScreens(); buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
   place();
   drawHeading(0); updateLadder(0, 0, 0, 0); drawRadar(0);
