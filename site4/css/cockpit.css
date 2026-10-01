@@ -108,16 +108,6 @@ a { color: inherit; }
      compositor layer cost more than it saved (measured: 166 -> 266 frames across the boot). */
 }
 
-/* boot: monitor panels flicker on one by one (js toggles this per slice) */
-.pano-slice.boot-flicker { animation: boot-flicker .5s steps(5, end) 1; }
-@keyframes boot-flicker {
-  0%, 100% { filter: none; opacity: 1; }
-  12% { filter: brightness(7) saturate(0) contrast(1.2); opacity: 1; }
-  30% { filter: brightness(.15); opacity: .8; }
-  48% { filter: brightness(5) saturate(0); opacity: 1; }
-  70% { filter: brightness(.4); opacity: .9; }
-}
-
 /* ---------- targets (children of .pano-ring, turn with the scene) ---------- */
 .target {
   position: absolute;
@@ -315,50 +305,91 @@ a { color: inherit; }
 #lock-status { z-index: var(--z-nav); }
 
 /* ---------- the boot overlay ---------- */
+/* The boot is seen through the cockpit's five canopy screens and frame, which stay on screen
+   the whole time. Its picture is canvas#boot-scene, a fixed layer at the panorama's z-index but
+   later in the document, so it paints over the panorama and under #fx/#screens, #frame and
+   #hud. #boot on top carries only the type, which stays crisp at any size. */
+#boot-scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: var(--z-pano);
+  background: var(--night);   /* dark from first paint, before boot.js draws */
+  pointer-events: none;
+  transition: opacity .6s ease;
+}
 #boot {
   position: fixed;
   inset: 0;
   z-index: var(--z-boot);
-  background: var(--night);
   color: var(--hud);
-  transition: opacity .35s ease; /* boot.js removes the node 350ms after adding .boot-out */
+  pointer-events: none;
+  transition: opacity .6s ease; /* boot.js removes the node 650ms after adding .boot-out */
 }
-#boot.boot-out { opacity: 0; pointer-events: none; }
+#boot #skip { pointer-events: auto; }
+#boot.boot-out, #boot-scene.boot-out { opacity: 0; pointer-events: none; }
+/* The instruments stay dark through the boot -- only the screens and the frame are lit -- and
+   power on at the hand-over (hud.js powerOn), the moment the boot starts to fade. */
+body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms, #toast, #tilt) { visibility: hidden; }
 
-/* the splash: a firmware screen, brand + bar, staying on screen for the whole boot while
-   the log types itself in below -- the owner wants the two running at the same time. */
-.boot-splash {
+.boot-stage {
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 48px));
-  text-align: center;
-}
-.boot-mark {
+  left: 24px;
+  top: 20px;
   margin: 0;
-  font: 700 clamp(44px, 9vw, 92px)/1 'B612', sans-serif;
-  letter-spacing: .14em;
-  text-indent: .14em;   /* letter-spacing pads the right only; pull the block back to centre */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 700 12px 'B612 Mono', monospace;
+  letter-spacing: .3em;
   color: var(--hud);
-  filter: var(--glow);
 }
-.boot-sub {
-  margin: 14px 0 0;
-  font: 700 13px/1 'B612 Mono', monospace;
-  letter-spacing: .42em;
-  text-indent: .42em;
+.boot-stage .pips { display: flex; gap: 4px; }
+.boot-stage .pips i { width: 14px; height: 3px; background: rgba(140, 255, 193, .2); transition: background .3s; }
+.boot-stage .pips i.on { background: var(--hud); }
+#boot-log {
+  position: absolute;
+  left: 24px;
+  top: 44px;
+  margin: 0;
+  font: 12px/1.7 'B612 Mono', monospace;
+  letter-spacing: .02em;
+  color: var(--hud);
+  opacity: .8;
+  white-space: pre;
+}
+
+/* captions under the monitor; boot.js sets `top` so they clear the panel at any size */
+.boot-cap { position: absolute; left: 16px; right: 16px; text-align: center; transition: opacity .4s ease, transform .6s cubic-bezier(.65, 0, .35, 1); }
+.boot-title {
+  margin: 0;
+  min-height: 1.1em;
+  font: 700 clamp(22px, 4.4vw, 44px)/1.1 'B612', sans-serif;
+  letter-spacing: .08em;
   color: var(--ice);
-  opacity: .72;
+  text-shadow: 0 0 14px rgba(6, 10, 18, .9);
 }
-.boot-bar {
-  height: 3px;
-  margin: 22px auto 0;
-  background: rgba(140, 255, 193, .16);
-  overflow: hidden;
+.boot-title[data-tone=hud] { color: var(--hud); filter: var(--glow); }
+.boot-note {
+  margin: 10px 0 0;
+  min-height: 1.4em;
+  font: 700 12px/1.4 'B612 Mono', monospace;
+  letter-spacing: .4em;
+  text-indent: .4em;
+  color: rgba(221, 231, 238, .7);
+  text-shadow: 0 0 10px rgba(6, 10, 18, .9);
 }
-/* scaleX, not width: a width animation runs on the main thread, so it froze solid
-   whenever the panorama rasterised -- which is exactly what "the boot gets stuck" looked
-   like. On transform it stays on the compositor and keeps moving through any stall. */
+.boot-note[data-tone=hud] { color: var(--hud); }
+.boot-note[data-tone=amber] { color: var(--amber); }
+.boot-note[data-tone=go] { color: var(--amber); font-size: clamp(15px, 2.4vw, 22px); letter-spacing: .6em; text-indent: .6em; }
+.boot-stage, .boot-title, .boot-note { transition: opacity .16s ease; }
+.boot-cap.is-out, .boot-stage.is-out, .boot-title.is-out, .boot-note.is-out { opacity: 0; }
+
+.boot-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(140, 255, 193, .12); }
+/* No CSS animation: boot.js sets scaleX every frame from the boot clock, the same clock the
+   scene and captions read, so they can never drift apart. */
 .boot-bar i {
   display: block;
   height: 100%;
@@ -366,44 +397,6 @@ a { color: inherit; }
   transform: scaleX(0);
   transform-origin: 0 50%;
   background: var(--hud);
-}
-/* The bar has no CSS animation: boot.js sets its scaleX every frame from the boot clock,
-   the same clock the log reads, so the two can never drift apart. */
-.boot-cursor { animation: boot-blink 1s steps(2, end) infinite; }
-@keyframes boot-blink { 50% { opacity: 0; } }
-.boot-ver {
-  margin: 12px 0 0;
-  font: 11px/1 'B612 Mono', monospace;
-  letter-spacing: .12em;
-  color: var(--ice);
-  opacity: .4;
-}
-
-#boot-log {
-  position: absolute;
-  left: 24px;
-  bottom: 48px; /* clears .boot-cursor, which boot.js pins to left:24px bottom:24px */
-  max-width: calc(100vw - 48px);
-  margin: 0;
-  font: 14px/1.7 'B612 Mono', monospace;
-  letter-spacing: .02em;
-  color: var(--hud);
-  filter: drop-shadow(0 0 2px var(--hud));
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* boot.js creates these two elements and styles their position/size/colour inline as a
-   fallback; it relies on cockpit.css for the rest of the look (glow, type) and for the
-   --hud token the inline var(--hud, #8CFFC1) falls back from. Do not set position/left/
-   bottom/width/height/background/opacity here — the inline styles already own those. */
-.boot-cursor {
-  filter: drop-shadow(0 0 3px var(--hud));
-}
-.boot-callsign {
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  filter: var(--glow);
 }
 
 #boot #skip {
@@ -413,8 +406,7 @@ a { color: inherit; }
 }
 
 /* frame seam glow (spec 6): "the frame seams glow green then settle". boot.js adds
-   seam-glow at FLICKER_AT (panels start lighting) and removes it in finish(), so the
-   glow runs for the rest of the boot rather than a fixed 1900-3100ms window. */
+   seam-glow as the boot hands over to the hub and removes it 1.3s later. */
 #frame.seam-glow { animation: frame-seam-glow 1.2s ease-out 1; }
 
 /* The five canopy screens (hud.js buildScreens). Between the panorama and the frame; never
@@ -467,13 +459,11 @@ a { color: inherit; }
 
 /* ---------- reduced motion: land in the finished state, no flashes ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .pano-slice.boot-flicker { animation: none; filter: none; opacity: 1; }
   #hud.hud-draw :is(path, line, polyline, circle, rect) { animation: none; stroke-dashoffset: 0; }
   #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
   .target { transition: none; }
   #boot { transition: none; }
   .boot-bar i { transform: scaleX(1); }
-  .boot-cursor { animation: none; }
   #frame.seam-glow { animation: none; filter: none; }
   .pw { animation: none; }
   #screens.powering .shutter, #screens.powering .calib, #screens.powering .calib-spin,
@@ -489,7 +479,7 @@ a { color: inherit; }
   .target { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
   .target.is-locked { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
   .target::after { max-width: 22ch; font-size: 11px; }
-  #boot-log { left: 12px; bottom: 12px; font-size: 12px; max-width: calc(100vw - 24px); }
+  #boot-log, .boot-stage { left: 12px; }
 }
 
 /* ---------- instruments: radar scope, system gauges, caution banner ---------- */

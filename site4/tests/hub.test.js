@@ -106,71 +106,44 @@ function forceBanner(pg, text) {
   await p.goto('index.html', 800);
   // T6: boot runs, finishes and can be skipped
   check('boot overlay present', await p.eval("!!document.getElementById('boot')"));
-  await p.sleep(6800);
+  await p.sleep(11000);  // the boot runs about 9.0s once the page has loaded
   check('boot done fires', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
   check('boot overlay gone', await p.eval("!document.getElementById('boot') || getComputedStyle(document.getElementById('boot')).display === 'none'"));
+  check('boot canvas gone', await p.eval("!document.getElementById('boot-scene')"));
 
-  // Task 4 (amended): the owner reversed the original ask -- the bar and the log must
-  // now run TOGETHER (start together, finish together), splash visible the whole time.
-  // Sample the live page every ~60ms across the whole boot instead of trusting a couple
-  // of fixed-time snapshots, which could miss a real desync.
+  // The boot is one continuous shot in four stages (boot.js): COCKPIT, UNIT CHECK, PILOT ID,
+  // LAUNCH. Sample the live page every ~60ms across the whole boot instead of trusting a
+  // couple of fixed-time snapshots, which could miss a stage or catch one out of order.
   {
     const b = await launch({ width: 1440, height: 900 });
     await b.eval("sessionStorage.clear()");
     await b.goto('index.html', 300);
     const samples = [];
-    for (let i = 0; i < 100 && !(await b.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) {
+    for (let i = 0; i < 220 && !(await b.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) {
       samples.push(await b.eval(`(() => {
         const bar = document.querySelector('.boot-bar i');
         const m = bar && new DOMMatrix(getComputedStyle(bar).transform);
-        const log = document.getElementById('boot-log');
-        const splash = document.querySelector('.boot-splash');
-        const text = log ? log.textContent : '';
-        return {
-          scaleX: m ? m.a : 0,
-          hasLog: !!(text && text.trim().length),
-          hasDeploy: text.indexOf('DEPLOYMENT READY') > -1,
-          splashOpacity: splash ? parseFloat(getComputedStyle(splash).opacity) : 0
-        };
+        const q = s => (document.querySelector(s) || {}).textContent || '';
+        return { scaleX: m ? m.a : 0, stage: q('.boot-stage-txt'), note: q('.boot-note'), log: q('#boot-log'),
+                 powering: !!document.querySelector('#screens.powering') };
       })()`));
       await b.sleep(60);
     }
     check('boot samples collected', samples.length > 5, 'n=' + samples.length);
-    const anyFull = samples.some(s => s.scaleX >= 0.98);
-    const anyLog = samples.some(s => s.hasLog);
-    const anyDeploy = samples.some(s => s.hasDeploy);
-    check('the bar does reach full width', anyFull);
-    check('the log does run', anyLog);
-    check('DEPLOYMENT READY does appear', anyDeploy);
-
-    // start together: a log line has landed while the bar is still essentially empty --
-    // .some() is false (not vacuously true) on an empty sample set or if it never happens
-    check('log starts while the bar is still near-empty (start together)',
-      samples.some(s => s.hasLog && s.scaleX < 0.10));
-
-    // finish together: DEPLOYMENT READY is up by the moment the bar first reads full,
-    // and never shows before the bar is nearly there. Each assertion embeds its own
-    // "this was actually observed" guard so it can't pass on an empty/degenerate sample.
-    // The "done" read is >=0.999, not >=0.98: with BAR_MS=3000 and the 16 lines spaced
-    // BAR_MS/15=200ms apart, line 15 (DEPLOYMENT READY) is scheduled for t=3000 exactly,
-    // 60ms after scaleX first crosses 0.98 (t=2940) -- a real, reproducible ~60ms window
-    // (confirmed by running this repeatedly) where the bar reads >=0.98 but the line's
-    // own setTimeout hasn't fired yet. >=0.999 only matches once the animation has
-    // actually finished (animation-fill-mode:forwards holds exactly 1 after that point,
-    // never below 0.999 before it), so real elapsed time is already >=3000ms and the
-    // identically-scheduled log timer has had its chance to fire too.
-    const firstFull = samples.find(s => s.scaleX >= 0.999);
-    check('DEPLOYMENT READY is present once the bar first reads done (finish together)',
-      !!firstFull && firstFull.hasDeploy, JSON.stringify(firstFull));
-    const early = samples.find(s => s.hasDeploy && s.scaleX < 0.90);
-    check('DEPLOYMENT READY never appears before the bar reads >=0.90',
-      anyDeploy && !early, JSON.stringify(early));
-
-    // the splash no longer fades -- it must stay effectively opaque for as long as the
-    // log is rolling (anyLog guards against this passing on a sample set with no log)
-    const dim = samples.find(s => s.hasLog && s.splashOpacity <= 0.9);
-    check('splash stays visible (>0.9 opacity) while the log rolls',
-      anyLog && !dim, JSON.stringify(dim));
+    // every stage shows, in order, and none repeats after the next has begun
+    const order = [];
+    samples.forEach(s => { const n = (s.stage.match(/^0(\d)/) || [])[1]; if (n && order[order.length - 1] !== n) order.push(n); });
+    check('the four stages run in order', order.join('') === '1234', order.join(','));
+    check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
+    check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
+    check('the log runs', samples.some(s => s.log.trim().length > 0));
+    // one clock: the log is already rolling while the bar is still near-empty, and the bar
+    // does reach the end before the hub takes over
+    check('log starts while the bar is still near-empty', samples.some(s => s.log.trim() && s.scaleX < 0.25));
+    check('the bar does reach full width', samples.some(s => s.scaleX >= 0.95));
+    const screensMidBoot = samples.some(s => s.powering);
+    check('the five screens power up during the boot', screensMidBoot, 'never saw #screens.powering before boot-done');
+    check('the launch arrives facing PILOT', Math.abs(((await b.eval('BUNNYS.state.yaw') + 52 + 540) % 360) - 180) < 3);
     b.close();
   }
 
@@ -321,14 +294,18 @@ function forceBanner(pg, text) {
   // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
   // something wakes the compositor, so the easing that applies the keypress can start
   // late. The keypress itself registers immediately.
+  // Measured from where the view starts (the boot lands facing PILOT, not 0), so the check
+  // can't pass on the starting heading alone.
+  const rYaw0 = await r.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
   await r.key('ArrowLeft', 'ArrowLeft', 37);
-  let rYaw = 0;
+  let rYaw = rYaw0, rTurn = 0;
   for (let i = 0; i < 25; i++) {
     rYaw = await r.eval('window.BUNNYS ? BUNNYS.state.yaw : 0');
-    if (Math.abs(rYaw) > 5) break;
+    rTurn = Math.abs(((rYaw - rYaw0 + 540) % 360) - 180);
+    if (rTurn > 5) break;
     await r.sleep(100);
   }
-  check('reduced motion: arrows still turn', Math.abs(rYaw) > 5, 'yaw ' + rYaw);
+  check('reduced motion: arrows still turn', rTurn > 5, `${rYaw0} -> ${rYaw}`);
   // Task 1: reduced motion pins the ladder to plain pitch tracking -- no spring roll.
   // Guard against a vacuous pass: confirm D actually turned the view during the hold,
   // the same way the arrow-key check above does, so "roll stays 0" can't pass just

@@ -64,14 +64,13 @@
   <p id="lock-status" class="sr-only" aria-live="polite"></p>
   <button id="tilt" class="hud-btn" type="button" hidden>Enable tilt</button>
 </main>
+<!-- the boot's picture: above the panorama, under the five canopy screens and the frame -->
+<canvas id="boot-scene" aria-hidden="true"></canvas>
 <div id="boot" role="presentation">
-  <div class="boot-splash" aria-hidden="true">
-    <p class="boot-mark">BUNNyS</p>
-    <p class="boot-sub">SYSTEM BOOTING</p>
-    <div class="boot-bar"><i></i></div>
-    <p class="boot-ver">RX-124 TR-6 &#183; PANORAMIC MONITOR &#183; DIAGNOSTIC MODE</p>
-  </div>
+  <p class="boot-stage" aria-hidden="true"><span class="pips"><i></i><i></i><i></i><i></i></span><span class="boot-stage-txt">BUNNyS</span></p>
   <pre id="boot-log" aria-hidden="true"></pre>
+  <div class="boot-cap" aria-hidden="true"><p class="boot-title"></p><p class="boot-note"></p></div>
+  <div class="boot-bar" aria-hidden="true"><i></i></div>
   <button id="skip" class="hud-btn" type="button">Skip boot</button>
 </div>
 <script src="js/bunnys.js" defer></script>

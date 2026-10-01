@@ -18,7 +18,7 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
   - `#pano` > `.pano-ring` > the 24 `.pano-slice` elements (generated) plus the `.target` elements (`#t-pilot`, `#t-missions`, `#t-hangar`, `#t-unknown`), with `data-yaw`, `data-href` (not on unknown), `data-label` and `data-readout`;
   - `canvas#fx`, `img#frame`, `svg#hud` (hud.js builds its contents; the heading number is in `.hdg-readout`);
   - `nav#targets-nav` (links carry `data-target`), `p#lock-status.sr-only[aria-live]` and `button#tilt.hud-btn`.
-- `#boot` > `.boot-splash` (`.boot-mark` wordmark, `.boot-sub`, `.boot-bar > i`, `.boot-ver`), `pre#boot-log`, `button#skip`.
+- `canvas#boot-scene` (the boot's picture: fixed, at the panorama's z-index but after `main`, so it paints over the panorama and under `#screens`, `#frame` and `#hud` -- the boot is seen through the five canopy screens the whole time) and `#boot` > `.boot-stage` (`.pips > i`, `.boot-stage-txt`), `pre#boot-log`, `.boot-cap` (`.boot-title`, `.boot-note`, tone in `data-tone`), `.boot-bar > i`, `button#skip`. While `#boot` is up (and not `.boot-out`) the instruments stay hidden; the boot lands at yaw −52 (PILOT).
 - Z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, boot 10.
 - Sub-pages use `body.page`.
 
@@ -28,7 +28,8 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 | event | detail | emitted by | used by |
 |---|---|---|---|
 | `bunnys:view` | `{yaw, pitch, vx, vy}` | cockpit.js, when the view changes | hud.js, fx.js |
-| `bunnys:boot-done` | `{}` | boot.js | cockpit.js (input on), fx.js (start) |
+| `bunnys:screens-on` | `{}` | boot.js, as the cockpit hatch seals | hud.js powers the five canopy screens then, not at boot-done |
+| `bunnys:boot-done` | `{}` | boot.js | cockpit.js (input on), fx.js (start), hud.js (instruments power on; screens too if the boot was skipped first) |
 | `bunnys:lock` | `{id \| null, label, readout}` | cockpit.js | hud.js (status line) |
 | `bunnys:fire` | `{id, href}` | cockpit.js | fx.js (flash) |
 | `bunnys:face` | `{yaw}` | boot.js, tests | cockpit.js turns the view to that yaw |

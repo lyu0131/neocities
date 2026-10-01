@@ -135,18 +135,21 @@ site4/
 - **On sub-pages,** the HUD is a reduced set (heading tape, side bars, status line), driven by scroll instead of `bunnys:view`.
 
 ## 6. Boot sequence (`js/boot.js`, index only)
-- **Total:** about 6.2s. Once per session (`sessionStorage` key `bunnys-booted`). Any key, click or "Skip" jumps to the end state.
-- **Reduced motion:** skip straight to the end state with no flashes.
-- **Events:** at the end it dispatches `bunnys:boot-done`. `cockpit.js` holds input until then, and `fx.js` starts after it.
+*Revised 2026-09-30 at the owner's request: the original splash, log and 360 whip gave way to one continuous shot combining four sequences they chose (cockpit closing, blueprint to metal, IFF handshake and catapult launch). It is seen from the pilot's seat through the cockpit's five canopy screens and frame, which stay on screen the whole time, and it lands facing PILOT instead of MISSIONS.*
 
-| t (ms) | beat |
-|---|---|
-| 0 | Black. A 1px green cursor blinks at the lower left. |
-| 300–1900 | A boot log types out in B612 Mono, one line every ~180ms: `BUNNyS SL-01 // COLD START`, `LINEAR SEAT ........ LOCKED`, `REACTOR ............ 12% ▲`, `PARTICLE INTERFERENCE ... 0.2%`, `ALL-AROUND MONITOR .. INIT`, `PILOT BIOMETRIC ..... MATCH`, `CALLSIGN ............ SYLAS LYU`. The reactor percentage counts up in place to 100%. |
-| 1900–3100 | The **monitor panels flicker on** one by one (24 slices light in a scattered order), each with a quick white-to-scene stutter. The frame seams glow green then settle. |
-| 3100–4300 | **360 whip:** yaw spins 360° with ease-in-out and a horizontal motion-blur filter on the ring (blur peaks mid-spin), landing at yaw 0. |
-| 4300–5400 | **HUD draw-in:** the tapes, ladder and boresight draw their strokes in (dashoffset), the side bars fill, and the reticle drops from 3× scale to 1× with a snap. |
-| 5400–6200 | A **lock ping** on MISSIONS (the brackets close in), then the status line `ALL SYSTEMS NOMINAL`. The callsign `SYLAS LYU` flashes once in the corner. The boot overlay fades out. |
+- **Total:** about 9.0s once the page has loaded. Once per session (`sessionStorage` key `bunnys-booted`). Any key, click or "Skip" jumps to the end state.
+- **Reduced motion:** skip straight to the end state with no flashes.
+- **Events:** `bunnys:screens-on` as the hatch seals (hud.js powers the five screens then), and `bunnys:boot-done` at the end. `cockpit.js` holds input until boot-done, `fx.js` starts after it, and hud.js powers the instruments on at it.
+- **Layers:** the picture is `canvas#boot-scene`, which sits over the panorama and under the screens and frame, so the whole boot plays inside the real cockpit. The camera shake and the seat's pull-back move the canvas, the screens and the frame together. The instruments stay dark until the hand-over.
+- **One clock:** the canvas, the captions, the log and the bar all read a single boot clock that stalls rather than skips.
+
+| t (ms) | stage | beat |
+|---|---|---|
+| 0–2300 | 01 COCKPIT | The screens are still off, so they show the cockpit as it is: dark, lit only by the hangar through the chest hatch in the centre screen. The hatch is a heavy door hinged at its sill: open, it lies flat outside like a drawbridge; it swings up shut in true perspective and lands with a small rebound and a jolt. Four locking lugs slide over its edges in turn (amber lights go green), the pressure seal traces round it from the sill, the light is gone, and the linear seat slides back into the core with a clunk. |
+| 2300–4750 | 02 UNIT CHECK | The five screens power up in turn (left, centre, right, top, console): each one dark, its outline tracing in, a calibration grid swinging level, then clear. Behind them, on blueprint paper, the RX-124 TR-6 [WOUNDWORT] (the damage map's front frame) draws itself zone by zone in the centre screen, with drafting callouts, then builds solid: the fills come in, the lines turn HUD green and a sheen passes. Caption: `DESIGNED BY SYLAS LYU`. |
+| 5000–6450 | 03 PILOT ID | A static glitch switches the channel. Amber IFF brackets close from the centre screen's edges onto the cockpit block, a sweep interrogates, then everything turns green: `PILOT CONNECTED`, `SYLAS LYU` decodes in, and a ring pulses. |
+| 6550–9010 | 04 LAUNCH | The screens show the catapult bay, its vanishing point in the centre screen. The rail lights race out, the bay hatch opens on the city, and the launch call reads `SYLAS LYU / LAUNCHING`. The catapult fires, the camera accelerates down the bay and through the hatch with a green bloom, and the city fills the screens. |
+| 9010 | hand-over | The city is the hub's own arrival view (yaw −52, PILOT), so the canvas fades straight onto the live panorama behind the same five screens while the frame seams glow and the instruments power on. |
 
 Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
 

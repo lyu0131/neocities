@@ -1242,11 +1242,16 @@
       });
     });
   }
-  function powerScreens() {
-    if (!screensEl || BUNNYS.reduce) return;
-    screenParts.forEach(function (p) { p.g.style.setProperty('--d', (SCREEN_LEAD + screenAt(p.id)) + 'ms'); });
+  // lead: ms before the first screen starts. The boot powers the screens itself, right after
+  // the cockpit hatch seals (bunnys:screens-on, no lead); otherwise they come up at boot-done.
+  var screensPowered = false;
+  function powerScreens(lead) {
+    if (!screensEl || BUNNYS.reduce || screensPowered) return;
+    screensPowered = true;
+    lead = lead == null ? SCREEN_LEAD : lead;
+    screenParts.forEach(function (p) { p.g.style.setProperty('--d', (lead + screenAt(p.id)) + 'ms'); });
     screensEl.classList.add('powering');
-    setTimeout(function () { screensEl.classList.remove('powering'); }, SCREEN_LEAD + 1300 + 900);
+    setTimeout(function () { screensEl.classList.remove('powering'); }, lead + 1300 + 900);
   }
 
   // ----------------------------------------------- HUD MODE, comms and status toast
@@ -1851,6 +1856,7 @@
       if (hostile) dossier.setAttribute('opacity', 0);
       drawRadar(BUNNYS.state.yaw);
     });
+    BUNNYS.on('screens-on', function () { powerScreens(0); });
     BUNNYS.on('boot-done', function () {
       status.textContent = 'PANORAMIC MONITOR ONLINE';
       setTimeout(function () {
