@@ -1,0 +1,229 @@
+/* unknown.css: the UNKNOWN contact's channel (unknown.html, js/unknown.js). Its own world, not a
+   sub-page: one full screen, the enemy's red rather than the cockpit's green, a codec in the
+   middle and instruments in the corners. Tuning a friendly memory channel turns the codec back to
+   the cockpit's green, which is the only time that colour shows here.
+   Loaded after cockpit.css, whose tokens (--lock, --amber, --hud, --ice, --night) it uses. */
+.unknown {
+  --uk: var(--lock);
+  --uk-rgb: 255, 51, 71;
+  --uk-line: rgba(255, 51, 71, .38);
+  --uk-faint: rgba(255, 51, 71, .1);
+  --uk-ink: rgba(221, 231, 238, .58);
+  --uk-bg: #07040A;
+  height: 100vh; height: 100dvh; overflow: hidden;
+  background: radial-gradient(ellipse 75% 65% at 50% 46%, #150A12 0%, var(--uk-bg) 72%);
+  color: var(--ice); font: 15px/1.5 'B612', sans-serif;
+}
+/* a slow-rolling scanline over everything, and the film of red grain (#grain, drawn by unknown.js) */
+.unknown::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 20;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 1px, transparent 1px 3px);
+}
+#grain { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: .08; image-rendering: pixelated; }
+.unknown button { font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .14em; color: var(--uk); background: transparent;
+  border: 1px solid var(--uk-line); padding: 7px 10px; min-height: 32px; cursor: pointer; }
+.unknown button:hover, .unknown button:focus-visible, .unknown button[aria-pressed="true"], .unknown button[aria-expanded="true"] {
+  background: var(--uk); color: var(--uk-bg); border-color: var(--uk); outline: none; }
+.unknown :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.unknown kbd { margin-left: .5em; }
+
+/* ---- top bar ---- */
+.uk-top { position: fixed; inset: 0 0 auto 0; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+  border-bottom: 1px solid var(--uk-faint); font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .2em; }
+.uk-exit { color: var(--ice); text-decoration: none; padding: 6px 8px; }
+.uk-exit:hover, .uk-exit:focus-visible { background: var(--uk); color: var(--uk-bg); }
+.uk-carrier { margin: 0 auto; color: var(--uk); display: flex; align-items: center; gap: 10px; }
+.uk-carrier i { width: 7px; height: 7px; border-radius: 50%; background: var(--uk); box-shadow: 0 0 8px var(--uk); animation: uk-pulse 1.4s ease-in-out infinite; }
+@keyframes uk-pulse { 50% { opacity: .2; } }
+.uk-clock { margin: 0; color: var(--uk-ink); min-width: 8ch; text-align: right; }
+
+/* ---- the codec ---- */
+.uk-codec { position: relative; z-index: 2; height: 100%; display: grid; align-content: center; gap: 18px;
+  max-width: 1560px; margin: 0 auto; padding: 70px 252px 40px; }   /* the side padding is the corner instruments' room */
+.uk-rig { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr); gap: 0; align-items: center; }
+/* the bracket that ties the rig together, ticks at its ends, like the reference codec */
+.uk-rig::before { content: ""; position: absolute; left: -10px; right: -10px; top: 10%; bottom: 10%; border: 1px solid var(--uk-line); pointer-events: none; }
+.uk-rig::after { content: ""; position: absolute; left: -17px; right: -17px; top: 14%; bottom: 14%; pointer-events: none;
+  border-left: 3px solid var(--uk-line); border-right: 3px solid var(--uk-line);
+  -webkit-mask: linear-gradient(#000 0 16%, transparent 16% 84%, #000 84%); mask: linear-gradient(#000 0 16%, transparent 16% 84%, #000 84%); }
+.uk-port { position: relative; margin: 0; aspect-ratio: 3 / 4; width: 100%; max-height: 46vh; justify-self: center;
+  background: rgba(var(--uk-rgb), .05); overflow: hidden; transition: filter .2s, box-shadow .2s; }
+.uk-port::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(7, 4, 10, .5) 0 2px, transparent 2px 4px); }
+.uk-dummy { position: absolute; inset: 0; width: 100%; height: 100%; }
+.uk-dummy path { stroke: rgba(var(--uk-rgb), .22); stroke-width: 1; fill: none; }
+.uk-dummy-tag { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); text-align: center; white-space: nowrap;
+  font: 700 10px/1.6 'B612 Mono', monospace; letter-spacing: .22em; color: rgba(var(--uk-rgb), .55);
+  background: var(--uk-bg); padding: 4px 8px; border: 1px dashed var(--uk-line); }
+.uk-port canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; mix-blend-mode: screen; }
+.uk-port figcaption { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 5px 8px; background: rgba(7, 4, 10, .85);
+  font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .16em; color: var(--uk); }
+.uk-port.is-talking { box-shadow: inset 0 0 0 1px var(--uk), 0 0 18px rgba(var(--uk-rgb), .25); }
+.uk-port.is-idle { filter: brightness(.55); }
+.uk-port.is-dead figcaption { color: var(--uk-ink); }
+
+.uk-tuner { position: relative; z-index: 1; margin: 0 14px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto auto;
+  gap: 8px 16px; align-items: end; padding: 14px 16px 10px; border: 1px solid var(--uk-line); background: rgba(7, 4, 10, .7); touch-action: none; }
+.uk-tag { grid-column: 1 / -1; margin: 0; font: 700 11px/1.2 'B612 Mono', monospace; letter-spacing: .26em; color: var(--uk); }
+.uk-meter { display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 3px; align-self: stretch; min-height: 92px; width: clamp(60px, 8vw, 116px); }
+.uk-meter i { display: block; height: 6px; background: var(--uk-faint); }
+.uk-meter i.lit { background: var(--amber); box-shadow: 0 0 6px rgba(255, 176, 46, .4); }
+.uk-freq { justify-self: end; margin: 0; cursor: ew-resize; user-select: none;
+  font: 700 clamp(28px, 3.3vw, 52px)/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--amber); text-shadow: 0 0 12px rgba(255, 176, 46, .35); }
+.uk-dial { grid-column: 1 / -1; position: relative; height: 14px; cursor: ew-resize;
+  background: repeating-linear-gradient(90deg, rgba(var(--uk-rgb), .45) 0 1px, transparent 1px 2%); border-bottom: 1px solid var(--uk-line); }
+.uk-dial i { position: absolute; top: -3px; bottom: -1px; width: 2px; margin-left: -1px; background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.uk-keys { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0;
+  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .2em; color: var(--uk-ink); flex-wrap: wrap; }
+.uk-tune { display: flex; align-items: center; gap: 6px; }
+#tune-lbl { min-width: 10ch; text-align: center; }
+.is-turned #tune-lbl { color: var(--uk); }
+.uk-blink { animation: uk-blink .5s steps(2) 2; }
+@keyframes uk-blink { 50% { opacity: .1; } }
+
+.uk-sub { position: relative; min-height: 132px; padding: 18px 26px 28px; border: 1px solid var(--uk-line); background: rgba(7, 4, 10, .7); cursor: pointer; }
+.uk-who { margin: 0 0 8px; min-height: 1.2em; font: 700 11px/1.2 'B612 Mono', monospace; letter-spacing: .26em; color: var(--amber); }
+.uk-who.is-you { color: var(--uk); text-shadow: 0 0 8px rgba(var(--uk-rgb), .5); }
+.uk-line { margin: 0 auto; max-width: 54ch; min-height: 2.9em; font: 400 clamp(18px, 2.2vw, 24px)/1.45 'B612', sans-serif; color: var(--ice); }
+.uk-x { color: rgba(255, 176, 46, .6); letter-spacing: .04em; }
+.uk-next { position: absolute; right: 14px; bottom: 8px; font-size: 11px; color: var(--uk); opacity: 0; }
+.uk-next.on { opacity: 1; animation: uk-blink 1s steps(2) infinite; }
+
+/* Every band has its own colour (data-tone, set by unknown.js): the Zeon remnant's red is the
+   page's own; the Titans test team amber, the civil band white, the suit's own linear seat the
+   cockpit's green, and the numbers station violet. */
+[data-tone="titans"] { --uk: var(--amber); --uk-rgb: 255, 176, 46; }
+[data-tone="civil"] { --uk: var(--ice); --uk-rgb: 221, 231, 238; }
+[data-tone="seat"] { --uk: var(--hud); --uk-rgb: 140, 255, 193; }
+[data-tone="ghost"] { --uk: #B79CFF; --uk-rgb: 183, 156, 255; }
+.uk-codec[data-tone] { --uk-line: rgba(var(--uk-rgb), .38); --uk-faint: rgba(var(--uk-rgb), .1); }
+.uk-codec[data-tone]:not([data-tone="zeon"]):not([data-tone=""]) .uk-who { color: var(--uk); }
+.uk-codec[data-tone]:not([data-tone="zeon"]):not([data-tone=""]) .uk-meter i.lit { background: var(--uk); box-shadow: 0 0 6px rgba(var(--uk-rgb), .4); }
+.uk-codec[data-tone]:not([data-tone="zeon"]):not([data-tone=""]) .uk-freq { color: var(--uk); text-shadow: 0 0 12px rgba(var(--uk-rgb), .35); }
+
+/* ---- corner instruments ---- */
+.uk-hud { position: fixed; z-index: 4; width: 204px; font: 700 10px/1.3 'B612 Mono', monospace; letter-spacing: .16em; color: var(--uk-ink); }
+.uk-hud p { margin: 0; }
+.uk-tl { left: 20px; top: 74px; }
+.uk-tr { right: 20px; top: 74px; }
+.uk-bl { left: 20px; bottom: 24px; }
+.uk-br { right: 20px; bottom: 24px; text-align: right; width: 240px; }
+/* a framed instrument, in the codec's own language: a hairline housing with bracketed corners */
+.uk-panel { padding: 12px 14px 14px; background: rgba(7, 4, 10, .78); border: 1px solid var(--uk-faint);
+  --c: rgba(255, 51, 71, .75);
+  background-image:
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c));
+  background-repeat: no-repeat;
+  background-size: 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px, 10px 1px, 1px 10px;
+  background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%; }
+.uk-cap { display: flex; justify-content: space-between; gap: 10px; color: var(--lock); padding-bottom: 7px; margin-bottom: 10px !important; border-bottom: 1px solid rgba(255, 51, 71, .38); }
+.uk-cap span { color: var(--uk-ink); }
+.uk-bar { height: 3px; background: rgba(255, 51, 71, .12); margin: 6px 0 0; }
+.uk-bar i { display: block; height: 100%; width: 0; background: var(--lock); box-shadow: 0 0 8px var(--lock); transition: width .5s linear; }
+.uk-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+.uk-row b { color: rgba(255, 51, 71, .85); font-weight: 700; }
+.uk-row span { color: var(--ice); }
+.is-turned #r-trace, .is-turned #r-status { color: var(--lock); }
+.uk-scope { margin: 0 0 10px; }
+#scope { display: block; width: 100%; aspect-ratio: 1; }
+.uk-btns { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px !important; }
+.uk-help { color: rgba(221, 231, 238, .4); line-height: 1.9; }
+.uk-help kbd { margin: 0 2px; }
+
+/* memory channels: one row per band, its colour on a pip, the band you're on marked */
+.uk-presets { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.uk-presets button { width: 100%; display: grid; grid-template-columns: 8px 1fr auto; grid-template-rows: auto auto; gap: 2px 10px; align-items: center;
+  text-align: left; padding: 7px 8px; border: 1px solid transparent; color: var(--ice); background: transparent; min-height: 0; }
+.uk-presets i { grid-row: 1 / 3; width: 6px; height: 6px; border-radius: 50%; background: var(--uk); box-shadow: 0 0 6px var(--uk); opacity: .7; }
+.uk-presets b { font-size: 14px; letter-spacing: .04em; color: var(--uk); }
+.uk-presets span { grid-column: 2 / 4; grid-row: 2; font-size: 9px; letter-spacing: .14em; color: var(--uk-ink); white-space: nowrap; }
+.uk-presets em { grid-column: 3; grid-row: 1; font-style: normal; font-size: 8px; letter-spacing: .14em; color: rgba(var(--uk-rgb), .7); }
+.unknown .uk-presets button:hover, .unknown .uk-presets button:focus-visible { background: rgba(var(--uk-rgb), .1); color: var(--ice); border-color: rgba(var(--uk-rgb), .4); }
+.unknown .uk-presets button[aria-current="true"] { background: rgba(var(--uk-rgb), .14); color: var(--ice); border-color: var(--uk); }
+.uk-presets button[aria-current="true"] i { opacity: 1; animation: uk-pulse 1.4s ease-in-out infinite; }
+.uk-presets button[aria-current="true"] span { color: var(--ice); }
+
+/* ---- the LOG drawer, from the right ---- */
+.uk-drawer { position: fixed; top: 54px; bottom: 0; z-index: 8; width: min(360px, 92vw); padding: 18px 20px; overflow: auto;
+  background: rgba(10, 5, 9, .97); border: 1px solid var(--uk-line); display: block; transition: transform .28s cubic-bezier(.65, 0, .35, 1); }
+.uk-drawer[hidden] { display: block; visibility: hidden; }
+.uk-log { right: 0; transform: translateX(102%); border-right: 0; }
+.uk-drawer.open { transform: none; visibility: visible; }
+.uk-drawer-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--uk-line);
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .24em; color: var(--uk); }
+.uk-close { min-height: 28px !important; padding: 4px 9px !important; }
+.uk-transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
+.uk-transcript li { display: grid; gap: 1px; }
+.uk-transcript .uk-t { font: 400 10px/1.2 'B612 Mono', monospace; letter-spacing: .1em; color: rgba(221, 231, 238, .45); }
+.uk-transcript b { font: 700 11px/1.3 'B612 Mono', monospace; letter-spacing: .14em; color: var(--amber); }
+.uk-transcript b[data-tone] { color: var(--uk); }
+.uk-red { color: rgba(221, 231, 238, .3); letter-spacing: -.02em; }
+.uk-empty { color: rgba(221, 231, 238, .45); font-style: italic; }
+
+/* ---- the entrance: the channel takes the screen ---- */
+.uk-intro { position: fixed; inset: 0; z-index: 12; display: grid; place-content: center; text-align: center; pointer-events: none;
+  background: rgba(7, 4, 10, .9); transition: opacity .5s; }
+.uk-intro.done { opacity: 0; }
+.uk-intro p { margin: 0; font: 700 clamp(30px, 6vw, 64px)/1.1 'B612 Mono', monospace; letter-spacing: .3em; text-indent: .3em; color: var(--uk);
+  text-shadow: 0 0 18px rgba(255, 51, 71, .5); animation: uk-blink .35s steps(2) 3; }
+.uk-intro small { display: block; margin-top: 12px; font-size: .28em; letter-spacing: .4em; color: var(--ice); }
+.unknown.is-intro #grain { opacity: .55; }
+
+/* ---- tearing: the whole channel jumps when the signal breaks ---- */
+.unknown.is-tearing .uk-codec { animation: uk-tear .34s steps(4) 1; }
+.unknown.is-tearing .uk-line, .unknown.is-tearing .uk-freq { text-shadow: -3px 0 rgba(255, 51, 71, .7), 3px 0 rgba(90, 220, 255, .55); }
+.unknown.is-tearing #grain { opacity: .35; }
+@keyframes uk-tear {
+  0% { transform: translate(-7px, 0); clip-path: inset(0 0 52% 0); }
+  25% { transform: translate(5px, 2px); clip-path: inset(30% 0 12% 0); }
+  50% { transform: translate(-3px, -1px); clip-path: inset(0 0 0 0); filter: hue-rotate(-20deg) brightness(1.4); }
+  75% { transform: translate(4px, 0); clip-path: inset(10% 0 40% 0); }
+  100% { transform: none; clip-path: none; }
+}
+
+/* ---- the end ---- */
+.uk-lost { position: fixed; inset: 0; z-index: 11; display: grid; place-content: center; gap: 22px; text-align: center; background: rgba(7, 4, 10, .82); }
+.uk-lost[hidden] { display: none; }
+.uk-lost p { margin: 0; }
+.uk-lost-t { font: 700 clamp(30px, 6vw, 64px)/1 'B612 Mono', monospace; letter-spacing: .3em; text-indent: .3em; color: var(--uk);
+  text-shadow: 0 0 18px rgba(255, 51, 71, .5); }
+.uk-lost-b { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.uk-lost-b a { font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .14em; color: var(--ice); text-decoration: none;
+  border: 1px solid rgba(221, 231, 238, .35); padding: 10px 14px; display: inline-flex; align-items: center; }
+.uk-lost-b a:hover, .uk-lost-b a:focus-visible { background: var(--ice); color: var(--uk-bg); }
+.unknown.is-lost #grain { opacity: .5; }
+
+/* ---- narrower screens: the corner instruments come in under the codec ---- */
+@media (max-width: 1240px) {
+  .uk-codec { padding: 70px 24px 24px; max-width: 900px; height: auto; min-height: 0; }
+  .unknown { overflow-y: auto; overflow-x: clip; }
+  .uk-instr { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px 24px;
+    max-width: 900px; margin: 0 auto; padding: 8px 24px 40px; }
+  .uk-hud { position: static; width: auto; text-align: left; }
+  .uk-scope { max-width: 240px; }
+  .uk-btns { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .uk-top { padding: 12px 14px; gap: 10px; flex-wrap: wrap; }
+  .uk-carrier { order: 3; width: 100%; margin: 0; font-size: 10px; }
+  .uk-codec { padding: 96px 14px 16px; }
+  .uk-rig { grid-template-columns: 1fr 1fr; grid-template-areas: "tuner tuner" "l r"; gap: 12px; }
+  .uk-rig::before, .uk-rig::after { display: none; }
+  .uk-tuner { grid-area: tuner; margin: 0; }
+  .uk-keys { gap: 4px; flex-wrap: nowrap; }
+  .uk-keys button { padding: 7px 7px; letter-spacing: .06em; }
+  #tune-lbl { min-width: 0; letter-spacing: .06em; }
+  #port-l { grid-area: l; } #port-r { grid-area: r; }
+  .uk-port { max-height: 34vh; }
+  .uk-sub { padding: 14px 14px 26px; min-height: 150px; }
+  .uk-instr { padding: 8px 14px 32px; grid-template-columns: 1fr; }
+  .uk-help { display: none; }
+  .uk-drawer { top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .uk-carrier i, .uk-next.on, .uk-blink, .uk-intro p { animation: none; }
+  .unknown.is-tearing .uk-codec { animation: none; }
+  .uk-drawer, .uk-intro, .uk-bar i, .uk-port { transition: none; }
+}

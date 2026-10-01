@@ -263,7 +263,7 @@
   function fire(t) {
     if (!state.booted) return;
     var href = t.dataset.href;
-    if (!href) return; // t-unknown locks but never fires
+    if (!href) return; // a contact without an approach only locks
     markInput();
     if (!BUNNYS.link) { location.href = href; return; }   // link.go itself goes straight there under reduced motion
     t.classList.add('is-fired');

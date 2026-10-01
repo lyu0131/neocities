@@ -105,7 +105,7 @@ site4/
 | `t-pilot` | −52° | PILOT | pilot.html | `ID SYLAS LYU / RNG 0.4 KM` |
 | `t-missions` | 0° | MISSIONS | missions.html | `2 ACTIVE / RNG 1.2 KM` |
 | `t-hangar` | +52° | HANGAR | hangar.html | `SL-01 BUNNyS / RNG 0.1 KM` |
-| `t-unknown` | 180° | UNKNOWN | not a link | `UNIDENTIFIED MS / NO IFF`, the easter egg behind you |
+| `t-unknown` | 180° | UNKNOWN | `unknown.html` (its open channel; added 2026-10-01) | `UNIDENTIFIED MS / NO IFF`, the easter egg behind you |
 
 - **Appearance:** each target is a target-designator box (four corner brackets) around a small emblem, with its label and range under it.
 - **Lock-on:** hovering or focusing starts it:
@@ -219,7 +219,7 @@ Sources: the owner's resume (supplied 2026-09-30) and what they wrote for site2'
   - arrow keys turn;
   - Tab focus turns to face each target, and Enter navigates;
   - hovering a target shows its lock readout;
-  - the `t-unknown` lock works but doesn't navigate;
+  - the `t-unknown` lock works, and firing it opens `unknown.html`;
   - with reduced motion: no boot animation, still interactive.
 - **Checks on sub-pages and budgets:**
   - the sub-page nav and return control work;

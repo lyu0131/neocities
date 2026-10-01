@@ -8,7 +8,7 @@
   'use strict';
   var KEY = 'bunnys-link';      // {to, t}: written as a page leaves, read once by the next
   var GEO = 'bunnys-canopy';    // the cockpit's last measured screens, as 5 polys of viewport percentages
-  var OWN = /^(index|pilot|missions|hangar)\.html$/;
+  var OWN = /^(index|pilot|missions|hangar|unknown)\.html$/;   // unknown: the UNKNOWN contact's open channel
   // A rough canopy, as percentages of the viewport (originally measured at 1440x900), for a page
   // that has never measured the cockpit's own (a visitor who landed straight on a sub-page).
   var FALLBACK = [

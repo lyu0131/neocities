@@ -225,7 +225,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   check('arrival comes in through the shutters', await p.eval("document.documentElement.classList.contains('linked')"));
   await p.sleep(1500);
   check('arrival shutters open and clear', await p.eval("!document.getElementById('link') && !document.documentElement.classList.contains('link-in')"));
-  // T5: unknown target locks but does not navigate
+  // T5: the unknown target locks, and firing it opens its open channel (unknown.html)
   await p.goto('index.html', 800);
   // the boot now replays on a plain reload, so skip it before driving the view
   await ready(p);
@@ -235,8 +235,9 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   const u = await p.eval("(()=>{const r=document.getElementById('t-unknown').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
   await p.mouse('mouseMoved', u.x, u.y); await p.sleep(600);
   check('unknown locks', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
-  await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(900);
-  check('unknown does not navigate', /index\.html$/.test(await p.eval('location.pathname')));
+  check('unknown lock tells you how in', /OPEN CHANNEL/.test(await p.eval("document.getElementById('hud').textContent")));
+  await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(1600);
+  check('unknown opens the open channel', /unknown\.html$/.test(await p.eval('location.pathname')));
 
   // the one contacts table (bunnys.js) and the cockpit's targets must agree
   check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label && (!c.rng || t.dataset.readout.includes(c.rng)); })"));
@@ -259,7 +260,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await enter(); await p.sleep(1600);
   check('Enter on SLEW again opens it', /hangar\.html$/.test(await p.eval('location.pathname')));
   await backToHub();
-  // number keys: 4 swings onto the unknown contact and locks it (it has no page to open)
+  // number keys: 4 swings onto the unknown contact and locks it
   await p.key('4', 'Digit4', 52); await p.sleep(2200);
   check('4 locks the unknown contact', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
   // Home turns the view, so it lets a number-key lock go: the lock follows the reticle again

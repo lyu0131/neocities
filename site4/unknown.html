@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
+<script src="js/link.js"></script>
+<title>Unregistered carrier</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- cockpit.css for the shared tokens and the exit shutters (#link); unknown.css is this page's own world -->
+<link rel="stylesheet" href="css/cockpit.css">
+<link rel="stylesheet" href="css/unknown.css">
+</head>
+<body class="unknown">
+<!-- The UNKNOWN contact's channel. Deliberately not a sub-page: no nav strip, no panels, the
+     enemy's red instead of the cockpit's green. js/unknown.js runs it. -->
+<canvas id="grain" aria-hidden="true"></canvas>
+
+<header class="uk-top">
+  <a class="uk-exit" href="index.html" aria-keyshortcuts="Escape">&#9666; DISCONNECT <kbd aria-hidden="true">ESC</kbd></a>
+  <p class="uk-carrier"><i aria-hidden="true"></i>UNREGISTERED CARRIER &#183; BEARING 180</p>
+  <p class="uk-clock" id="r-time">--:--:--</p>
+</header>
+
+<main class="uk-codec" id="codec">
+  <h1 class="sr-only">Open channel: the unknown contact at bearing 180</h1>
+  <div class="uk-rig">
+    <figure class="uk-port" id="port-l">
+      <!-- portrait placeholder: the art goes here later -->
+      <svg class="uk-dummy" viewBox="0 0 30 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L30 40M30 0L0 40" vector-effect="non-scaling-stroke"/></svg>
+      <span class="uk-dummy-tag" aria-hidden="true">PORTRAIT<br>3 : 4</span>
+      <canvas width="48" height="64" aria-hidden="true"></canvas>
+      <figcaption id="cap-l">NO SIGNAL</figcaption>
+    </figure>
+
+    <div class="uk-tuner" id="tuner">
+      <p class="uk-tag" id="tag">CARRIER DETECTED</p>
+      <div class="uk-meter" id="meter" aria-hidden="true"></div>
+      <p class="uk-freq" id="freq" tabindex="0" role="slider" aria-label="Frequency"
+         aria-valuemin="140" aria-valuemax="190" aria-valuenow="176.4" aria-valuetext="176.40">176.40</p>
+      <div class="uk-dial" id="dial" aria-hidden="true"><i id="needle"></i></div>
+      <p class="uk-keys">
+        <span class="uk-tune">
+          <button type="button" id="tune-dn" aria-label="Tune down">&#9666;</button>
+          <span id="tune-lbl">TUNE</span>
+          <button type="button" id="tune-up" aria-label="Tune up">&#9656;</button>
+        </span>
+        <button type="button" id="log-btn" aria-expanded="false" aria-controls="logd">LOG</button>
+      </p>
+    </div>
+
+    <figure class="uk-port" id="port-r">
+      <svg class="uk-dummy" viewBox="0 0 30 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L30 40M30 0L0 40" vector-effect="non-scaling-stroke"/></svg>
+      <span class="uk-dummy-tag" aria-hidden="true">PORTRAIT<br>3 : 4</span>
+      <canvas width="48" height="64" aria-hidden="true"></canvas>
+      <figcaption id="cap-r">NO SIGNAL</figcaption>
+    </figure>
+  </div>
+
+  <div class="uk-sub" id="subt" aria-live="polite">
+    <p class="uk-who" id="who"></p>
+    <p class="uk-line" id="line"></p>
+    <span class="uk-next" id="next" aria-hidden="true">&#9660;</span>
+  </div>
+</main>
+
+<!-- corner instruments; on a phone they fall into a row under the codec -->
+<div class="uk-instr">
+  <!-- memory channels: always in view, the active one marked -->
+  <section class="uk-hud uk-panel uk-tl" aria-label="Memory channels">
+    <p class="uk-cap">MEM. <span>CHANNELS</span></p>
+    <ul class="uk-presets" id="presets"></ul>
+  </section>
+  <!-- the contact: a scope, and how close the trace has got -->
+  <section class="uk-hud uk-panel uk-tr" aria-label="Contact">
+    <p class="uk-cap">CONTACT <span>BRG 180</span></p>
+    <div class="uk-scope"><canvas id="scope" aria-hidden="true"></canvas></div>
+    <p class="uk-row"><b>RNG</b><span id="r-rng">1.42 KM</span></p>
+    <p class="uk-row"><b>STATUS</b><span id="r-status">HOLDING</span></p>
+    <p class="uk-row"><b>TRACE</b><span id="r-trace">--</span></p>
+    <div class="uk-bar"><i id="trace-bar"></i></div>
+  </section>
+  <section class="uk-hud uk-bl" aria-label="Channel readouts">
+    <p class="uk-row"><b>BAND</b><span id="r-band">176.40</span></p>
+    <p class="uk-row"><b>SIGNAL</b><span id="r-sig">00%</span></p>
+    <p class="uk-row"><b>DECRYPT</b><span id="r-dec">--</span></p>
+  </section>
+  <section class="uk-hud uk-br" aria-label="Playback">
+    <p class="uk-btns">
+      <button type="button" id="auto-btn" aria-pressed="false">AUTO <kbd>A</kbd></button>
+    </p>
+    <p class="uk-help">CLICK OR <kbd>SPACE</kbd> NEXT LINE<br><kbd>&#9666;</kbd><kbd>&#9656;</kbd> TUNE &#183; <kbd>L</kbd> LOG</p>
+  </section>
+</div>
+
+<section class="uk-drawer uk-log" id="logd" aria-label="Transcript" hidden>
+  <p class="uk-drawer-head">TRANSCRIPT <button type="button" class="uk-close" data-close="logd" aria-label="Close">&#215;</button></p>
+  <ol class="uk-transcript" id="log"><li class="uk-empty">Nothing recorded yet.</li></ol>
+</section>
+
+<div class="uk-intro" id="intro" aria-hidden="true"><p>INCOMING<br><small>CARRIER OVERRIDE</small></p></div>
+<div class="uk-lost" id="lost" hidden>
+  <p class="uk-lost-t">SIGNAL LOST</p>
+  <p class="uk-lost-b"><a href="index.html">&#9666; RETURN TO COCKPIT</a><button type="button" id="retune">RETUNE</button></p>
+</div>
+
+<script src="js/bunnys.js" defer></script>
+<script src="js/unknown.js" defer></script>
+</body>
+</html>

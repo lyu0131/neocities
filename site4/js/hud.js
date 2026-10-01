@@ -730,9 +730,9 @@
     dosRead.textContent = d.readout || '';
     var lines = (d.brief || '').split('|');
     dosBrief.forEach(function (t, i) { t.textContent = lines[i] || ''; });
-    // A target with an approach (href) reads as friendly/known; the unknown target (no href) never
-    // resolves an IFF handshake.
-    var iff = d.href ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
+    // A known contact reads as friendly; the unknown one never resolves an IFF handshake, even
+    // though it now has a page (its open channel).
+    var iff = d.href && d.id !== 't-unknown' ? 'IFF STATUS: FRIEND' : 'IFF STATUS: NO IFF';
     // a phone has no Enter key and no cursor: say what works there
     var open = BUNNYS.fine ? 'PRESS ENTER OR CLICK TO OPEN' : 'TAP THE CONTACT TO OPEN';
     dosHint.textContent = (d.href ? open : 'NO APPROACH AUTHORISED') + ' — ' + iff;
@@ -1864,6 +1864,8 @@
   });
   BUNNYS.on('lock', function (d) {
     status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
+    // the hostile lock-on has no dossier card to carry the hint, so the status line says how in
+    if (d.id === 't-unknown' && d.href) status.textContent += ' — ' + (BUNNYS.fine ? 'ENTER: OPEN CHANNEL' : 'TAP: OPEN CHANNEL');
     setDossier(d);
     // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised
     // the card, so this lowers it again.
