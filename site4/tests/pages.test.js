@@ -49,6 +49,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
   // Folded in from the retired a11y-audit.js: the four of its checks no other test covered.
   for (const pg of ['index.html', ...PAGES]) {
     await p.goto(pg, 900);
+    check(`${pg} links the favicon`, await p.eval("['favicon.ico', 'favicon.svg', 'apple-touch-icon.png'].every(h => document.querySelector('link[href=\"' + h + '\"]'))"));
     check(`${pg} lang="en"`, await p.eval("document.documentElement.lang === 'en'"));
     check(`${pg} has one h1`, await p.eval("document.querySelectorAll('h1').length === 1"));
     const dups = await p.eval("(()=>{const s=new Set(),d=new Set();document.querySelectorAll('[id]').forEach(e=>s.has(e.id)?d.add(e.id):s.add(e.id));return [...d].join(',')})()");
