@@ -42,13 +42,20 @@
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; }
-html, body {
+/* `overflow-x` lives on html alone, not on body too: giving body its own non-visible
+   overflow (on top of the old `html, body { height: 100% }`) was what turned <body> into
+   a second scroll container on every sub-page, under the window's own -- pagehud.js then
+   had to listen to body's scroll with a capturing listener instead of the plain window one
+   every other page-scroll API expects. `clip`, not `hidden`: either stops the sideways
+   scroll, but `hidden` still forces the other axis to `auto` at computed-value time (per
+   the overflow spec's visible/non-visible pairing rule), which is the same coupling that
+   caused this; `clip` carries no scrolling behaviour to force anywhere. */
+html { overflow-x: clip; }
+body {
   margin: 0;
-  height: 100%;
   background: var(--night);
   color: var(--ice);
   font: 16px/1.55 'B612', 'Helvetica Neue', Arial, sans-serif;
-  overflow-x: hidden; /* belt-and-suspenders: no page ever scrolls sideways */
 }
 body.hub { height: 100vh; overflow: hidden; } /* the hub itself never scrolls */
 #cockpit { position: relative; height: 100%; background: var(--night); }
@@ -734,7 +741,8 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 .nv .nv-tint, .nv .nv-scan { display: block; }
 
 /* ============ sub-page screen & panels ============ */
-body.page { background: var(--night); overflow-x: hidden; }
+/* No height or overflow of its own: body.page is exactly as tall as its content, and the
+   window is its scroller (see the base section's note on html's overflow-x). */
 /* Out through the canopy: each sub-page looks at the cockpit's own panorama at the bearing its
    target sits on (--brg on <body>, in degrees: pilot 308, missions 0, hangar 52; pano.svg is 26.667
    units a degree). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw

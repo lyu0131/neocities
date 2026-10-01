@@ -32,7 +32,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
     await p.sleep(900);
     await p.key('k', 'KeyK', 75); await p.sleep(900);
     check(`${pg} K from the end steps back one`, (await rung()) === nRungs - 1, await rung());
-    await p.eval("document.body.scrollTop = document.body.scrollHeight"); await p.sleep(400);
+    await p.eval("document.scrollingElement.scrollTop = document.scrollingElement.scrollHeight"); await p.sleep(400);
     await p.mouse('mouseMoved', 700, 400); await p.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 700, y: 400, deltaX: 0, deltaY: 40 }); await p.sleep(400);
     check(`${pg} HUD follows the scroll`, await p.eval("(()=>{const r=[...document.querySelectorAll('.phud-ladder a')];return r[r.length-1].classList.contains('is-on')})()"));
     check(`${pg} links LinkedIn only on pilot`, pg !== 'pilot.html' || await p.eval("!!document.querySelector('a[href^=\"https://www.linkedin.com/in/sylas-lyu-73815525\"]')"));

@@ -100,9 +100,10 @@
   document.body.appendChild(status);
   document.body.appendChild(prog);
 
-  // ---- follow the scroll. The page's scroller is <body> (html and body are 100% tall), not the
-  // window, so read it (and listen with capture: a body scroll doesn't reach window). ----
-  var sc = document.body;
+  // ---- follow the scroll. The window is the page's scroller (body.page has no height or
+  // overflow of its own -- see cockpit.css), so a plain bubbling 'scroll' listener on the
+  // window sees it, and document.scrollingElement (not body) reports its position. ----
+  var sc = document.scrollingElement;
   var cur = -1, queued = false, locked = null;
   // J/K (and a rung click) keep their own cursor, shown until the next manual scroll. Reading it
   // back off the scroll position fails three ways: two panels side by side share a top, the last
@@ -145,7 +146,7 @@
   }
   function setText(node, s) { if (node.textContent !== s) node.textContent = s; }
   function queue() { if (!queued) { queued = true; requestAnimationFrame(update); } }
-  document.addEventListener('scroll', queue, { capture: true, passive: true });
+  addEventListener('scroll', queue, { passive: true });
   addEventListener('resize', queue);
   // <details> opening (the hangar's history) changes the page's length
   document.addEventListener('toggle', queue, true);
