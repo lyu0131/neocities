@@ -1,8 +1,15 @@
 /* BUNNyS cockpit: tokens, hub layer stack, HUD look, boot sequence.
    Owner: css/cockpit.css (see DESIGN.md "File ownership").
    Hard rule: never set `transform` on .pano-ring, .pano-slice or .target —
-   js/cockpit.js writes those inline every frame. */
+   js/cockpit.js writes those inline every frame.
 
+   Sections, in order: tokens; base; shared corner-bracket mechanism; hub layers &
+   panorama; HUD SVG styling; controls (nav/sr-only/hud-btn); boot sequence; five
+   canopy screens; power-on; hub HTML panels (.slew/.pop/.hudmode); sub-page screen
+   & panels; sub-page HUD (.phud-*); page handover (#link); kbd.
+   Each @media (prefers-reduced-motion: reduce) rule sits beside the thing it calms. */
+
+/* ---------- tokens ---------- */
 :root {
   --night: #060A12;
   --indigo: #0E1830;
@@ -48,18 +55,6 @@ body.hub { height: 100vh; overflow: hidden; } /* the hub itself never scrolls */
 
 a { color: inherit; }
 
-/* shared type utilities (spec 3's type scale) */
-.readout {
-  font: 700 13px/1 'B612 Mono', monospace;
-  letter-spacing: .08em;
-  font-variant-numeric: tabular-nums;
-}
-.display {
-  font: 700 clamp(40px, 7vw, 112px) / 1.02 'B612', sans-serif;
-  letter-spacing: -.01em;
-  margin: 0;
-}
-
 :focus-visible {
   outline: 2px solid var(--hud);
   outline-offset: 2px;
@@ -67,6 +62,29 @@ a { color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+
+/* ---------- shared mechanism: corner brackets ---------- */
+/* Four L-shaped brackets cut into a box's corners, as eight no-repeat background
+   gradients (one long arm + one short arm per corner, so none of them tile). One rule,
+   driven per use by --cnr-c (colour), --cnr-arm (long-arm length) and --cnr-th (stroke
+   thickness): .target's own background, and the ::before layer on .boot-readout,
+   .panel, .slew/.pop and .phud-blip.is-me/.is-lock, all drew this same eight-gradient
+   trick inline at their own sizes and colours before this rule unified them. */
+.target,
+.boot-readout::before,
+.panel::before,
+.slew::before, .pop::before,
+.phud-blip.is-me::before, .phud-blip.is-lock::before {
+  --cnr: linear-gradient(var(--cnr-c), var(--cnr-c));
+  background-image: var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr);
+  background-repeat: no-repeat;
+  background-position: top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+  background-size:
+    var(--cnr-arm) var(--cnr-th), var(--cnr-th) var(--cnr-arm),
+    var(--cnr-arm) var(--cnr-th), var(--cnr-th) var(--cnr-arm),
+    var(--cnr-arm) var(--cnr-th), var(--cnr-th) var(--cnr-arm),
+    var(--cnr-arm) var(--cnr-th), var(--cnr-th) var(--cnr-arm);
 }
 
 /* ---------- layer 1: the panorama cylinder ---------- */
@@ -122,16 +140,10 @@ a { color: inherit; }
   pointer-events: auto;
   transition: width .35s steps(3, end), height .35s steps(3, end),
               margin .35s steps(3, end), color .2s ease;
-  /* four corner brackets, drawn as background gradients pinned to the box's corners */
-  background:
-    linear-gradient(currentColor, currentColor) top left / 16px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) top left / 2px 16px no-repeat,
-    linear-gradient(currentColor, currentColor) top right / 16px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) top right / 2px 16px no-repeat,
-    linear-gradient(currentColor, currentColor) bottom left / 16px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) bottom left / 2px 16px no-repeat,
-    linear-gradient(currentColor, currentColor) bottom right / 16px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) bottom right / 2px 16px no-repeat;
+  /* four corner brackets, via the shared mechanism above, pinned to the box's corners */
+  --cnr-c: currentColor;
+  --cnr-arm: 16px;
+  --cnr-th: 2px;
 }
 /* the emblem: a small diamond mark centred in the bracket box */
 .target::before {
@@ -168,7 +180,14 @@ a { color: inherit; }
   color: var(--lock);
 }
 .target.is-locked::after { opacity: 1; }
-
+@media (max-width: 480px) {
+  .target { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  .target.is-locked { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+  .target::after { max-width: 22ch; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .target { transition: none; }
+}
 
 /* ---------- layer 2: canvas fx ---------- */
 #fx {
@@ -191,6 +210,7 @@ a { color: inherit; }
   user-select: none;
 }
 
+/* ============ HUD SVG styling ============ */
 /* ---------- layer 4: the HUD overlay ---------- */
 #hud {
   position: fixed;
@@ -240,6 +260,59 @@ a { color: inherit; }
   70%  { transform: scale(.94); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+@media (prefers-reduced-motion: reduce) {
+  #hud.hud-draw :is(path, line, polyline, circle, rect) { animation: none; stroke-dashoffset: 0; }
+  #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
+}
+
+/* ---------- instruments: radar scope, system gauges, caution banner ---------- */
+#hud .radar text { font-size: 11px; opacity: .8; }
+#hud .blip rect { fill: rgba(6, 10, 18, .6); }
+#hud .blip text { font-size: 10px; }
+#hud .blip.is-locked { color: var(--lock); }
+#hud .warn { color: var(--amber); }
+#hud .warn text { font-size: 13px; }
+#hud .warn.is-blinking { animation: warn-blink 1s steps(2, end) infinite; }
+@keyframes warn-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
+/* bigger caution banner text */
+#hud .warn text.warn-text { font-size: 22px; letter-spacing: .06em; }
+
+/* The hostile contact's alarm inverts its whole housing rather than glowing: a hard
+   two-frame flash catches the eye at the edge of vision without any bloom, which is the
+   look this HUD is after. Animations outrank the inline fills hud.js writes, so the text
+   and brackets invert with the box.
+   steps(1, end), not steps(2): the timing function runs per keyframe segment, so two
+   steps put a blended half-colour between the two states and softened the flash into a
+   pulse. One step holds each state flat for its whole segment -- a square wave. */
+/* Two static states, flipped together by drawAlarmFlash() in hud.js. These were three
+   separate CSS animations; each kept its own clock from whenever its element was last
+   attached, so box and ink drifted apart and the alarm went red-on-red or dark-on-dark.
+   Driving the flip from the one tick() clock keeps the inversion exact by construction. */
+/* !important because hud.js writes fill into each element's inline style: the animations
+   these rules replaced outranked it for free, a plain rule does not. */
+#hud .hx-alarm.is-inv rect { fill: var(--lock) !important; }
+#hud .hx-alarm.is-inv text { fill: var(--night) !important; }
+#hud .hx-alarm.is-inv line { stroke: var(--night) !important; }
+
+/* damage map: zones sit at a permanent state colour (set below) and amber/red ones
+   flash to it from a dim "off" tone -- steps(1, end), same hard square-wave as the
+   hostile alarm above, not steps(2) which blends a half-colour into a soft pulse. */
+#hud .dmg-zone.is-caution { fill: var(--amber); animation: dmg-zone-flash .8s steps(1, end) infinite; }
+#hud .dmg-zone.is-hit { fill: var(--lock); animation: dmg-zone-flash .8s steps(1, end) infinite; }
+@keyframes dmg-zone-flash { 50% { fill: rgba(140, 255, 193, .16); } }
+@media (prefers-reduced-motion: reduce) {
+  #hud .warn.is-blinking { animation: none; opacity: 1; }
+  /* the flash is JS-driven now; drawAlarmFlash() never sets .is-inv under reduced motion,
+     which leaves the legible base state (dark box, red ink) showing */
+  #hud .dmg-zone.is-caution, #hud .dmg-zone.is-hit { animation: none; }
+}
+
+/* target popup: raised under the reticle when a contact is latched */
+#hud .dossier { transition: opacity .18s ease-out; }
+#hud .dossier text { font-size: 14px; text-anchor: middle; }
+#hud .dossier .dim { font-size: 11px; opacity: .75; }
+#hud .dossier .dos-title { font-size: 22px; letter-spacing: .1em; }
+#hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
 
 /* ---------- controls: nav, sr-only, hud buttons ---------- */
 .sr-only {
@@ -268,6 +341,9 @@ a { color: inherit; }
   cursor: pointer;
 }
 .hud-btn:hover { background: rgba(140, 255, 193, .14); }
+@media (max-width: 480px) {
+  .hud-btn { padding: 10px 12px; font-size: 11px; }
+}
 
 #targets-nav {
   position: fixed;
@@ -301,11 +377,18 @@ a { color: inherit; }
   white-space: nowrap;
 }
 #targets-nav a:hover, #targets-nav a:focus-visible { color: var(--ice); }
+@media (max-width: 480px) {
+  #targets-nav { top: 10px; left: 10px; }
+  #targets-nav:focus-within { max-width: calc(100vw - 20px); padding: 10px 12px; }
+}
 
 #tilt { position: fixed; right: 16px; bottom: 16px; z-index: var(--z-nav); }
 #lock-status { z-index: var(--z-nav); }
+@media (max-width: 480px) {
+  #tilt { right: 10px; bottom: 10px; }
+}
 
-/* ---------- the boot overlay ---------- */
+/* ============ boot sequence ============ */
 /* The boot is seen through the cockpit's five canopy screens and frame, which stay on screen
    the whole time. Its picture is canvas#boot-scene, a fixed layer at the panorama's z-index but
    later in the document, so it paints over the panorama and under #fx/#screens, #frame and
@@ -350,12 +433,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 }
 .boot-readout::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
-  --b: linear-gradient(var(--hud), var(--hud));
-  background:
-    var(--b) top left / 10px 1.5px no-repeat,    var(--b) top left / 1.5px 10px no-repeat,
-    var(--b) top right / 10px 1.5px no-repeat,   var(--b) top right / 1.5px 10px no-repeat,
-    var(--b) bottom left / 10px 1.5px no-repeat, var(--b) bottom left / 1.5px 10px no-repeat,
-    var(--b) bottom right / 10px 1.5px no-repeat,var(--b) bottom right / 1.5px 10px no-repeat;
+  --cnr-c: var(--hud); --cnr-arm: 10px; --cnr-th: 1.5px;
 }
 .boot-stage {
   margin: 0;
@@ -386,6 +464,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 @media (max-width: 480px) {
   .boot-readout { left: 12px; top: 12px; padding: 11px 12px 9px; }
   #boot-log { font-size: 11px; }
+  #boot-log, .boot-stage { left: 12px; }
 }
 
 /* captions under the monitor; boot.js sets `top` so they clear the panel at any size */
@@ -435,9 +514,19 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 /* frame seam glow (spec 6): "the frame seams glow green then settle". boot.js adds
    seam-glow as the boot hands over to the hub and removes it 1.3s later. */
 #frame.seam-glow { animation: frame-seam-glow 1.2s ease-out 1; }
+@keyframes frame-seam-glow {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 6px var(--hud)) brightness(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #boot { transition: none; }
+  .boot-bar i { transform: scaleX(1); }
+  #frame.seam-glow { animation: none; filter: none; }
+}
 
-/* The five canopy screens (hud.js buildScreens). Between the panorama and the frame; never
-   takes input. The shutter is each screen's "off" state; .powering runs the bring-up. */
+/* ============ five canopy screens ============ */
+/* The canopy is five screens, not one pane (hud.js buildScreens): between the panorama and the
+   frame; never takes input. The shutter is each screen's "off" state; .powering runs the bring-up. */
 #screens { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-fx); pointer-events: none; color: var(--hud); }
 #screens .shutter { fill: #03060B; opacity: 0; }
 #screens .seam { fill: none; stroke: var(--hud); stroke-opacity: 0; stroke-width: 1; }
@@ -468,7 +557,12 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   26% { stroke-dashoffset: 0; stroke-opacity: .8; }
   100% { stroke-dashoffset: 0; stroke-opacity: 0; }   /* the permanent .seam-line takes over */
 }
+@media (prefers-reduced-motion: reduce) {
+  #screens.powering .shutter, #screens.powering .calib, #screens.powering .calib-spin,
+  #screens.powering .seam { animation: none; }
+}
 
+/* ============ power-on ============ */
 /* Cockpit power-on: each instrument group flickers on in turn (delay set per group by hud.js
    powerOn()). Stepped, not faded -- a display striking up, not a dissolve. `backwards` only, so
    after its run the group's own opacity attribute is back in charge. */
@@ -479,332 +573,11 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   50%  { opacity: .15; }
   75%  { opacity: 1; }
 }
-@keyframes frame-seam-glow {
-  0%, 100% { filter: none; }
-  50% { filter: drop-shadow(0 0 6px var(--hud)) brightness(1.2); }
-}
-
-/* ---------- reduced motion: land in the finished state, no flashes ---------- */
 @media (prefers-reduced-motion: reduce) {
-  #hud.hud-draw :is(path, line, polyline, circle, rect) { animation: none; stroke-dashoffset: 0; }
-  #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
-  .target { transition: none; }
-  #boot { transition: none; }
-  .boot-bar i { transform: scaleX(1); }
-  #frame.seam-glow { animation: none; filter: none; }
   .pw { animation: none; }
-  #screens.powering .shutter, #screens.powering .calib, #screens.powering .calib-spin,
-  #screens.powering .seam { animation: none; }
 }
 
-/* ---------- 375px: no horizontal scroll, tilt reachable, 44px targets ---------- */
-@media (max-width: 480px) {
-  .hud-btn { padding: 10px 12px; font-size: 11px; }
-  #tilt { right: 10px; bottom: 10px; }
-  #targets-nav { top: 10px; left: 10px; }
-  #targets-nav:focus-within { max-width: calc(100vw - 20px); padding: 10px 12px; }
-  .target { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
-  .target.is-locked { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
-  .target::after { max-width: 22ch; font-size: 11px; }
-  #boot-log, .boot-stage { left: 12px; }
-}
-
-/* ---------- instruments: radar scope, system gauges, caution banner ---------- */
-#hud .radar text { font-size: 11px; opacity: .8; }
-#hud .blip rect { fill: rgba(6, 10, 18, .6); }
-#hud .blip text { font-size: 10px; }
-#hud .blip.is-locked { color: var(--lock); }
-#hud .gauges text { font-size: 11px; }
-#hud .warn { color: var(--amber); }
-#hud .warn text { font-size: 13px; }
-#hud .warn.is-blinking { animation: warn-blink 1s steps(2, end) infinite; }
-@keyframes warn-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
-
-/* The hostile contact's alarm inverts its whole housing rather than glowing: a hard
-   two-frame flash catches the eye at the edge of vision without any bloom, which is the
-   look this HUD is after. Animations outrank the inline fills hud.js writes, so the text
-   and brackets invert with the box.
-   steps(1, end), not steps(2): the timing function runs per keyframe segment, so two
-   steps put a blended half-colour between the two states and softened the flash into a
-   pulse. One step holds each state flat for its whole segment -- a square wave. */
-/* Two static states, flipped together by drawAlarmFlash() in hud.js. These were three
-   separate CSS animations; each kept its own clock from whenever its element was last
-   attached, so box and ink drifted apart and the alarm went red-on-red or dark-on-dark.
-   Driving the flip from the one tick() clock keeps the inversion exact by construction. */
-/* !important because hud.js writes fill into each element's inline style: the animations
-   these rules replaced outranked it for free, a plain rule does not. */
-#hud .hx-alarm.is-inv rect { fill: var(--lock) !important; }
-#hud .hx-alarm.is-inv text { fill: var(--night) !important; }
-#hud .hx-alarm.is-inv line { stroke: var(--night) !important; }
-
-/* damage map: zones sit at a permanent state colour (set below) and amber/red ones
-   flash to it from a dim "off" tone -- steps(1, end), same hard square-wave as the
-   hostile alarm above, not steps(2) which blends a half-colour into a soft pulse. */
-#hud .dmg-zone.is-caution { fill: var(--amber); animation: dmg-zone-flash .8s steps(1, end) infinite; }
-#hud .dmg-zone.is-hit { fill: var(--lock); animation: dmg-zone-flash .8s steps(1, end) infinite; }
-@keyframes dmg-zone-flash { 50% { fill: rgba(140, 255, 193, .16); } }
-@media (prefers-reduced-motion: reduce) {
-  #hud .warn.is-blinking { animation: none; opacity: 1; }
-  /* the flash is JS-driven now; drawAlarmFlash() never sets .is-inv under reduced motion,
-     which leaves the legible base state (dark box, red ink) showing */
-  #hud .dmg-zone.is-caution, #hud .dmg-zone.is-hit { animation: none; }
-}
-
-#hud .dossier text { font-size: 14px; }
-#hud .dossier .dim { font-size: 11px; opacity: .75; }
-
-/* ---------- sub-pages: a cockpit display in a bevelled screen ---------- */
-body.page { background: var(--night); overflow-x: hidden; }
-/* Out through the canopy: each sub-page looks at the cockpit's own panorama at the bearing its
-   target sits on (--brg on <body>, in degrees: pilot 308, missions 0, hangar 52; pano.svg is 26.667
-   units a degree). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw
-   past each side so the drift never shows an edge. Dimmed and vignetted: the panels stay the read. */
-body.page::before {
-  content: ""; position: fixed; inset: 0 -4vw; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 80% 70% at 50% 58%, rgba(6, 10, 18, .2), rgba(6, 10, 18, .78)),
-    linear-gradient(rgba(6, 10, 18, .6), rgba(6, 10, 18, 0) 38%, rgba(6, 10, 18, 0) 70%, rgba(6, 10, 18, .7)),
-    url(../img/pano.svg) calc(54vw - var(--brg, 0) * 26.6667 * .085vh) -37.75vh / auto 170vh repeat-x;
-}
-/* a slow drift, only where there's a mouse: on a phone it would keep the compositor awake for 1px/s */
-@media (hover: hover) { body.page::before { animation: pano-drift 70s ease-in-out infinite alternate; } }
-@keyframes pano-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
-@media (prefers-reduced-motion: reduce) { body.page::before { animation: none; } }
-
-.strip {
-  /* above .screen (z 6), or the page scrolls up over the nav */
-  position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
-  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
-  padding: 12px 20px;
-  background: linear-gradient(var(--housing-lip), var(--housing) 2px, var(--housing));
-  border-bottom: 1px solid var(--edge);
-  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .1em;
-}
-.strip ul { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; }
-.strip a { color: var(--ice); text-decoration: none; padding: 6px 8px; min-height: 32px; display: inline-flex; align-items: center; }
-.strip a:hover { background: var(--hud); color: var(--night); }
-.strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
-.strip .ret { color: var(--amber); }
-
-.screen {
-  position: relative; z-index: 1;   /* over the panorama (body.page::before, z 0); page chrome is --z-nav */
-  max-width: 1080px; margin: 0 auto; padding: 136px 20px 80px;
-  color: var(--ice); font: 400 15px/1.6 'B612', system-ui, sans-serif;
-}
-/* A panel is a painted housing: a lit top lip, a machined hairline edge, four bracket
-   corners cut into the face, and a silkscreened part number in the bottom right. */
-.panel {
-  position: relative;
-  background: linear-gradient(var(--housing-lip), var(--housing) 3px, var(--housing));
-  padding: 22px 24px 30px;
-  border: 1px solid var(--edge);
-  margin: 0 0 26px;
-}
-.panel::before {
-  content: ""; position: absolute; inset: 5px; pointer-events: none;
-  --b: linear-gradient(var(--hud), var(--hud));
-  background:
-    var(--b) top left / 13px 1px no-repeat,    var(--b) top left / 1px 13px no-repeat,
-    var(--b) top right / 13px 1px no-repeat,   var(--b) top right / 1px 13px no-repeat,
-    var(--b) bottom left / 13px 1px no-repeat, var(--b) bottom left / 1px 13px no-repeat,
-    var(--b) bottom right / 13px 1px no-repeat,var(--b) bottom right / 1px 13px no-repeat;
-  opacity: .55;
-}
-.panel[data-ref]::after {
-  content: attr(data-ref);
-  position: absolute; right: 26px; bottom: 7px;
-  font: 400 10px/1 'B612 Mono', monospace; letter-spacing: .16em;
-  color: var(--stencil); pointer-events: none;
-}
-/* the subsystem this panel belongs to, stencilled on the top lip */
-.sub {
-  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .2em;
-  color: var(--hud); margin: 0 0 10px;
-}
-/* a readout set into the housing: recessed glass, not another housing */
-.rows {
-  background: var(--glass);
-  border: 1px solid var(--edge);
-  padding: 14px 16px;
-}
-.bar {
-  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud);
-  padding: 0 0 14px; margin: 0 0 18px; border-bottom: 1px solid var(--edge);
-  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-}
-.bar .unit { color: var(--stencil); letter-spacing: .12em; font-weight: 400; }
-.screen h1 { font: 700 clamp(28px, 5vw, 52px)/1.05 'B612 Mono', monospace; letter-spacing: .04em; margin: 0 0 18px; }
-.screen h2, .screen h3 {
-  font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em;
-  color: var(--ice); margin: 0 0 12px; padding-bottom: 7px;
-  border-bottom: 1px solid var(--edge);
-}
-.screen p { margin: 0 0 14px; max-width: 68ch; }
-/* Links are the words themselves (a name, the unit, a count), never a URL or an "open the..."
-   label, so they read as text: same ink, a faint underline to find them by (colour alone would not
-   be enough to tell them apart), HUD green on hover and keyboard focus. */
-.screen a { color: inherit; text-decoration: underline 1px rgba(221, 231, 238, .3); text-underline-offset: 3px; }
-.screen a:hover, .screen a:focus-visible { color: var(--hud); text-decoration-color: var(--hud); }
-.meta { font: 400 12px/1.5 'B612 Mono', monospace; letter-spacing: .08em; color: var(--hud); opacity: .85; }
-.rows { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0; font-size: 14px; }
-.rows dt { font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
-.rows dt::after { content: ""; }
-.rows dd { margin: 0; }
-.tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
-.tag.is-caution { border-color: var(--amber); color: var(--amber); }
-.tag.is-done { border-color: var(--edge); color: var(--stencil); }
-/* short items (skills, roles, interests) as stencilled plates that wrap */
-.chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
-.chips li { border: 1px solid var(--edge); background: var(--glass); padding: 3px 9px; font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .04em; }
-.list, .rows ul:not(.chips) { margin: 0; padding-left: 1.1em; }
-.list li + li, .rows ul:not(.chips) li + li { margin-top: 6px; }
-.list li::marker, .rows ul:not(.chips) li::marker { color: var(--hud); }
-/* the mission log's Active / Archive dividers */
-.screen h2.log-head {
-  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--hud); margin: 34px 0 14px; padding-bottom: 9px;
-}
-
-/* a rail of subsystem readouts: glass cells on a machined grid, hairline dividers made
-   by letting the housing edge show through a 1px gap rather than by drawing borders */
-.rail {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  gap: 1px; list-style: none; margin: 0 0 26px; padding: 0;
-  background: var(--edge); border: 1px solid var(--edge);
-}
-.rail li { background: var(--glass); padding: 11px 13px; display: grid; gap: 5px; }
-.rail b { font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .14em; color: var(--hud); }
-.rail span { font: 700 15px/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--ice); }
-.rail .is-caution span { color: var(--amber); }
-/* two to a row on a phone: an odd one out takes the whole row instead of leaving a blank cell */
-@media (max-width: 500px) { .rail li:last-child:nth-child(odd) { grid-column: 1 / -1; } }
-
-/* mission entries slide in as they scroll into view */
-.reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }
-.reveal.is-in { opacity: 1; transform: none; }
-
-/* a mission's role line: the role in full ink, its place in a quieter one */
-.role { margin: -4px 0 14px; font-size: 14px; color: rgba(221, 231, 238, .78); }
-.role b { color: var(--ice); }
-
-/* missions: the flight record. One bar per mission on a shared axis, May 2021 (0) to
-   October 2026 (66) in months, set inline as --a (start) and --b (end). */
-.flight { margin: 0 0 6px; padding: 16px 18px 10px; border: 1px solid var(--edge); background: var(--glass); }
-.flight ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.flight li { display: grid; grid-template-columns: 19ch 1fr; gap: 14px; align-items: center; }
-.flight li > span { font: 700 11px/1.2 'B612 Mono', monospace; letter-spacing: .06em; white-space: nowrap; color: rgba(221, 231, 238, .8); }
-.flight small { font-size: inherit; }
-.flight b { position: relative; display: block; height: 14px; background: rgba(221, 231, 238, .04); }
-.flight i {
-  position: absolute; top: 0; bottom: 0;
-  left: calc(var(--a) / 66 * 100%); width: max(6px, calc((var(--b) - var(--a)) / 66 * 100%));
-  background: rgba(221, 231, 238, .14); border: 1px solid rgba(221, 231, 238, .4);
-}
-.flight .is-active > span { color: var(--hud); }
-.flight .is-active i { background: rgba(140, 255, 193, .32); border-color: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .35); }
-.flight .axis b { background: none; height: 12px; }
-.flight em {
-  position: absolute; top: 0; left: calc(var(--a) / 66 * 100%); padding-left: 4px;
-  border-left: 1px solid var(--edge); font: 400 10px/1.2 'B612 Mono', monospace; font-style: normal;
-  letter-spacing: .06em; color: var(--stencil);
-}
-@media (max-width: 500px) {
-  .flight { padding: 12px 12px 8px; }
-  .flight li { grid-template-columns: 6ch 1fr; gap: 10px; }
-  .flight small { display: none; }
-  .flight em { font-size: 9px; padding-left: 2px; letter-spacing: 0; }
-  .flight em:nth-child(2n) { font-size: 0; }   /* every other year: the ticks stay, the labels don't collide */
-}
-
-/* pilot: short panels pair up side by side, and stack on a phone */
-.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 0 26px; }
-
-/* hangar: the owner's own model on a blueprint grid (js/hangar.js draws it) */
-.suit-view { position: relative; margin: 0; border: 1px solid var(--edge);
-  background:
-    repeating-linear-gradient(0deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
-    repeating-linear-gradient(90deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
-    radial-gradient(ellipse at 50% 45%, #10203A, var(--glass) 70%); }
-#suit { display: block; width: 100%; aspect-ratio: 16 / 10; cursor: grab; touch-action: pan-y; }
-#suit:active { cursor: grabbing; }
-#suit:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
-.suit-hdg { position: absolute; left: 12px; top: 10px; margin: 0; pointer-events: none;
-  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud); }
-.suit-nogl { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--stencil); }
-.suit-nogl[hidden] { display: none; }
-.suit-ctl { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 24px; }
-@media (max-width: 600px) { #suit { aspect-ratio: 1 / 1; } }
-.callouts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
-/* hangar history: one disclosure per account, a HUD row that opens on click */
-details.log { border-top: 1px solid var(--edge); }
-details.log:last-child { border-bottom: 1px solid var(--edge); }
-details.log summary {
-  cursor: pointer; list-style: none; padding: 12px 0; display: flex; gap: 12px; align-items: center;
-  font: 700 12px/1.3 'B612 Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--hud);
-}
-details.log summary::-webkit-details-marker { display: none; }
-details.log summary::before { content: ""; width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent currentColor; transition: transform .15s; }
-details.log[open] summary::before { transform: rotate(90deg); }
-details.log summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-details.log > p { margin: 0 0 14px; }
-/* two dl panels side by side: label over text, or a long label crushes the text into a sliver */
-.duo .rows { grid-template-columns: 1fr; gap: 2px 0; }
-.duo .rows dd { margin: 0 0 12px; }
-@media (prefers-reduced-motion: reduce) { details.log summary::before { transition: none; } }
-.callouts button {
-  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .1em;
-  background: transparent; color: var(--hud); border: 1px solid rgba(140, 255, 193, .5);
-  padding: 9px 12px; min-height: 36px; cursor: pointer;
-}
-.callouts button:hover, .callouts button:focus-visible { background: var(--amber); color: var(--night); border-color: var(--amber); }
-
-/* entrance: a scanline wipe down the screen */
-@keyframes screen-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-body.page .screen { animation: screen-wipe .4s ease-out both; }
-/* arriving through the shutters (js/link.js), the shutters are the entrance */
-html.linked body.page .screen { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  body.page .screen { animation: none; }
-  .reveal { opacity: 1; transform: none; transition: none; }
-}
-@media (max-width: 700px) {
-  .screen { padding: 124px 14px 60px; }
-  .rows { grid-template-columns: 1fr; gap: 2px 0; }
-  .rows dd { margin: 0 0 10px; }
-}
-
-/* bigger caution banner, and the richer left instrument panel */
-#hud .warn text.warn-text { font-size: 22px; letter-spacing: .06em; }
-#hud .gauges polyline { fill: none; stroke: currentColor; stroke-width: 1.2; }
-
-/* ---------- hover magnifies text on the content pages ---------- */
-/* Scaling type reflows and blurs it, so step the font-size instead and let the
-   panel grow with it. transform-based zoom would smear the glyph edges. */
-.screen .panel { transition: font-size .18s ease-out, border-color .18s ease-out, background-color .18s ease-out; }
-.screen .panel:hover, .screen .panel:focus-within {
-  font-size: 1.12em;
-  border-color: rgba(140, 255, 193, .6);
-  background: var(--panel);
-}
-.screen .rows dd, .screen p, .screen li { transition: font-size .18s ease-out; }
-.screen a { transition: font-size .15s ease-out, background-color .15s ease-out; display: inline-block; }
-.screen a:hover, .screen a:focus-visible { font-size: 1.18em; }
-.strip a { transition: font-size .15s ease-out; }
-.strip a:hover, .strip a:focus-visible { font-size: 1.15em; }
-.callouts button { transition: font-size .15s ease-out; }
-.callouts button:hover, .callouts button:focus-visible { font-size: 1.2em; }
-@media (prefers-reduced-motion: reduce) {
-  .screen .panel, .screen a, .strip a, .callouts button,
-  .screen .rows dd, .screen p, .screen li { transition: none; }
-}
-
-/* target popup: raised under the reticle when a contact is latched */
-#hud .dossier { transition: opacity .18s ease-out; }
-#hud .dossier text { text-anchor: middle; }
-#hud .dossier .dos-title { font-size: 22px; letter-spacing: .1em; }
-#hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
-
-/* ---------- slew panel: rotate the view onto a contact, bottom-left instrument column ---------- */
+/* ============ hub HTML panels: .slew / .pop / .hudmode ============ */
 /* Matches the SVG instrument housings it now sits under: the same dark backing, corner
    registration brackets, a rule under the header and a stencilled part number. It is HTML
    rather than SVG because its children are real buttons, so the brackets are drawn as
@@ -831,18 +604,14 @@ html.linked body.page .screen { animation: none; }
   display: flex;
   flex-direction: column;
 }
-/* four corner brackets, 10px arms, same geometry as corners() draws in the SVG panels */
+/* four corner brackets, 10px arms, via the shared mechanism above -- same geometry as
+   corners() draws in the SVG panels */
 .slew::before, .pop::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  --b: linear-gradient(var(--hud), var(--hud));
-  background:
-    var(--b) top left / 10px 1px no-repeat,     var(--b) top left / 1px 10px no-repeat,
-    var(--b) top right / 10px 1px no-repeat,    var(--b) top right / 1px 10px no-repeat,
-    var(--b) bottom left / 10px 1px no-repeat,  var(--b) bottom left / 1px 10px no-repeat,
-    var(--b) bottom right / 10px 1px no-repeat, var(--b) bottom right / 1px 10px no-repeat;
+  --cnr-c: var(--hud); --cnr-arm: 10px; --cnr-th: 1px;
 }
 .slew::after {
   content: 'RX-124 · BNS-NAV-118A';
@@ -964,31 +733,244 @@ html.linked body.page .screen { animation: none; }
 }
 .nv .nv-tint, .nv .nv-scan { display: block; }
 
-/* ---------- page handover: canopy shutters (js/link.js) ---------- */
-/* An arriving page is dark from its first paint, until link.js puts up the closed glass. */
-html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc(var(--z-boot) + 1); background: #03060B; }
-#link { position: fixed; inset: 0; z-index: var(--z-link); pointer-events: none; }
-#link .link-shut { position: absolute; inset: 0; }
-#link .link-blade {
-  position: absolute; inset: 0; transform: translateY(-100%);
+/* ============ sub-page screen & panels ============ */
+body.page { background: var(--night); overflow-x: hidden; }
+/* Out through the canopy: each sub-page looks at the cockpit's own panorama at the bearing its
+   target sits on (--brg on <body>, in degrees: pilot 308, missions 0, hangar 52; pano.svg is 26.667
+   units a degree). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw
+   past each side so the drift never shows an edge. Dimmed and vignetted: the panels stay the read. */
+body.page::before {
+  content: ""; position: fixed; inset: 0 -4vw; z-index: 0; pointer-events: none;
   background:
-    repeating-linear-gradient(0deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
-    repeating-linear-gradient(90deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
-    linear-gradient(#0B1322, var(--night));
+    radial-gradient(ellipse 80% 70% at 50% 58%, rgba(6, 10, 18, .2), rgba(6, 10, 18, .78)),
+    linear-gradient(rgba(6, 10, 18, .6), rgba(6, 10, 18, 0) 38%, rgba(6, 10, 18, 0) 70%, rgba(6, 10, 18, .7)),
+    url(../img/pano.svg) calc(54vw - var(--brg, 0) * 26.6667 * .085vh) -37.75vh / auto 170vh repeat-x;
 }
-#link svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
-#link polygon { fill: none; stroke: var(--hud); stroke-width: 1.5; }
-#link .link-label {
-  position: absolute; left: 0; right: 0; margin: 0; transform: translateY(-50%); text-align: center;
-  font: 700 26px/1 'B612 Mono', monospace; letter-spacing: .32em; color: var(--hud); opacity: 0;
-}
-#link .link-label small { display: block; margin-top: 14px; font-size: 12px; letter-spacing: .24em; color: rgba(140, 255, 193, .6); }
-@media (max-width: 480px) { #link .link-label { font-size: 18px; letter-spacing: .24em; } }
-/* firing: the lock blinks lock/HUD twice before the shutters start */
-.target.is-fired { animation: fire-blink .16s steps(1, end) 1; }
-@keyframes fire-blink { 0%, 50% { color: var(--lock); } 25%, 75% { color: var(--hud); } }
+/* a slow drift, only where there's a mouse: on a phone it would keep the compositor awake for 1px/s */
+@media (hover: hover) { body.page::before { animation: pano-drift 70s ease-in-out infinite alternate; } }
+@keyframes pano-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
+@media (prefers-reduced-motion: reduce) { body.page::before { animation: none; } }
 
-/* ---------- sub-page HUD (js/pagehud.js): instruments for reading, not flying ---------- */
+.strip {
+  /* above .screen (z 6), or the page scrolls up over the nav */
+  position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(var(--housing-lip), var(--housing) 2px, var(--housing));
+  border-bottom: 1px solid var(--edge);
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .1em;
+}
+.strip ul { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; }
+.strip a { color: var(--ice); text-decoration: none; padding: 6px 8px; min-height: 32px; display: inline-flex; align-items: center; }
+.strip a:hover { background: var(--hud); color: var(--night); }
+.strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
+.strip .ret { color: var(--amber); }
+
+.screen {
+  position: relative; z-index: 1;   /* over the panorama (body.page::before, z 0); page chrome is --z-nav */
+  max-width: 1080px; margin: 0 auto; padding: 136px 20px 80px;
+  color: var(--ice); font: 400 15px/1.6 'B612', system-ui, sans-serif;
+}
+/* A panel is a painted housing: a lit top lip, a machined hairline edge, four bracket
+   corners cut into the face, and a silkscreened part number in the bottom right. */
+.panel {
+  position: relative;
+  background: linear-gradient(var(--housing-lip), var(--housing) 3px, var(--housing));
+  padding: 22px 24px 30px;
+  border: 1px solid var(--edge);
+  margin: 0 0 26px;
+}
+.panel::before {
+  content: ""; position: absolute; inset: 5px; pointer-events: none;
+  --cnr-c: var(--hud); --cnr-arm: 13px; --cnr-th: 1px;
+  opacity: .55;
+}
+.panel[data-ref]::after {
+  content: attr(data-ref);
+  position: absolute; right: 26px; bottom: 7px;
+  font: 400 10px/1 'B612 Mono', monospace; letter-spacing: .16em;
+  color: var(--stencil); pointer-events: none;
+}
+/* the subsystem this panel belongs to, stencilled on the top lip */
+.sub {
+  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .2em;
+  color: var(--hud); margin: 0 0 10px;
+}
+/* a readout set into the housing: recessed glass, not another housing */
+.rows {
+  background: var(--glass);
+  border: 1px solid var(--edge);
+  padding: 14px 16px;
+  display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0; font-size: 14px;
+}
+.bar {
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud);
+  padding: 0 0 14px; margin: 0 0 18px; border-bottom: 1px solid var(--edge);
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.bar .unit { color: var(--stencil); letter-spacing: .12em; font-weight: 400; }
+.screen h1 { font: 700 clamp(28px, 5vw, 52px)/1.05 'B612 Mono', monospace; letter-spacing: .04em; margin: 0 0 18px; }
+.screen h2, .screen h3 {
+  font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em;
+  color: var(--ice); margin: 0 0 12px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--edge);
+}
+.screen p { margin: 0 0 14px; max-width: 68ch; }
+/* Links are the words themselves (a name, the unit, a count), never a URL or an "open the..."
+   label, so they read as text: same ink, a faint underline to find them by (colour alone would not
+   be enough to tell them apart), HUD green on hover and keyboard focus. */
+.screen a { color: inherit; text-decoration: underline 1px rgba(221, 231, 238, .3); text-underline-offset: 3px; }
+.screen a:hover, .screen a:focus-visible { color: var(--hud); text-decoration-color: var(--hud); }
+.meta { font: 400 12px/1.5 'B612 Mono', monospace; letter-spacing: .08em; color: var(--hud); opacity: .85; }
+.rows dt { font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
+.rows dd { margin: 0; }
+.tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
+.tag.is-caution { border-color: var(--amber); color: var(--amber); }
+.tag.is-done { border-color: var(--edge); color: var(--stencil); }
+/* short items (skills, roles, interests) as stencilled plates that wrap */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.chips li { border: 1px solid var(--edge); background: var(--glass); padding: 3px 9px; font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .04em; }
+.list, .rows ul:not(.chips) { margin: 0; padding-left: 1.1em; }
+.list li + li, .rows ul:not(.chips) li + li { margin-top: 6px; }
+.list li::marker, .rows ul:not(.chips) li::marker { color: var(--hud); }
+/* the mission log's Active / Archive dividers */
+.screen h2.log-head {
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--hud); margin: 34px 0 14px; padding-bottom: 9px;
+}
+@media (max-width: 700px) {
+  .screen { padding: 124px 14px 60px; }
+  .rows { grid-template-columns: 1fr; gap: 2px 0; }
+  .rows dd { margin: 0 0 10px; }
+}
+
+/* a rail of subsystem readouts: glass cells on a machined grid, hairline dividers made
+   by letting the housing edge show through a 1px gap rather than by drawing borders */
+.rail {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 1px; list-style: none; margin: 0 0 26px; padding: 0;
+  background: var(--edge); border: 1px solid var(--edge);
+}
+.rail li { background: var(--glass); padding: 11px 13px; display: grid; gap: 5px; }
+.rail b { font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .14em; color: var(--hud); }
+.rail span { font: 700 15px/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--ice); }
+.rail .is-caution span { color: var(--amber); }
+/* two to a row on a phone: an odd one out takes the whole row instead of leaving a blank cell */
+@media (max-width: 500px) { .rail li:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+
+/* mission entries slide in as they scroll into view */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* a mission's role line: the role in full ink, its place in a quieter one */
+.role { margin: -4px 0 14px; font-size: 14px; color: rgba(221, 231, 238, .78); }
+.role b { color: var(--ice); }
+
+/* missions: the flight record. One bar per mission on a shared axis, May 2021 (0) to
+   October 2026 (66) in months, set inline as --a (start) and --b (end). */
+.flight { margin: 0 0 6px; padding: 16px 18px 10px; border: 1px solid var(--edge); background: var(--glass); }
+.flight ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.flight li { display: grid; grid-template-columns: 19ch 1fr; gap: 14px; align-items: center; }
+.flight li > span { font: 700 11px/1.2 'B612 Mono', monospace; letter-spacing: .06em; white-space: nowrap; color: rgba(221, 231, 238, .8); }
+.flight small { font-size: inherit; }
+.flight b { position: relative; display: block; height: 14px; background: rgba(221, 231, 238, .04); }
+.flight i {
+  position: absolute; top: 0; bottom: 0;
+  left: calc(var(--a) / 66 * 100%); width: max(6px, calc((var(--b) - var(--a)) / 66 * 100%));
+  background: rgba(221, 231, 238, .14); border: 1px solid rgba(221, 231, 238, .4);
+}
+.flight .is-active > span { color: var(--hud); }
+.flight .is-active i { background: rgba(140, 255, 193, .32); border-color: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .35); }
+.flight .axis b { background: none; height: 12px; }
+.flight em {
+  position: absolute; top: 0; left: calc(var(--a) / 66 * 100%); padding-left: 4px;
+  border-left: 1px solid var(--edge); font: 400 10px/1.2 'B612 Mono', monospace; font-style: normal;
+  letter-spacing: .06em; color: var(--stencil);
+}
+@media (max-width: 500px) {
+  .flight { padding: 12px 12px 8px; }
+  .flight li { grid-template-columns: 6ch 1fr; gap: 10px; }
+  .flight small { display: none; }
+  .flight em { font-size: 9px; padding-left: 2px; letter-spacing: 0; }
+  .flight em:nth-child(2n) { font-size: 0; }   /* every other year: the ticks stay, the labels don't collide */
+}
+
+/* pilot: short panels pair up side by side, and stack on a phone */
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 0 26px; }
+/* two dl panels side by side: label over text, or a long label crushes the text into a sliver */
+.duo .rows { grid-template-columns: 1fr; gap: 2px 0; }
+.duo .rows dd { margin: 0 0 12px; }
+
+/* hangar: the owner's own model on a blueprint grid (js/hangar.js draws it) */
+.suit-view { position: relative; margin: 0; border: 1px solid var(--edge);
+  background:
+    repeating-linear-gradient(0deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
+    radial-gradient(ellipse at 50% 45%, #10203A, var(--glass) 70%); }
+#suit { display: block; width: 100%; aspect-ratio: 16 / 10; cursor: grab; touch-action: pan-y; }
+#suit:active { cursor: grabbing; }
+#suit:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+.suit-hdg { position: absolute; left: 12px; top: 10px; margin: 0; pointer-events: none;
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud); }
+.suit-nogl { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--stencil); }
+.suit-nogl[hidden] { display: none; }
+.suit-ctl { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 24px; }
+@media (max-width: 600px) { #suit { aspect-ratio: 1 / 1; } }
+
+.callouts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.callouts button {
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .1em;
+  background: transparent; color: var(--hud); border: 1px solid rgba(140, 255, 193, .5);
+  padding: 9px 12px; min-height: 36px; cursor: pointer;
+}
+.callouts button:hover, .callouts button:focus-visible { background: var(--amber); color: var(--night); border-color: var(--amber); }
+
+/* hangar history: one disclosure per account, a HUD row that opens on click */
+details.log { border-top: 1px solid var(--edge); }
+details.log:last-child { border-bottom: 1px solid var(--edge); }
+details.log summary {
+  cursor: pointer; list-style: none; padding: 12px 0; display: flex; gap: 12px; align-items: center;
+  font: 700 12px/1.3 'B612 Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--hud);
+}
+details.log summary::-webkit-details-marker { display: none; }
+details.log summary::before { content: ""; width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent currentColor; transition: transform .15s; }
+details.log[open] summary::before { transform: rotate(90deg); }
+details.log summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+details.log > p { margin: 0 0 14px; }
+@media (prefers-reduced-motion: reduce) { details.log summary::before { transition: none; } }
+
+/* entrance: a scanline wipe down the screen */
+@keyframes screen-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+body.page .screen { animation: screen-wipe .4s ease-out both; }
+/* arriving through the shutters (js/link.js), the shutters are the entrance */
+html.linked body.page .screen { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  body.page .screen { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---------- hover magnifies text on the content pages ---------- */
+/* Scaling type reflows and blurs it, so step the font-size instead and let the
+   panel grow with it. transform-based zoom would smear the glyph edges. */
+.screen .panel { transition: font-size .18s ease-out, border-color .18s ease-out, background-color .18s ease-out; }
+.screen .panel:hover, .screen .panel:focus-within {
+  font-size: 1.12em;
+  border-color: rgba(140, 255, 193, .6);
+  background: var(--panel);
+}
+.screen .rows dd, .screen p, .screen li { transition: font-size .18s ease-out; }
+.screen a { transition: font-size .15s ease-out, background-color .15s ease-out; display: inline-block; }
+.screen a:hover, .screen a:focus-visible { font-size: 1.18em; }
+.strip a { transition: font-size .15s ease-out; }
+.strip a:hover, .strip a:focus-visible { font-size: 1.15em; }
+.callouts button { transition: font-size .15s ease-out; }
+.callouts button:hover, .callouts button:focus-visible { font-size: 1.2em; }
+@media (prefers-reduced-motion: reduce) {
+  .screen .panel, .screen a, .strip a, .callouts button,
+  .screen .rows dd, .screen p, .screen li { transition: none; }
+}
+
+/* ============ sub-page HUD (js/pagehud.js): instruments for reading, not flying ============ */
 .screen .panel { scroll-margin-top: 96px; }
 .phud-ladder, .phud-scope { display: none; }
 /* The side instruments live in the gutters beside the screen. From 1200px wide the screen gives up
@@ -1038,6 +1020,7 @@ html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc
   animation: phud-sweep 6s linear infinite;
 }
 @keyframes phud-sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .phud-sweep { animation: none; } }
 .phud-blip {
   position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px;
   border: 1.5px solid var(--hud); background: var(--night); text-decoration: none;
@@ -1052,11 +1035,8 @@ a.phud-blip:focus-visible span { color: var(--amber); }
 .phud-blip.is-me, .phud-blip.is-lock { border-color: var(--bc); background: var(--bc); }
 .phud-blip.is-me span, .phud-blip.is-lock span { color: var(--bc); }
 .phud-blip.is-me::before, .phud-blip.is-lock::before {
-  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--bc), var(--bc));
-  background: var(--c) top left / 6px 1.5px no-repeat, var(--c) top left / 1.5px 6px no-repeat,
-    var(--c) top right / 6px 1.5px no-repeat, var(--c) top right / 1.5px 6px no-repeat,
-    var(--c) bottom left / 6px 1.5px no-repeat, var(--c) bottom left / 1.5px 6px no-repeat,
-    var(--c) bottom right / 6px 1.5px no-repeat, var(--c) bottom right / 1.5px 6px no-repeat;
+  content: ""; position: absolute; inset: -7px;
+  --cnr-c: var(--bc); --cnr-arm: 6px; --cnr-th: 1.5px;
 }
 .phud-blip.is-unk { border-color: var(--lock); opacity: .55; }
 .phud-blip.is-unk span { color: var(--lock); }
@@ -1075,9 +1055,33 @@ a.phud-blip:focus-visible span { color: var(--amber); }
   background: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .6); transform-origin: left; transform: scaleX(0);
 }
 @media (max-width: 480px) { .phud-status { font-size: 10px; letter-spacing: .1em; } }
-@media (prefers-reduced-motion: reduce) { .phud-sweep { animation: none; } }
 
-/* keyboard shortcuts, shown where they act (cockpit.js, pagehud.js, hangar.js, boot.js own the keys).
+/* ============ page handover: canopy shutters (js/link.js) ============ */
+/* An arriving page is dark from its first paint, until link.js puts up the closed glass. */
+html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc(var(--z-boot) + 1); background: #03060B; }
+#link { position: fixed; inset: 0; z-index: var(--z-link); pointer-events: none; }
+#link .link-shut { position: absolute; inset: 0; }
+#link .link-blade {
+  position: absolute; inset: 0; transform: translateY(-100%);
+  background:
+    repeating-linear-gradient(0deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
+    linear-gradient(#0B1322, var(--night));
+}
+#link svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+#link polygon { fill: none; stroke: var(--hud); stroke-width: 1.5; }
+#link .link-label {
+  position: absolute; left: 0; right: 0; margin: 0; transform: translateY(-50%); text-align: center;
+  font: 700 26px/1 'B612 Mono', monospace; letter-spacing: .32em; color: var(--hud); opacity: 0;
+}
+#link .link-label small { display: block; margin-top: 14px; font-size: 12px; letter-spacing: .24em; color: rgba(140, 255, 193, .6); }
+@media (max-width: 480px) { #link .link-label { font-size: 18px; letter-spacing: .24em; } }
+/* firing: the lock blinks lock/HUD twice before the shutters start */
+.target.is-fired { animation: fire-blink .16s steps(1, end) 1; }
+@keyframes fire-blink { 0%, 50% { color: var(--lock); } 25%, 75% { color: var(--hud); } }
+
+/* ============ keyboard shortcuts ============ */
+/* shown where they act (cockpit.js, pagehud.js, hangar.js, boot.js own the keys).
    Hidden on a touch screen, which has no keys to press. */
 kbd {
   display: inline-block; min-width: 1.6em; margin-right: .6em; padding: 2px 4px 1px; text-align: center;
@@ -1089,4 +1093,3 @@ kbd {
 .strip li:has(> kbd) { display: flex; align-items: center; }
 .strip li > kbd { margin: 0; }
 @media (hover: none) { kbd { display: none; } }
-
