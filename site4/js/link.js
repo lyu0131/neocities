@@ -7,16 +7,16 @@
 (function () {
   'use strict';
   var KEY = 'bunnys-link';      // {to, t}: written as a page leaves, read once by the next
-  var GEO = 'bunnys-canopy';    // the cockpit's last measured screens {polys, W, H}
+  var GEO = 'bunnys-canopy';    // the cockpit's last measured screens, as 5 polys of viewport percentages
   var OWN = /^(index|pilot|missions|hangar)\.html$/;
-  // A rough canopy at 1440x900, scaled to the viewport, for a page that has never measured the
-  // cockpit's own (a visitor who landed straight on a sub-page).
+  // A rough canopy, as percentages of the viewport (originally measured at 1440x900), for a page
+  // that has never measured the cockpit's own (a visitor who landed straight on a sub-page).
   var FALLBACK = [
-    '0,80 432,104 346,235 346,665 460,832 330,832 240,652 0,652',
-    '432,104 1010,104 1094,235 1094,665 980,832 460,832 346,665 346,235',
-    '1440,80 1008,104 1094,235 1094,665 980,832 1110,832 1200,652 1440,652',
-    '0,0 1440,0 1440,80 1010,104 432,104 0,80',
-    '0,652 240,652 330,832 1110,832 1200,652 1440,652 1440,900 0,900'
+    '0.00,8.89 30.00,11.56 24.03,26.11 24.03,73.89 31.94,92.44 22.92,92.44 16.67,72.44 0.00,72.44',
+    '30.00,11.56 70.14,11.56 75.97,26.11 75.97,73.89 68.06,92.44 31.94,92.44 24.03,73.89 24.03,26.11',
+    '100.00,8.89 70.00,11.56 75.97,26.11 75.97,73.89 68.06,92.44 77.08,92.44 83.33,72.44 100.00,72.44',
+    '0.00,0.00 100.00,0.00 100.00,8.89 70.14,11.56 30.00,11.56 0.00,8.89',
+    '0.00,72.44 16.67,72.44 22.92,92.44 77.08,92.44 83.33,72.44 100.00,72.44 100.00,100.00 0.00,100.00'
   ];
   var EASE_IN = 'cubic-bezier(.55,0,1,.45)', EASE_IO = 'cubic-bezier(.65,0,.35,1)';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -35,21 +35,23 @@
   if (arriving) root.classList.add('link-in', 'linked');
 
   function scale(p, sx, sy) {
-    return p.trim().split(/\s+/).map(function (q) { q = q.split(','); return (q[0] * sx).toFixed(1) + ',' + (q[1] * sy).toFixed(1); }).join(' ');
+    return p.trim().split(/\s+/).map(function (q) { q = q.split(','); return (q[0] * sx).toFixed(2) + ',' + (q[1] * sy).toFixed(2); }).join(' ');
   }
   // The cockpit's screens, read straight off hud.js's #screens in document order (L, C, R, T, B).
-  // Their points are in HUD units (hud.js scales the whole HUD down on small screens), so they go
-  // through #screens' viewBox to come out in px.
+  // Their points are in HUD units (hud.js scales the whole HUD down on small screens); dividing by
+  // the viewBox size turns them into percentages of the viewport, which need no further unit
+  // conversion and stay correct even if the next page opens at a different size than this one
+  // measured at -- no W/H to cache and compare against, the way a px-based geometry would need.
   function geometry() {
-    var el = document.getElementById('screens'), s = el ? el.querySelectorAll('.shutter') : [], g = null;
+    var el = document.getElementById('screens'), s = el ? el.querySelectorAll('.shutter') : [];
     var vb = el && el.viewBox && el.viewBox.baseVal;
     if (s.length === 5 && s[0].getAttribute('points') && vb && vb.width) {
-      var sx = innerWidth / vb.width, sy = innerHeight / vb.height;
-      g = { W: innerWidth, H: innerHeight, polys: [].map.call(s, function (p) { return scale(p.getAttribute('points'), sx, sy); }) };
-      write(GEO, g);
-    } else g = read(GEO);
-    if (g && g.W === innerWidth && g.H === innerHeight) return g.polys;
-    return FALLBACK.map(function (p) { return scale(p, innerWidth / 1440, innerHeight / 900); });
+      var polys = [].map.call(s, function (p) { return scale(p.getAttribute('points'), 100 / vb.width, 100 / vb.height); });
+      write(GEO, polys);
+      return polys;
+    }
+    var cached = read(GEO);
+    return (cached && cached.length === 5) ? cached : FALLBACK;
   }
 
   var ov = null, blades = [], seams = null, label = null;
@@ -59,19 +61,25 @@
     blades = polys.map(function (p) {
       var s = document.createElement('div'), b = document.createElement('div');
       s.className = 'link-shut'; b.className = 'link-blade';
-      s.style.clipPath = 'polygon(' + p.trim().split(/\s+/).map(function (q) { return q.replace(',', 'px ') + 'px'; }).join(',') + ')';
+      // polys are percentages (0-100) of the viewport; the clip-path needs the unit on each number
+      s.style.clipPath = 'polygon(' + p.trim().split(/\s+/).map(function (q) { return q.replace(',', '% ') + '%'; }).join(',') + ')';
       s.appendChild(b); ov.appendChild(s);
       return b;
     });
     var ns = 'http://www.w3.org/2000/svg';
     seams = document.createElementNS(ns, 'svg');
-    seams.setAttribute('viewBox', '0 0 ' + innerWidth + ' ' + innerHeight);
+    // A 0-100 viewBox stretched independently on each axis (preserveAspectRatio="none") so the
+    // same percentage points used for the clip-path above also work as plain SVG coordinates here
+    // -- no innerWidth/innerHeight to read or re-set on resize. #link polygon's non-scaling-stroke
+    // (cockpit.css) keeps the seam's stroke-width a constant px despite the anisotropic stretch.
+    seams.setAttribute('viewBox', '0 0 100 100');
+    seams.setAttribute('preserveAspectRatio', 'none');
     polys.forEach(function (p) { var e = document.createElementNS(ns, 'polygon'); e.setAttribute('points', p); seams.appendChild(e); });
     ov.appendChild(seams);
     // the readout sits in the middle of the centre screen
     var ys = polys[1].trim().split(/\s+/).map(function (q) { return +q.split(',')[1]; });
     label = document.createElement('p'); label.className = 'link-label';
-    label.style.top = ((Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2).toFixed(0) + 'px';
+    label.style.top = ((Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2).toFixed(2) + '%';
     var c = to === 'index' ? { label: 'COCKPIT' } : (window.BUNNYS.contacts.filter(function (k) { return k.page === to; })[0] || {});
     label.textContent = 'LINK ▸ ' + (c.label || to.toUpperCase());
     var small = document.createElement('small'); small.textContent = 'CHANNEL OPEN'; label.appendChild(small);

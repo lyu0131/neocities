@@ -216,7 +216,9 @@ function forceBanner(pg, text) {
   await p.key('Enter', 'Enter', 13); await p.sleep(450);
   // the canopy shutters (js/link.js) close over the cockpit before it leaves, on its real seams
   check('firing closes the canopy shutters', await p.eval("(()=>{const l=document.getElementById('link');return !!l && l.querySelectorAll('.link-blade').length===5})()"));
-  check('shutters sit on the cockpit seams', await p.eval("(()=>{const vb=document.getElementById('screens').viewBox.baseVal,k=innerWidth/vb.width,c=document.querySelectorAll('#screens .shutter')[1].points[0],l=document.querySelectorAll('#link polygon')[1].points[0];return Math.abs(c.x*k-l.x)<1&&Math.abs(c.y*k-l.y)<1})()"));
+  // #link polygon's points are percentages (its svg is a 0-100 viewBox, preserveAspectRatio="none"),
+  // so they're converted back to px on each axis before comparing against the cockpit's own seam
+  check('shutters sit on the cockpit seams', await p.eval("(()=>{const vb=document.getElementById('screens').viewBox.baseVal,k=innerWidth/vb.width,c=document.querySelectorAll('#screens .shutter')[1].points[0],l=document.querySelectorAll('#link polygon')[1].points[0],lx=l.x/100*innerWidth,ly=l.y/100*innerHeight;return Math.abs(c.x*k-lx)<1&&Math.abs(c.y*k-ly)<1})()"));
   await p.sleep(1050);
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
   check('arrival comes in through the shutters', await p.eval("document.documentElement.classList.contains('linked')"));

@@ -1077,7 +1077,11 @@ html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc
     linear-gradient(#0B1322, var(--night));
 }
 #link svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
-#link polygon { fill: none; stroke: var(--hud); stroke-width: 1.5; }
+/* the svg's 0-100 viewBox is stretched independently per axis onto the real (non-square)
+   viewport (link.js sets preserveAspectRatio="none"); non-scaling-stroke keeps this stroke a
+   constant px width despite that anisotropic stretch, instead of smearing into an ellipse-like
+   line thickness that drifts with the viewport's own aspect ratio. */
+#link polygon { fill: none; stroke: var(--hud); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 #link .link-label {
   position: absolute; left: 0; right: 0; margin: 0; transform: translateY(-50%); text-align: center;
   font: 700 26px/1 'B612 Mono', monospace; letter-spacing: .32em; color: var(--hud); opacity: 0;

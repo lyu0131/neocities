@@ -41,12 +41,16 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 Loaded in every page's `<head>` **without** `defer` and **before the stylesheets** (after them it would wait on Google Fonts), so an arriving page is dark (`html.link-in`) from its first
 paint. It sets `BUNNYS.link.go(href, lead)`, which cockpit.js calls on fire (lead 160 for the lock blink), and takes
 every click on a link between the four pages.
-- Shutter outlines are read off hud.js's `#screens .shutter` polygons and mapped through `#screens`' viewBox to px
-  (the HUD scales down on small screens, so its units are not px). Saved as `sessionStorage['bunnys-canopy']`, so a
-  sub-page closes on the cockpit's real seams at the same viewport; otherwise a 1440x900 canopy scaled to fit.
-- `sessionStorage['bunnys-link']` `{to, polys, W, H, t}` is written just before leaving, read and cleared once by the
-  next page (ignored after 6s or on the wrong page). An arrival adds `html.linked`, which drops the sub-page's
-  scanline wipe and counts as "from inside" for boot.js even when no referrer is sent.
+- Shutter outlines are read off hud.js's `#screens .shutter` polygons and mapped through `#screens`' viewBox into
+  percentages of the viewport (the HUD scales down on small screens, so its units are neither px nor percent).
+  Saved as 5 polys under `sessionStorage['bunnys-canopy']`; since they're already percentages, a sub-page closing on
+  them needs no viewport-size check to stay correct, and the `<svg>` of seams reuses the same numbers directly as a
+  `viewBox="0 0 100 100" preserveAspectRatio="none"` (`vector-effect: non-scaling-stroke` in cockpit.css keeps its
+  stroke a constant px width despite that per-axis stretch). A page that has never measured the cockpit's own (a
+  visitor landing straight on a sub-page) gets a rough canopy instead, as the same percentages of its own viewport.
+- `sessionStorage['bunnys-link']` `{to, t}` is written just before leaving, read and cleared once by the next page
+  (ignored after 6s or on the wrong page). An arrival adds `html.linked`, which drops the sub-page's scanline wipe
+  and counts as "from inside" for boot.js even when no referrer is sent.
 - A page restored from the back/forward cache with its shutters shut opens them on `pageshow`.
 - Overlay `#link` at `--z-link` (9): `.link-shut` (clipped to one screen) > `.link-blade`, an `svg` of seams, `.link-label`.
 
