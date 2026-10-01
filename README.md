@@ -25,6 +25,8 @@ Each site has a `DESIGN.md`, the contract its pages, styles and scripts follow. 
 
 Upload the contents of one site folder to Neocities. Nothing needs compiling.
 
+**site4 is live at [woundwort.xyz](https://woundwort.xyz).** Cloudflare builds it straight from this repo on every push to `main`, so pushing is deploying. Don't delete or rename the repo.
+
 ## site4 tests
 
 site4 has a headless-browser test suite in `site4/tests/`. It needs [Node](https://nodejs.org) 22+ and Chrome or Edge:
