@@ -29,6 +29,7 @@
   --z-frame: 3;
   --z-hud: 4;
   --z-nav: 5;
+  --z-link: 9;
   --z-boot: 10;
 }
 
@@ -334,31 +335,57 @@ a { color: inherit; }
    power on at the hand-over (hud.js powerOn), the moment the boot starts to fade. */
 body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms, #toast, #tilt) { visibility: hidden; }
 
-.boot-stage {
+/* The stage title and log share one housing, like every HUD box: an opaque plate, so the canopy
+   grid and the top seam never run through the type, corner brackets, and a header rule with a
+   12px tick scale. Fixed at four log rows and the longest row's width, so it never resizes as
+   lines arrive. */
+.boot-readout {
   position: absolute;
   left: 24px;
   top: 20px;
+  padding: 13px 14px 11px;
+  background: var(--panel);
+  border-radius: 3px;
+  color: var(--hud);
+}
+.boot-readout::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  --b: linear-gradient(var(--hud), var(--hud));
+  background:
+    var(--b) top left / 10px 1.5px no-repeat,    var(--b) top left / 1.5px 10px no-repeat,
+    var(--b) top right / 10px 1.5px no-repeat,   var(--b) top right / 1.5px 10px no-repeat,
+    var(--b) bottom left / 10px 1.5px no-repeat, var(--b) bottom left / 1.5px 10px no-repeat,
+    var(--b) bottom right / 10px 1.5px no-repeat,var(--b) bottom right / 1.5px 10px no-repeat;
+}
+.boot-stage {
   margin: 0;
+  padding-bottom: 9px;
   display: flex;
   align-items: center;
   gap: 12px;
-  font: 700 12px 'B612 Mono', monospace;
+  font: 700 12px/1 'B612 Mono', monospace;
   letter-spacing: .3em;
-  color: var(--hud);
+  /* the header rule and its tick scale */
+  background:
+    linear-gradient(rgba(140, 255, 193, .55), rgba(140, 255, 193, .55)) bottom / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, rgba(140, 255, 193, .55) 0 1px, transparent 1px 12px) bottom / 100% 4px no-repeat;
 }
 .boot-stage .pips { display: flex; gap: 4px; }
 .boot-stage .pips i { width: 14px; height: 3px; background: rgba(140, 255, 193, .2); transition: background .3s; }
 .boot-stage .pips i.on { background: var(--hud); }
 #boot-log {
-  position: absolute;
-  left: 24px;
-  top: 44px;
-  margin: 0;
+  margin: 9px 0 0;
+  width: 33ch;
+  height: calc(4 * 1.7em);
+  overflow: hidden;
   font: 12px/1.7 'B612 Mono', monospace;
   letter-spacing: .02em;
-  color: var(--hud);
-  opacity: .8;
+  opacity: .85;
   white-space: pre;
+}
+@media (max-width: 480px) {
+  .boot-readout { left: 12px; top: 12px; padding: 11px 12px 9px; }
+  #boot-log { font-size: 11px; }
 }
 
 /* captions under the monitor; boot.js sets `top` so they clear the panel at any size */
@@ -528,10 +555,24 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 
 /* ---------- sub-pages: a cockpit display in a bevelled screen ---------- */
 body.page { background: var(--night); overflow-x: hidden; }
-body.page #frame { opacity: .55; }
+/* Out through the canopy: each sub-page looks at the cockpit's own panorama at the bearing its
+   target sits on (--pano-x = yaw x 26.667 in pano.svg units, set on <body>: pilot -52 deg, missions 0,
+   hangar +52). Shown 170vh tall, so 0.085vh per unit, horizon (y 1150) at 60vh; the box runs 4vw
+   past each side so the drift never shows an edge. Dimmed and vignetted: the panels stay the read. */
+body.page::before {
+  content: ""; position: fixed; inset: 0 -4vw; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 58%, rgba(6, 10, 18, .2), rgba(6, 10, 18, .78)),
+    linear-gradient(rgba(6, 10, 18, .6), rgba(6, 10, 18, 0) 38%, rgba(6, 10, 18, 0) 70%, rgba(6, 10, 18, .7)),
+    url(../img/pano.svg) calc(54vw - var(--pano-x, 0) * .085vh) -37.75vh / auto 170vh repeat-x;
+  animation: pano-drift 70s ease-in-out infinite alternate;
+}
+@keyframes pano-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
+@media (prefers-reduced-motion: reduce) { body.page::before { animation: none; } }
 
 .strip {
-  position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
+  /* above .screen (z 6), or the page scrolls up over the nav */
+  position: fixed; inset: 0 0 auto 0; z-index: 7;
   display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
   padding: 12px 20px;
   background: linear-gradient(var(--housing-lip), var(--housing) 2px, var(--housing));
@@ -592,13 +633,17 @@ body.page #frame { opacity: .55; }
 }
 .bar .unit { color: var(--stencil); letter-spacing: .12em; font-weight: 400; }
 .screen h1 { font: 700 clamp(28px, 5vw, 52px)/1.05 'B612 Mono', monospace; letter-spacing: .04em; margin: 0 0 18px; }
-.screen h2 {
+.screen h2, .screen h3 {
   font: 700 18px/1.3 'B612 Mono', monospace; letter-spacing: .06em;
   color: var(--ice); margin: 0 0 12px; padding-bottom: 7px;
   border-bottom: 1px solid var(--edge);
 }
 .screen p { margin: 0 0 14px; max-width: 68ch; }
-.screen a { color: var(--amber); }
+/* Links are the words themselves (a name, the unit, a count), never a URL or an "open the..."
+   label, so they read as text: same ink, a faint underline to find them by (colour alone would not
+   be enough to tell them apart), HUD green on hover and keyboard focus. */
+.screen a { color: inherit; text-decoration: underline 1px rgba(221, 231, 238, .3); text-underline-offset: 3px; }
+.screen a:hover, .screen a:focus-visible { color: var(--hud); text-decoration-color: var(--hud); }
 .meta { font: 400 12px/1.5 'B612 Mono', monospace; letter-spacing: .08em; color: var(--hud); opacity: .85; }
 .rows { display: grid; grid-template-columns: max-content 1fr; gap: 8px 22px; margin: 0; font-size: 14px; }
 .rows dt { font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
@@ -606,6 +651,18 @@ body.page #frame { opacity: .55; }
 .rows dd { margin: 0; }
 .tag { display: inline-block; border: 1px solid var(--hud); padding: 2px 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .12em; }
 .tag.is-caution { border-color: var(--amber); color: var(--amber); }
+.tag.is-done { border-color: var(--edge); color: var(--stencil); }
+/* short items (skills, roles, interests) as stencilled plates that wrap */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.chips li { border: 1px solid var(--edge); background: var(--glass); padding: 3px 9px; font: 700 12px/1.5 'B612 Mono', monospace; letter-spacing: .04em; }
+.list, .rows ul:not(.chips) { margin: 0; padding-left: 1.1em; }
+.list li + li, .rows ul:not(.chips) li + li { margin-top: 6px; }
+.list li::marker, .rows ul:not(.chips) li::marker { color: var(--hud); }
+/* the mission log's Active / Archive dividers */
+.screen h2.log-head {
+  font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--hud); margin: 34px 0 14px; padding-bottom: 9px;
+}
 
 /* a rail of subsystem readouts: glass cells on a machined grid, hairline dividers made
    by letting the housing edge show through a 1px gap rather than by drawing borders */
@@ -618,17 +675,81 @@ body.page #frame { opacity: .55; }
 .rail b { font: 700 10px/1.2 'B612 Mono', monospace; letter-spacing: .14em; color: var(--hud); }
 .rail span { font: 700 15px/1 'B612 Mono', monospace; letter-spacing: .04em; color: var(--ice); }
 .rail .is-caution span { color: var(--amber); }
+/* two to a row on a phone: an odd one out takes the whole row instead of leaving a blank cell */
+@media (max-width: 500px) { .rail li:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 
 /* mission entries slide in as they scroll into view */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .45s ease-out, transform .45s ease-out; }
 .reveal.is-in { opacity: 1; transform: none; }
 
-/* hangar: three-view on a blueprint panel, callouts light their part */
-.views { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; }
-.views svg { width: min(30%, 260px); height: auto; flex: 0 1 auto; }
-.views [id].is-hot { color: var(--amber); }
-.views [id].is-hot * { stroke: var(--amber) !important; }
+/* a mission's role line: the role in full ink, its place in a quieter one */
+.role { margin: -4px 0 14px; font-size: 14px; color: rgba(221, 231, 238, .78); }
+.role b { color: var(--ice); }
+
+/* missions: the flight record. One bar per mission on a shared axis, May 2021 (0) to
+   October 2026 (66) in months, set inline as --a (start) and --b (end). */
+.flight { margin: 0 0 6px; padding: 16px 18px 10px; border: 1px solid var(--edge); background: var(--glass); }
+.flight ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.flight li { display: grid; grid-template-columns: 19ch 1fr; gap: 14px; align-items: center; }
+.flight li > span { font: 700 11px/1.2 'B612 Mono', monospace; letter-spacing: .06em; white-space: nowrap; color: rgba(221, 231, 238, .8); }
+.flight small { font-size: inherit; }
+.flight b { position: relative; display: block; height: 14px; background: rgba(221, 231, 238, .04); }
+.flight i {
+  position: absolute; top: 0; bottom: 0;
+  left: calc(var(--a) / 66 * 100%); width: max(6px, calc((var(--b) - var(--a)) / 66 * 100%));
+  background: rgba(221, 231, 238, .14); border: 1px solid rgba(221, 231, 238, .4);
+}
+.flight .is-active > span { color: var(--hud); }
+.flight .is-active i { background: rgba(140, 255, 193, .32); border-color: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .35); }
+.flight .axis b { background: none; height: 12px; }
+.flight em {
+  position: absolute; top: 0; left: calc(var(--a) / 66 * 100%); padding-left: 4px;
+  border-left: 1px solid var(--edge); font: 400 10px/1.2 'B612 Mono', monospace; font-style: normal;
+  letter-spacing: .06em; color: var(--stencil);
+}
+@media (max-width: 500px) {
+  .flight { padding: 12px 12px 8px; }
+  .flight li { grid-template-columns: 6ch 1fr; gap: 10px; }
+  .flight small { display: none; }
+  .flight em { font-size: 9px; padding-left: 2px; letter-spacing: 0; }
+  .flight em:nth-child(2n) { font-size: 0; }   /* every other year: the ticks stay, the labels don't collide */
+}
+
+/* pilot: short panels pair up side by side, and stack on a phone */
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 0 26px; }
+
+/* hangar: the owner's own model on a blueprint grid (js/hangar.js draws it) */
+.suit-view { position: relative; margin: 0; border: 1px solid var(--edge);
+  background:
+    repeating-linear-gradient(0deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(140, 255, 193, .06) 0 1px, transparent 1px 32px),
+    radial-gradient(ellipse at 50% 45%, #10203A, var(--glass) 70%); }
+#suit { display: block; width: 100%; aspect-ratio: 16 / 10; cursor: grab; touch-action: pan-y; }
+#suit:active { cursor: grabbing; }
+#suit:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+.suit-hdg { position: absolute; left: 12px; top: 10px; margin: 0; pointer-events: none;
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud); }
+.suit-nogl { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--stencil); }
+.suit-nogl[hidden] { display: none; }
+.suit-ctl { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 24px; }
+@media (max-width: 600px) { #suit { aspect-ratio: 1 / 1; } }
 .callouts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+/* hangar history: one disclosure per account, a HUD row that opens on click */
+details.log { border-top: 1px solid var(--edge); }
+details.log:last-child { border-bottom: 1px solid var(--edge); }
+details.log summary {
+  cursor: pointer; list-style: none; padding: 12px 0; display: flex; gap: 12px; align-items: center;
+  font: 700 12px/1.3 'B612 Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--hud);
+}
+details.log summary::-webkit-details-marker { display: none; }
+details.log summary::before { content: ""; width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent currentColor; transition: transform .15s; }
+details.log[open] summary::before { transform: rotate(90deg); }
+details.log summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+details.log > p { margin: 0 0 14px; }
+/* two dl panels side by side: label over text, or a long label crushes the text into a sliver */
+.duo .rows { grid-template-columns: 1fr; gap: 2px 0; }
+.duo .rows dd { margin: 0 0 12px; }
+@media (prefers-reduced-motion: reduce) { details.log summary::before { transition: none; } }
 .callouts button {
   font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .1em;
   background: transparent; color: var(--hud); border: 1px solid rgba(140, 255, 193, .5);
@@ -639,13 +760,14 @@ body.page #frame { opacity: .55; }
 /* entrance: a scanline wipe down the screen */
 @keyframes screen-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 body.page .screen { animation: screen-wipe .4s ease-out both; }
+/* arriving through the shutters (js/link.js), the shutters are the entrance */
+html.linked body.page .screen { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   body.page .screen { animation: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
 @media (max-width: 700px) {
   .screen { padding: 124px 14px 60px; }
-  .views svg { width: min(46%, 200px); }
   .rows { grid-template-columns: 1fr; gap: 2px 0; }
   .rows dd { margin: 0 0 10px; }
 }
@@ -840,3 +962,136 @@ body.page .screen { animation: screen-wipe .4s ease-out both; }
   background: repeating-linear-gradient(to bottom, rgba(60, 190, 100, .22) 0 2px, rgba(60, 190, 100, .07) 2px 4px);
 }
 .nv .nv-tint, .nv .nv-scan { display: block; }
+
+/* ---------- page handover: canopy shutters (js/link.js) ---------- */
+/* An arriving page is dark from its first paint, until link.js puts up the closed glass. */
+html.link-in body::after { content: ""; position: fixed; inset: 0; z-index: calc(var(--z-boot) + 1); background: #03060B; }
+#link { position: fixed; inset: 0; z-index: var(--z-link); pointer-events: none; }
+#link .link-shut { position: absolute; inset: 0; }
+#link .link-blade {
+  position: absolute; inset: 0; clip-path: inset(0 0 100% 0);
+  background:
+    repeating-linear-gradient(0deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(140, 255, 193, .05) 0 1px, transparent 1px 24px),
+    linear-gradient(#0B1322, var(--night));
+}
+#link svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+#link polygon { fill: none; stroke: var(--hud); stroke-width: 1.5; }
+#link .link-label {
+  position: absolute; left: 0; right: 0; margin: 0; transform: translateY(-50%); text-align: center;
+  font: 700 26px/1 'B612 Mono', monospace; letter-spacing: .32em; color: var(--hud); opacity: 0;
+}
+#link .link-label small { display: block; margin-top: 14px; font-size: 12px; letter-spacing: .24em; color: rgba(140, 255, 193, .6); }
+@media (max-width: 480px) { #link .link-label { font-size: 18px; letter-spacing: .24em; } }
+/* firing: the lock blinks lock/HUD twice before the shutters start */
+.target.is-fired { animation: fire-blink .16s steps(1, end) 1; }
+@keyframes fire-blink { 0%, 50% { color: var(--lock); } 25%, 75% { color: var(--hud); } }
+
+/* ---------- sub-page HUD (js/pagehud.js): instruments for reading, not flying ---------- */
+.screen .panel { scroll-margin-top: 96px; }
+.phud-ladder, .phud-scope { display: none; }
+/* The side instruments live in the gutters beside the screen. From 1200px wide the screen gives up
+   width (never below 180px a side) so they always fit -- 1366 laptops included -- and they sit
+   24px off its edge, or 20px off the window's on a narrow one. */
+@media (min-width: 1200px) {
+  .screen { max-width: min(1080px, calc(100vw - 360px)); }
+  .phud-ladder, .phud-scope { display: block; position: fixed; top: 132px; z-index: 5; width: 140px; }
+  .phud-ladder { left: max(20px, calc(50vw - min(540px, 50vw - 180px) - 164px)); }
+  .phud-scope { right: max(20px, calc(50vw - min(540px, 50vw - 180px) - 164px)); }
+}
+.phud-cap {
+  margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
+  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);
+}
+/* sector ladder: a lit track down the left, one rung per panel */
+.phud-track { position: absolute; left: 0; top: 30px; bottom: 4px; width: 1px; background: rgba(140, 255, 193, .18); }
+.phud-fill { position: absolute; inset: 0; background: var(--hud); transform-origin: top; transform: scaleY(0); box-shadow: 0 0 6px rgba(140, 255, 193, .6); }
+.phud-ladder ol { list-style: none; margin: 0; padding: 0 0 0 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
+.phud-ladder a {
+  position: relative; display: flex; gap: 8px; align-items: baseline; padding: 4px 0; min-height: 24px;
+  text-decoration: none; color: var(--stencil); text-shadow: 0 0 6px var(--night);
+  font: 700 10px/1.3 'B612 Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+}
+.phud-ladder a i { font-style: normal; color: rgba(140, 255, 193, .45); }
+.phud-ladder a span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phud-ladder a:hover, .phud-ladder a:focus-visible { color: var(--ice); }
+.phud-ladder a.is-on, .phud-ladder a.is-on i { color: var(--hud); }
+.phud-ladder a.is-on::before {
+  content: ""; position: absolute; left: -14px; top: 50%; margin-top: -4px;
+  border: 4px solid transparent; border-left: 6px solid var(--hud); border-right: 0;
+}
+/* contact scope: the cockpit's three contacts at their real bearings, this page locked */
+.phud-dial {
+  position: relative; width: 140px; height: 140px; margin: 0 0 14px; border-radius: 50%;
+  border: 1px solid rgba(140, 255, 193, .5);
+  background:
+    radial-gradient(circle, transparent 0 32%, rgba(140, 255, 193, .2) 32.5% 33.2%, transparent 33.7% 65%, rgba(140, 255, 193, .2) 65.5% 66.2%, transparent 66.7%),
+    linear-gradient(rgba(140, 255, 193, .14), rgba(140, 255, 193, .14)) center / 1px 100% no-repeat,
+    linear-gradient(rgba(140, 255, 193, .14), rgba(140, 255, 193, .14)) center / 100% 1px no-repeat,
+    rgba(6, 10, 18, .72);
+}
+.phud-sweep {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(transparent 0 290deg, rgba(140, 255, 193, .3) 360deg);
+  animation: phud-sweep 6s linear infinite;
+}
+@keyframes phud-sweep { to { transform: rotate(360deg); } }
+.phud-blip {
+  position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  border: 1.5px solid var(--hud); background: var(--night); text-decoration: none;
+}
+.phud-blip span { position: absolute; left: 11px; top: -2px; font: 700 9px/1 'B612 Mono', monospace; letter-spacing: .1em; color: var(--hud); }
+a.phud-blip::after { content: ""; position: absolute; inset: -9px; }   /* a 26px target for an 8px mark */
+a.phud-blip:hover, a.phud-blip:focus-visible { background: var(--hud); outline: none; }
+a.phud-blip:focus-visible span { color: var(--amber); }
+.phud-blip.is-me { border-color: var(--amber); background: var(--amber); }
+.phud-blip.is-me span { color: var(--amber); }
+.phud-blip.is-me::before {         /* lock brackets */
+  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--amber), var(--amber));
+  background: var(--c) top left / 6px 1.5px no-repeat, var(--c) top left / 1.5px 6px no-repeat,
+    var(--c) top right / 6px 1.5px no-repeat, var(--c) top right / 1.5px 6px no-repeat,
+    var(--c) bottom left / 6px 1.5px no-repeat, var(--c) bottom left / 1.5px 6px no-repeat,
+    var(--c) bottom right / 6px 1.5px no-repeat, var(--c) bottom right / 1.5px 6px no-repeat;
+}
+.phud-blip.is-unk { border-color: var(--lock); opacity: .55; }
+/* locked with 1-4: red lock brackets, the same colour as a cockpit lock-on */
+.phud-blip.is-lock { opacity: 1; background: var(--lock); border-color: var(--lock); }
+.phud-blip.is-lock span { color: var(--lock); }
+.phud-blip.is-lock::before {
+  content: ""; position: absolute; inset: -7px; --c: linear-gradient(var(--lock), var(--lock));
+  background: var(--c) top left / 6px 1.5px no-repeat, var(--c) top left / 1.5px 6px no-repeat,
+    var(--c) top right / 6px 1.5px no-repeat, var(--c) top right / 1.5px 6px no-repeat,
+    var(--c) bottom left / 6px 1.5px no-repeat, var(--c) bottom left / 1.5px 6px no-repeat,
+    var(--c) bottom right / 6px 1.5px no-repeat, var(--c) bottom right / 1.5px 6px no-repeat;
+}
+.phud-blip.is-unk span { color: var(--lock); }
+.phud-tel { display: grid; grid-template-columns: max-content 1fr; gap: 5px 12px; margin: 0; font: 700 10px/1.3 'B612 Mono', monospace; letter-spacing: .1em; }
+.phud-tel dt { color: var(--hud); }
+.phud-tel dd { margin: 0; color: var(--ice); text-align: right; font-variant-numeric: tabular-nums; }
+/* along the foot, at every size: where you are and how far through */
+.phud-status {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; margin: 0; padding: 20px 16px 11px;
+  pointer-events: none; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .18em; color: var(--hud);
+  background: linear-gradient(transparent, rgba(6, 10, 18, .92) 55%);
+}
+.phud-prog {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; height: 2px; pointer-events: none;
+  background: var(--hud); box-shadow: 0 0 8px rgba(140, 255, 193, .6); transform-origin: left; transform: scaleX(0);
+}
+@media (max-width: 480px) { .phud-status { font-size: 10px; letter-spacing: .1em; } }
+@media (prefers-reduced-motion: reduce) { .phud-sweep { animation: none; } }
+
+/* keyboard shortcuts, shown where they act (cockpit.js, pagehud.js, hangar.js, boot.js own the keys).
+   Hidden on a touch screen, which has no keys to press. */
+kbd {
+  display: inline-block; min-width: 1.6em; margin-right: .6em; padding: 2px 4px 1px; text-align: center;
+  border: 1px solid currentColor; border-radius: 2px; opacity: .6;
+  font: 700 9px/1.1 'B612 Mono', monospace; letter-spacing: .04em; vertical-align: 1px;
+}
+#skip kbd, .strip .ret kbd { margin: 0 0 0 .6em; }
+.phud-cap kbd { margin: 0 0 0 4px; }
+.strip li:has(> kbd) { display: flex; align-items: center; }
+.strip li > kbd { margin: 0; }
+@media (hover: none) { kbd { display: none; } }
+

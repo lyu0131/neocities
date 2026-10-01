@@ -213,8 +213,15 @@ function forceBanner(pg, text) {
   await p.eval("document.querySelector('#targets-nav a[data-target=t-hangar]').focus()"); await p.sleep(1200);
   check('focus turns to hangar', Math.abs(((await p.eval('window.BUNNYS ? BUNNYS.state.yaw : 0') - 52 + 540) % 360) - 180) < 8);
   check('lock readout shown', /RX-124/.test(await p.eval("document.getElementById('lock-status').textContent")));
-  await p.key('Enter', 'Enter', 13); await p.sleep(1500);
+  await p.key('Enter', 'Enter', 13); await p.sleep(450);
+  // the canopy shutters (js/link.js) close over the cockpit before it leaves, on its real seams
+  check('firing closes the canopy shutters', await p.eval("(()=>{const l=document.getElementById('link');return !!l && l.querySelectorAll('.link-blade').length===5})()"));
+  check('shutters sit on the cockpit seams', await p.eval("(()=>{const vb=document.getElementById('screens').viewBox.baseVal,k=innerWidth/vb.width,c=document.querySelectorAll('#screens .shutter')[1].points[0],l=document.querySelectorAll('#link polygon')[1].points[0];return Math.abs(c.x*k-l.x)<1&&Math.abs(c.y*k-l.y)<1})()"));
+  await p.sleep(1050);
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
+  check('arrival comes in through the shutters', await p.eval("document.documentElement.classList.contains('linked')"));
+  await p.sleep(1500);
+  check('arrival shutters open and clear', await p.eval("!document.getElementById('link') && !document.documentElement.classList.contains('link-in')"));
   // T5: unknown target locks but does not navigate
   await p.goto('index.html', 800);
   // the boot now replays on a plain reload, so skip it before driving the view
@@ -227,6 +234,40 @@ function forceBanner(pg, text) {
   check('unknown locks', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(900);
   check('unknown does not navigate', /index\.html$/.test(await p.eval('location.pathname')));
+
+  // Enter fires whatever is locked, not just a focused nav link
+  const backToHub = async () => {
+    await p.goto('index.html', 800); await ready(p);
+    await p.eval("document.getElementById('skip') && document.getElementById('skip').click()");
+    for (let i = 0; i < 20 && !(await p.eval('BUNNYS.state.booted === true')); i++) await p.sleep(100);
+  };
+  await backToHub();
+  await p.eval("BUNNYS.emit('face', {yaw:0}); document.activeElement && document.activeElement.blur()"); await p.sleep(1500);
+  await p.key('Enter', 'Enter', 13); await p.sleep(1600);
+  check('Enter opens the boresight lock', /missions\.html$/.test(await p.eval('location.pathname')));
+  await backToHub();
+  // a real Enter, with its text: without it the browser never clicks a focused button
+  const enter = async () => { for (const type of ['keyDown', 'keyUp']) await p.send('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: type === 'keyDown' ? String.fromCharCode(13) : undefined }); };
+  await p.eval("document.querySelector('[data-slew=t-hangar]').focus()");
+  await enter(); await p.sleep(1600);
+  check('Enter on SLEW turns first', /index\.html$/.test(await p.eval('location.pathname')) && Math.abs(((await p.eval('BUNNYS.state.yaw')) - 52 + 540) % 360 - 180) < 3);
+  await enter(); await p.sleep(1600);
+  check('Enter on SLEW again opens it', /hangar\.html$/.test(await p.eval('location.pathname')));
+  await backToHub();
+  // number keys: 4 swings onto the unknown contact and locks it (it has no page to open)
+  await p.key('4', 'Digit4', 52); await p.sleep(2200);
+  check('4 locks the unknown contact', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  // Home turns the view, so it lets a number-key lock go: the lock follows the reticle again
+  await p.key('1', 'Digit1', 49); await p.sleep(1500);
+  await p.key('Home', 'Home', 36); await p.sleep(1800);
+  check('Home releases a number-key lock', /MISSIONS|2 ACTIVE/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  // 3 only locks; Enter, even mid-swing, opens what 3 picked (not a contact the reticle crosses)
+  await p.key('3', 'Digit3', 51); await p.sleep(1200);
+  check('3 locks without leaving', /index\.html$/.test(await p.eval('location.pathname')) && /RX-124/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  await p.key('1', 'Digit1', 49); await p.sleep(150);
+  await p.key('Enter', 'Enter', 13); await p.sleep(1800);
+  check('Enter mid-swing opens the picked contact', /pilot\.html$/.test(await p.eval('location.pathname')));
+  await backToHub();
 
   // Task 1: SPD and the pitch ladder are driven by a per-frame motion sampler off
   // state.yaw/pitch (every input source), not the drag-only vx the view event carries.
@@ -392,14 +433,16 @@ function forceBanner(pg, text) {
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
-  // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short
-  const s = await launch({ width: 1440, height: 900, reduce: true });
+  // stand-down order: ENVIRONMENT gives way before THRUSTER when the column is short. Since the
+  // HUD scales itself down on laptop screens (K, hud.js uiScale), 1440x900 is no longer short --
+  // every panel fits there -- so this needs a window that is short even after scaling.
+  const s = await launch({ width: 1440, height: 760, reduce: true });
   await s.goto('index.html', 900);
   await bootedReduced(s);
   const envSmall = await panelRect(s, 'ENVIRONMENT');
   const thrSmall = await panelRect(s, 'THRUSTER VECTOR');
-  check('ENVIRONMENT hidden at 1440x900', !!envSmall && envSmall.opacity === '0', JSON.stringify(envSmall));
-  check('THRUSTER VECTOR still shown at 1440x900', !!thrSmall && thrSmall.opacity !== '0', JSON.stringify(thrSmall));
+  check('ENVIRONMENT hidden at 1440x760', !!envSmall && envSmall.opacity === '0', JSON.stringify(envSmall));
+  check('THRUSTER VECTOR still shown at 1440x760', !!thrSmall && thrSmall.opacity !== '0', JSON.stringify(thrSmall));
   s.close();
 
   // Task 3: COMMS beside the SPD bar, centred on it at 1920x1080; the caution banner

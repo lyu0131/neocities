@@ -3,63 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
+<script src="js/link.js"></script>
 <title>Pilot, Sylas Lyu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/cockpit.css">
 </head>
-<body class="page">
-<img id="frame" src="img/frame.svg" alt="" width="1920" height="1080">
-<canvas id="fx" aria-hidden="true"></canvas>
-<svg id="hud" aria-hidden="true"></svg>
+<body class="page" style="--pano-x: 8213">
 
 <nav class="strip" aria-label="Cockpit">
-  <a class="ret" href="index.html">&#9666; RETURN TO COCKPIT</a>
-  <ul>
+  <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
+  <ul aria-keyshortcuts="Q E">
+    <li><kbd aria-hidden="true">Q</kbd></li>
     <li><a href="pilot.html" aria-current="page">PILOT</a></li>
     <li><a href="missions.html">MISSIONS</a></li>
     <li><a href="hangar.html">HANGAR</a></li>
+    <li><kbd aria-hidden="true">E</kbd></li>
   </ul>
 </nav>
 
 <main class="screen">
-  <p class="bar"><span>PILOT ID</span> <span class="unit">SL-01 BUNNyS &#183; PANORAMIC MONITOR</span></p>
+  <p class="bar"><span>PILOT ID</span> <span class="unit">RX-124 TR-6 [WOUNDWORT] &#183; LINEAR SEAT</span></p>
   <h1>SYLAS LYU</h1>
 
   <ul class="rail">
-    <li><b>LINEAR SEAT</b><span>OCCUPIED</span></li>
-    <li><b>IFF STATUS</b><span>ACTIVE</span></li>
-    <li><b>AUXILIARY BUS</b><span>NOMINAL</span></li>
-    <li><b>CALIBRATION</b><span>COMPLETE</span></li>
+    <li><b>CLASS</b><span>JUNIOR</span></li>
+    <li><b>BASE</b><span>PURDUE</span></li>
+    <li><b>GPA</b><span>3.9</span></li>
+    <li><b>MISSIONS</b><span><a href="missions.html">5 LOGGED</a></span></li>
+    <li><b>CALLSIGN</b><span>BUNNyS</span></li>
   </ul>
 
-  <section class="panel" data-ref="PNL-4412 &#183; REV C">
-    <p class="sub">UNIT DATA</p>
+  <section class="panel" data-ref="PNL-4412 &#183; REV D">
+    <p class="sub">LINEAR SEAT</p>
     <h2>Identification</h2>
     <dl class="rows">
-      <dt>CALLSIGN</dt><dd>Sylas Lyu</dd>
-      <dt>UNIT</dt><dd>RX-124 TR-6 [WOUNDWORT]</dd>
-      <dt>ROLE</dt><dd>Psychology and UX design, Purdue University</dd>
-      <dt>LINEAR SEAT</dt><dd>Occupied</dd>
-      <dt>IFF STATUS</dt><dd><span class="tag">ACTIVE</span></dd>
+      <dt>NAME</dt><dd>Sylas Lyu</dd>
+      <dt>CALLSIGN</dt><dd>BUNNyS</dd>
+      <dt>PROGRAM</dt><dd>B.S. Psychology and UX Design, Purdue University, West Lafayette, Indiana</dd>
+      <dt>CLASS</dt><dd>Junior, 2024 to present</dd>
+      <dt>STANDING</dt><dd>GPA 3.9 &#183; Dean&rsquo;s List and Semester Honors (2 years)</dd>
+      <dt>UNIT</dt><dd><a href="hangar.html">RX-124 Gundam TR-6 [Woundwort]</a></dd>
     </dl>
   </section>
 
-  <section class="panel" data-ref="PNL-4418 &#183; REV C">
-    <p class="sub">AUXILIARY BUS</p>
-    <h2>Comms</h2>
-    <p>Psychology and UX design at Purdue. I research how people&rsquo;s everyday data can inform
-    mental health and healthcare decisions.</p>
-    <p class="meta">OPEN CHANNEL</p>
-    <p><a href="https://www.linkedin.com/in/steven-lyu-73815525b/">linkedin.com/in/steven-lyu-73815525b</a></p>
-  </section>
+  <div class="duo">
+    <section class="panel" data-ref="PNL-4414 &#183; REV D">
+      <p class="sub">SYSTEMS</p>
+      <h2>Loadout</h2>
+      <dl class="rows">
+        <dt>CODE</dt><dd><ul class="chips"><li>Python</li><li>Java</li><li>JavaScript</li><li>MySQL</li><li>HTML/CSS</li><li>Git</li></ul></dd>
+        <dt>DATA</dt><dd><ul class="chips"><li>Pandas</li><li>NumPy</li><li>Jupyter Notebook</li><li>Power BI</li><li>Tableau</li><li>Excel</li></ul></dd>
+        <dt>DESIGN</dt><dd><ul class="chips"><li>Figma</li><li>Adobe XD</li><li>Axure RP</li></ul></dd>
+        <dt>HARDWARE</dt><dd><ul class="chips"><li>Raspberry Pi + Arduino</li></ul></dd>
+      </dl>
+    </section>
+    <section class="panel" data-ref="PNL-4415 &#183; REV D">
+      <p class="sub">CREW</p>
+      <h2>Command</h2>
+      <dl class="rows">
+        <dt>LEADERSHIP</dt><dd><ul class="chips"><li>Student Senate</li><li>Robotics Captain</li><li>Varsity Captain</li><li>ACG Club Treasurer</li></ul></dd>
+        <dt>INVOLVEMENT</dt><dd><ul class="chips"><li>Student Government</li><li>Psychology Club</li><li>ACG Club</li><li>PUCSSA</li></ul></dd>
+      </dl>
+    </section>
+  </div>
 
+  <div class="duo">
+    <section class="panel" data-ref="PNL-4413 &#183; REV D">
+      <p class="sub">SERVICE RECORD</p>
+      <h2>Commendations</h2>
+      <ul class="list">
+        <li>Google Data Analytics Certificate</li>
+        <li>AWS Certified Cloud Practitioner</li>
+        <li>USACO Platinum (Top 50 in US)</li>
+        <li>ISEF Second &amp; Third Grant</li>
+      </ul>
+    </section>
+    <section class="panel" data-ref="PNL-4416 &#183; REV D">
+      <p class="sub">STANDBY</p>
+      <h2>Off duty</h2>
+      <ul class="chips">
+        <li>Weightlifting</li><li>Cooking</li><li>Vinyls</li><li>Frugal travel</li><li>Sailing</li><li>Ornithology</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="panel" data-ref="PNL-4418 &#183; REV D">
+    <p class="sub">COMMS</p>
+    <h2>Open channel</h2>
+    <dl class="rows">
+      <dt>EMAIL</dt><dd><a href="mailto:yutinglyu050131@gmail.com">yutinglyu050131@gmail.com</a></dd>
+      <dt>LOCATION</dt><dd>Providence, Rhode Island</dd>
+      <dt>LINKEDIN</dt><dd><a href="https://www.linkedin.com/in/sylas-lyu-73815525/">Sylas Lyu</a></dd>
+    </dl>
+  </section>
 </main>
 
 <script src="js/bunnys.js" defer></script>
-<script src="js/hud.js" defer></script>
-<script src="js/fx.js" defer></script>
 <script src="js/pages.js" defer></script>
+<script src="js/pagehud.js" defer></script>
 </body>
 </html>

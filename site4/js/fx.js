@@ -1,4 +1,4 @@
-/* fx.js: the canvas#fx bitmap only - rain, a beam flash, scanline flicker, fire cue. */
+/* fx.js: the canvas#fx bitmap only - rain, a beam flash, scanline flicker. */
 (function () {
   'use strict';
   var BUNNYS = window.BUNNYS;
@@ -7,7 +7,6 @@
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  var half = document.body.classList.contains('page') ? 0.5 : 1; // half intensity on sub-pages
   var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   var w = 0, h = 0;
 
@@ -32,8 +31,8 @@
   // rain streaks + a few slow drops sliding on the canopy
   function newStreak() { return { x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 18, speed: 6 + Math.random() * 6 }; }
   function newDrop() { return { x: Math.random() * w, y: Math.random() * h, r: 2 + Math.random() * 3, speed: 0.6 + Math.random() * 0.6, drift: (Math.random() - 0.5) * 0.3 }; }
-  var streaks = []; for (var i = 0; i < Math.round(70 * half); i++) streaks.push(newStreak());
-  var drops = []; for (var d = 0; d < Math.round(5 * half); d++) drops.push(newDrop());
+  var streaks = []; for (var i = 0; i < 70; i++) streaks.push(newStreak());
+  var drops = []; for (var d = 0; d < 5; d++) drops.push(newDrop());
 
   // distant beam flash every 6-12s at a random yaw, drawn only when that yaw is on screen
   var lastYaw = 0;
@@ -43,14 +42,10 @@
     setTimeout(function () { beam = { yaw: Math.random() * 360, t0: performance.now() }; scheduleBeam(); }, 6000 + Math.random() * 6000);
   }
 
-  // fire cue: a quick flash
-  var fireT = -1;
-  BUNNYS.on('fire', function () { fireT = performance.now(); });
-
   function draw(now) {
     ctx.clearRect(0, 0, w, h);
 
-    ctx.strokeStyle = 'rgba(200,220,230,' + (0.25 * half) + ')';
+    ctx.strokeStyle = 'rgba(200,220,230,0.25)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (var i = 0; i < streaks.length; i++) {
@@ -61,7 +56,7 @@
     }
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(220,231,238,' + (0.3 * half) + ')';
+    ctx.fillStyle = 'rgba(220,231,238,0.3)';
     for (var d = 0; d < drops.length; d++) {
       var dr = drops[d];
       dr.y += dr.speed; dr.x += dr.drift;
@@ -76,7 +71,7 @@
         var fov = w > h ? 50 : 35;
         if (Math.abs(diff) < fov) {
           var bx = w / 2 + (diff / fov) * (w / 2);
-          var a = (1 - age / 500) * 0.5 * half;
+          var a = (1 - age / 500) * 0.5;
           var g = ctx.createLinearGradient(bx - 40, 0, bx + 40, 0);
           g.addColorStop(0, 'rgba(140,255,193,0)'); g.addColorStop(0.5, 'rgba(140,255,193,' + a + ')'); g.addColorStop(1, 'rgba(140,255,193,0)');
           ctx.fillStyle = g; ctx.fillRect(bx - 40, 0, 80, h);
@@ -85,14 +80,8 @@
     }
 
     var sl = 0.02 + Math.random() * 0.02; // faint scanline flicker
-    ctx.fillStyle = 'rgba(140,255,193,' + (sl * half) + ')';
+    ctx.fillStyle = 'rgba(140,255,193,' + sl + ')';
     ctx.fillRect(0, Math.floor(Math.random() * h), w, 1);
-
-    if (fireT >= 0) {
-      var fAge = now - fireT;
-      if (fAge < 280) { ctx.fillStyle = 'rgba(255,255,255,' + ((1 - fAge / 280) * 0.5) + ')'; ctx.fillRect(0, 0, w, h); }
-      else fireT = -1;
-    }
   }
 
   var raf = null, started = false;

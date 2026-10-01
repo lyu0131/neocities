@@ -3,7 +3,7 @@
 **Read the full spec first:** `docs/2026-09-24-bunnys-cockpit-design.md`. This page is only the short list of names every file must agree on. The plan and progress are in `docs/plan.md`.
 
 ## Rules
-- The suit is the original RX-124 TR-6 [WOUNDWORT], the owner's own design, callsign "BUNNyS". No Gundam logos, names or official suits, and no franchise terms ("Minovsky", "Newtype") — **in the artwork**. Every SVG stays original and `tests/svg.test.js` enforces it.
+- The suit is the RX-124 Gundam TR-6 [Woundwort] (mechanical design Kenki Fujioka, credited on the hangar), callsign "BUNNyS", with the owner as its pilot; the hangar's 3D mesh is the owner's own STL. No Gundam logos, names or official suits, and no franchise terms ("Minovsky", "Newtype") — **in the artwork** (every SVG; svg.test.js enforces it). The hangar's 3D render of the owner's STL and its supplied write-up are the owner's chosen exception. Every SVG stays original and `tests/svg.test.js` enforces it.
 - **One deliberate exception.** The hostile contact at bearing 180 is identified in the HUD by its real designation, and its spec and armament text is the owner's own, supplied verbatim. That is their decision for their own site, taken after the trademark position was put to them. It lives only in `HX_DATA` in `js/hud.js`; do not let it spread into the artwork or the site's own unit.
 - No orange-and-black hazard stripes. Cautions are amber text or outline chevrons.
 - Use only the content in spec section 9. Plain static site: no build, no dependencies, relative paths.
@@ -18,9 +18,10 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
   - `#pano` > `.pano-ring` > the 24 `.pano-slice` elements (generated) plus the `.target` elements (`#t-pilot`, `#t-missions`, `#t-hangar`, `#t-unknown`), with `data-yaw`, `data-href` (not on unknown), `data-label` and `data-readout`;
   - `canvas#fx`, `img#frame`, `svg#hud` (hud.js builds its contents; the heading number is in `.hdg-readout`);
   - `nav#targets-nav` (links carry `data-target`), `p#lock-status.sr-only[aria-live]` and `button#tilt.hud-btn`.
-- `canvas#boot-scene` (the boot's picture: fixed, at the panorama's z-index but after `main`, so it paints over the panorama and under `#screens`, `#frame` and `#hud` -- the boot is seen through the five canopy screens the whole time) and `#boot` > `.boot-stage` (`.pips > i`, `.boot-stage-txt`), `pre#boot-log`, `.boot-cap` (`.boot-title`, `.boot-note`, tone in `data-tone`), `.boot-bar > i`, `button#skip`. While `#boot` is up (and not `.boot-out`) the instruments stay hidden; the boot lands at yaw −52 (PILOT).
-- Z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, boot 10.
-- Sub-pages use `body.page`.
+- `canvas#boot-scene` (the boot's picture: fixed, at the panorama's z-index but after `main`, so it paints over the panorama and under `#screens`, `#frame` and `#hud` -- the boot is seen through the five canopy screens the whole time) and `#boot` > `.boot-readout` (one HUD-style housing: `.boot-stage` with `.pips > i` and `.boot-stage-txt`, then `pre#boot-log`, fixed at four rows), `.boot-cap` (`.boot-title`, `.boot-note`, tone in `data-tone`), `.boot-bar > i`, `button#skip`. While `#boot` is up (and not `.boot-out`) the instruments stay hidden; the boot lands at yaw −52 (PILOT).
+- Z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, link 9, boot 10.
+- Sub-pages use `body.page`. They carry none of the cockpit HUD (no `#frame`, `#fx`, `#hud`, hud.js or fx.js);
+  see "Sub-page HUD" below.
 
 ## Shared JS (`js/bunnys.js`)
 `window.BUNNYS = { state:{yaw,pitch,booted,dragging}, reduce, fine, on(type, fn), emit(type, detail) }`. Event names are prefixed `bunnys:`. `dragging` is cross-file: cockpit.js sets it while a drag is live, hud.js reads it to widen the pitch ladder's roll spring (see "Flight instruments" below).
@@ -31,11 +32,36 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 | `bunnys:screens-on` | `{}` | boot.js, as the cockpit hatch seals | hud.js powers the five canopy screens then, not at boot-done |
 | `bunnys:boot-done` | `{}` | boot.js | cockpit.js (input on), fx.js (start), hud.js (instruments power on; screens too if the boot was skipped first) |
 | `bunnys:lock` | `{id \| null, label, readout}` | cockpit.js | hud.js (status line) |
-| `bunnys:fire` | `{id, href}` | cockpit.js | fx.js (flash) |
 | `bunnys:face` | `{yaw}` | boot.js, tests | cockpit.js turns the view to that yaw |
 
 - **During the boot** (`state.booted` is false), boot.js writes `BUNNYS.state.yaw` directly and cockpit.js renders from it without easing or input.
 - **Session key:** `sessionStorage['bunnys-booted']`.
+
+## Page handover (`js/link.js`, spec 5.6)
+Loaded in every page's `<head>` **without** `defer` and **before the stylesheets** (after them it would wait on Google Fonts), so an arriving page is dark (`html.link-in`) from its first
+paint. It sets `BUNNYS.link.go(href, lead)`, which cockpit.js calls on fire (lead 160 for the lock blink), and takes
+every click on a link between the four pages.
+- Shutter outlines are read off hud.js's `#screens .shutter` polygons and mapped through `#screens`' viewBox to px
+  (the HUD scales down on small screens, so its units are not px). Saved as `sessionStorage['bunnys-canopy']`, so a
+  sub-page closes on the cockpit's real seams at the same viewport; otherwise a 1440x900 canopy scaled to fit.
+- `sessionStorage['bunnys-link']` `{to, polys, W, H, t}` is written just before leaving, read and cleared once by the
+  next page (ignored after 6s or on the wrong page). An arrival adds `html.linked`, which drops the sub-page's
+  scanline wipe and counts as "from inside" for boot.js even when no referrer is sent.
+- A page restored from the back/forward cache with its shutters shut opens them on `pageshow`.
+- Overlay `#link` at `--z-link` (9): `.link-shut` (clipped to one screen) > `.link-blade`, an `svg` of seams, `.link-label`.
+
+## Sub-page HUD (`js/pagehud.js`)
+Built at load from the page itself; nothing in the HTML. Instruments for reading, not flying:
+- **Sector ladder** (left): one rung per `.screen .panel`, its label the panel's `data-sector` or else its h2/h3
+  (give a long-titled panel a short `data-sector`). The rung whose panel crosses 40% of the viewport is lit
+  (`.is-on`, `aria-current="location"`); a fill down the track shows progress; a rung scrolls to its panel.
+- **Contact scope** (right): PIL/MIS/HGR (and a dim UNK) at their cockpit bearings (308/000/052/180), this page
+  locked in amber, the others plain links (so link.js gives them the shutters). BRG/RNG/SECTOR/READ under it.
+- **Status line and progress bar** along the foot, at every size.
+- The side instruments show from 1200px wide; there `.screen` narrows to leave each gutter 180px.
+- `<body>` is the page's scroller (html and body are 100% tall), not the window: listen with a capturing
+  `scroll` listener on `document` and read `scrollTop` off whichever box actually scrolls.
+- The background is the cockpit's own panorama at the page's bearing (`--pano-x` on `<body>`, see cockpit.css).
 
 ## Yaw to panorama mapping (pano.svg and cockpit.js must agree)
 - `pano.svg` is 9600 units wide, so 1° is 26.667 units.
@@ -49,6 +75,24 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 ## Hub controls
 Drag, wheel, arrow keys **and WASD** (A/D yaw, W/S pitch; held keys turn continuously),
 `Home` faces forward, the slew panel turns onto a contact, and tilt on touch devices.
+**Enter fires whatever is locked** (boresight, hover or a focused nav link), as the dossier's "PRESS
+ENTER OR CLICK TO OPEN" says. A focused control keeps its own Enter, except a SLEW button whose
+contact is already locked: Enter once turns onto it, Enter again opens it.
+
+### Keyboard map (one map across the site; every key is shown as a `<kbd>` where it acts)
+| key | cockpit | sub-pages |
+|---|---|---|
+| Space / Enter / Esc | skip the boot (boot.js; no other key skips, so 1-4 never do) | |
+| 1 2 3 4 | swing onto pilot / missions / hangar / unknown and **lock** it (held through the swing; any manual turn drops it; a SLEW click locks the same way) | lock that contact on the scope (red brackets; the status line says ENTER TO OPEN) |
+| Enter | open the locked contact | open the scope lock (unknown: the cockpit, facing it, `index.html?face=t-unknown`) |
+| Esc | acknowledge comms | release a scope lock, else back to the cockpit |
+| Arrows / WASD, Home | turn, face forward | hangar: arrows turn the model |
+| X N R C | declutter, night vis, run diag, comms | |
+| Q / E | | the page left / right (pilot, missions, hangar: the cockpit's order), wrapping |
+| J / K | | next / previous sector |
+| F S R | | hangar: front / side / rear |
+Owners: cockpit.js (hub), pagehud.js (sub-pages), hangar.js (model), boot.js (skip). Labels carry
+`aria-keyshortcuts`; the `<kbd>` badges are hidden on touch screens (`hover: none`).
 Aim magnetism pulls the reticle onto a contact within `SNAP_DEG` (14) degrees and closes
 the last `SNAP_CLICK` (1.2) degrees outright so it clicks on rather than drifting in. It
 waits out live input (`now - lastInputTime > 90`) so a wheel nudge or a held turn key is
@@ -197,7 +241,8 @@ panel (held by `tests/layout.test.js`). When the cockpit opens (`boot-done`), `p
 group on in turn, 60ms apart: tape, SPD/ALT, boresight, ladder, the left column top to bottom, the right column,
 the foot row, the rails. The `.pw` keyframes fill backwards only, so a stood-down panel never flashes on; the status
 line reads `PANORAMIC MONITOR ONLINE` for 1.6s. None of it runs under reduced motion. `img/frame.svg` carries only
-canopy-scale detail (rivets and joint hashes on the top seams, two corner stencils): it is a fixed 1920x1080
+canopy-scale detail (rivets and joint hashes on the top seams; no text -- the corner stencils it had were cut in half
+at any aspect but 16:9): it is a fixed 1920x1080
 painting cropped with `slice`, so anything that must line up with a box belongs in the HUD instead.
 
 ### Five canopy screens

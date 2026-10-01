@@ -195,10 +195,6 @@
   <circle cx="1844.5" cy="170.5" r="1.4"/>
   <circle cx="1883.1" cy="180.0" r="1.4"/>
 </g>
-<g id="canopy-plates" fill="#DDE7EE" fill-opacity=".45" font-family="monospace" font-size="7" letter-spacing=".6">
-  <text x="36" y="46">RX-124 · CANOPY 01</text>
-  <text x="1884" y="46" text-anchor="end">CANOPY 02 · BNS-FRM-009</text>
-</g>
 
 <g id="registration" fill="none" stroke="#8CFFC1" stroke-width="1.5" stroke-opacity=".55" stroke-linecap="square">
   <path d="M28,28 L28,72 M28,28 L72,28"/>

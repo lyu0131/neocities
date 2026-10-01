@@ -104,8 +104,14 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       // every 2px along each seam; the console edge's third point is the lower centre edge.
       // UNIT DATA and ARMAMENT are exempt: a lock overlay whose narrow fallback (flush to the
       // right column) already sits over the ALT bar, so a wing behind it is no worse.
-      const seams = JSON.parse(await p.eval(`JSON.stringify([...document.querySelectorAll('#screens .seam-line')]
-        .map(l => l.getAttribute('points').split(' ').map(q => q.split(',').map(Number))))`));
+      // Seam points are in HUD units: below ~1800x940 hud.js lays the HUD out at a scale K < 1
+      // (viewBox = viewport / K), so map them through #screens' viewBox into the px the boxes use.
+      const { k, seams } = JSON.parse(await p.eval(`JSON.stringify((() => {
+        const svg = document.getElementById('screens'), vb = svg.viewBox.baseVal;
+        const kx = svg.clientWidth / vb.width, ky = svg.clientHeight / vb.height;
+        return { k: ky, seams: [...svg.querySelectorAll('.seam-line')]
+          .map(l => l.getAttribute('points').split(' ').map(q => q.split(',').map(Number)).map(([x, y]) => [x * kx, y * ky])) };
+      })())`));
       // the tape as its two real boxes: the tick strip and the readout housing under it
       const tape = JSON.parse(await p.eval(`JSON.stringify((g => [g.querySelector(':scope > g'), g.querySelector(':scope > rect')]
         .map((e, i) => (b => ({ name: 'TAPE' + i, l: b.left, t: b.top, r: b.right, b: b.bottom }))(e.getBoundingClientRect())))(document.querySelector('.hdg-readout').parentNode))`));
@@ -130,9 +136,12 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         check(`${tag} the pods' instruments sit level, top and bottom`, Math.abs(sa.t - hm.t) <= 1 && Math.abs(sa.b - sl.b) <= 1, JSON.stringify({ sa, hm, sl }));
       }
       const statusTop = await p.eval("[...document.querySelectorAll('#hud > text')].find(t => /NOMINAL|SEQUENCE|ONLINE/.test(t.textContent)).getBoundingClientRect().top");
-      check(`${tag} status line sits just under the console edge`, statusTop - deck >= 10 && statusTop - deck <= 24, (statusTop - deck).toFixed(1) + 'px');
+      // these gaps are layout rules in HUD units (DESIGN.md: 16 over the status line, the dossier 20
+      // above the edge), so measure them in HUD units, not in px that shrink with the scale k
+      const statusGap = (statusTop - deck) / k;
+      check(`${tag} status line sits just under the console edge`, statusGap >= 10 && statusGap <= 24, statusGap.toFixed(1) + ' units');
       const dos = r.all.find(b => b.name === 'DOSSIER');
-      if (dos) check(`${tag} dossier sits on the console`, deck - dos.b >= 16 && deck - dos.b <= 24, (deck - dos.b).toFixed(1) + 'px');
+      if (dos) check(`${tag} dossier sits on the console`, (deck - dos.b) / k >= 16 && (deck - dos.b) / k <= 24, ((deck - dos.b) / k).toFixed(1) + ' units');
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
     }
     check(`layout ${w}x${h}: no JS errors`, p.errors.length === 0, p.errors.join(' | '));

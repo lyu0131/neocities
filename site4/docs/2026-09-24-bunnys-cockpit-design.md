@@ -9,11 +9,11 @@ A new Neocities site for **Sylas Lyu**, built on a completely new design logic f
 - **Plain static site:** HTML, CSS and vanilla JS, no build step, no frameworks, relative paths, deployable to Neocities by upload.
 
 ## 2. Hard constraints
-- **Original IP only:**
-  - no "Gundam" wordmark, logos, official mobile-suit designs or names;
-  - the suit is the original **SL-01 "BUNNyS"**;
-  - avoid franchise lore terms like "Minovsky" and "Newtype"; use invented terms such as "particle interference".
-- **Real content only,** from what Sylas provided (section 9). Nothing invented about them: no grades, location or email.
+- **Original IP in the artwork:**
+  - no "Gundam" wordmark, logos, official mobile-suit designs or names in any SVG (`tests/svg.test.js` enforces it);
+  - avoid franchise lore terms like "Minovsky" and "Newtype" in the artwork; use invented terms such as "particle interference".
+  - **The owner's chosen exceptions** (decided by them, 2026-09-30; do not re-raise): the suit is the **RX-124 Gundam TR-6 [Woundwort]**, an official A.O.Z design credited on the hangar to its mechanical designer Kenki Fujioka; the hangar renders it in 3D from the owner's own STL and carries the unit write-up they supplied (section 9). The hostile contact's `HX_DATA` (DESIGN.md). The SL-01 three-view is retired.
+- **Real content only,** from what Sylas provided (section 9). Nothing invented about them. By their choice the pilot page shows GPA, location (Providence) and email; **never a phone number**.
 - **Separate pages:** a hub plus three content pages.
 - **No orange-and-black hazard stripes** (the user's standing preference). Caution markings use amber text or outline chevrons, never striped tape.
 - **Graphics are AI-drawn vector:** SVG authored by agents, plus optional Python-rendered textures. There's no raster image generator; Canva is disconnected.
@@ -22,7 +22,7 @@ A new Neocities site for **Sylas Lyu**, built on a completely new design logic f
   - visible focus;
   - everything works by keyboard;
   - `prefers-reduced-motion` gives instant, static states;
-  - canvases are `aria-hidden`;
+  - decorative canvases are `aria-hidden` (the hangar's model canvas is the one exception: `role="img"` with a label);
   - `lang="en"`;
   - touch targets of at least 44px.
 - **Performance:**
@@ -43,7 +43,7 @@ A new Neocities site for **Sylas Lyu**, built on a completely new design logic f
 | `--hud` | `#8CFFC1` | all HUD symbols (phosphor green) |
 | `--hud-dim` | `#8CFFC1` at 45% | secondary ticks and inactive symbols |
 | `--amber` | `#FFB02E` | cautions and "pending" states |
-| `--lock` | `#FF3347` | lock-on, warnings, the fire cue |
+| `--lock` | `#FF3347` | lock-on, warnings, the fire blink |
 | `--ice` | `#DDE7EE` | body text on panels |
 | `--panel` | `rgba(6,10,18,.72)` | display panel background, with `backdrop-filter: blur(6px)` where supported |
 
@@ -62,7 +62,7 @@ site4/
   index.html        boot sequence + 360 cockpit hub
   pilot.html        pilot ID: intro + LinkedIn
   missions.html     mission logs: the two research roles
-  hangar.html       SL-01 BUNNyS three-view spec sheet (art showcase)
+  hangar.html       the RX-124 TR-6 [WOUNDWORT] in 3D, from the owner's own mesh
   css/cockpit.css   tokens, base, frame, HUD, hub, boot, sub-page display
   js/cockpit.js     360 engine: view state, input, cylinder, targets, lock-on
   js/hud.js         HUD rendering: heading tape, pitch ladder, FPM, readouts (hub + sub-pages)
@@ -113,7 +113,7 @@ site4/
   - the readout types out;
   - the colour goes from `--hud` to `--lock`;
   - the HUD status line reads `LOCK: <label>`.
-- **Firing:** click or Enter fires. There's a 280ms flash-and-zoom (the ring scales toward the target with blur), then it navigates. Under reduced motion it navigates immediately.
+- **Firing:** click or Enter fires. The lock blinks `--lock`/`--hud` twice (160ms), then the canopy shutters close and it navigates (see 5.6). Under reduced motion it navigates immediately.
 - **Behind you:** a rear-warning chevron (amber) points toward any target that's more than 60° off-centre.
 
 ### 5.4 Accessibility of the hub
@@ -133,6 +133,9 @@ site4/
   - right is "ALT", scroll depth in metres on sub-pages and pitch on the hub.
 - **Status line (bottom centre):** `BUNNyS SL-01 / SYS NOMINAL`, which changes to `LOCK: …` during lock-on.
 - **On sub-pages,** the HUD is a reduced set (heading tape, side bars, status line), driven by scroll instead of `bunnys:view`.
+
+### 5.6 Page handover: canopy shutters (approved 2026-09-30, option A of the transition bench)
+Every move between the four pages goes through the canopy. Leaving, the five canopy screens shutter closed in their power-on order (left, centre, right, top, console; 260ms each, 55ms apart), the seams flare and `LINK ▸ <PAGE>` with `CHANNEL OPEN` types out on the centre screen. The next page starts on that same closed glass, waits for its type (at most 700ms), holds 150ms and opens the shutters in the same order. The page load happens behind closed glass, so there is no blank frame. The cockpit opens with its own screen power-on, which is the same move. ~1.1s door to door. Under reduced motion, a plain navigation.
 
 ## 6. Boot sequence (`js/boot.js`, index only)
 *Revised 2026-09-30 at the owner's request: the original splash, log and 360 whip gave way to one continuous shot combining four sequences they chose (cockpit closing, blueprint to metal, IFF handshake and catapult launch). It is seen from the pilot's seat through the cockpit's five canopy screens and frame, which stay on screen the whole time, and it lands facing PILOT instead of MISSIONS.*
@@ -158,13 +161,12 @@ Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
 - **HUD:** the reduced sub-page HUD, plus `fx.js` rain at half intensity.
 - **Return:** a "◂ RETURN TO COCKPIT" control goes to `index.html`, with no boot replay because the session key is set.
 - **Nav:** a compact nav strip links all four pages, with `aria-current` marking the current one.
-- **Entrance:** a 400ms scanline wipe down the screen with the content fading in. Instant under reduced motion.
+- **Entrance:** arriving from another page of the site, the canopy shutters open (see 5.6). Landing on it directly (a bookmark, a search result), a 400ms scanline wipe down the screen. Instant under reduced motion.
 - **pilot.html:** a pilot ID card: callsign `SYLAS LYU`, unit SL-01, role "Psychology and UX design, Purdue University". The intro paragraph and the LinkedIn link sit in a "COMMS" block.
-- **missions.html:** two mission-log entries (section 9), each with a mission ID, status `ACTIVE`, dates, and short log lines. They reveal one by one as they scroll into view.
+- **missions.html:** a flight-record timeline, then the five missions of section 9 under Active and Archive, each with its mission ID, dates, status tag, role, and Objective / Actions / Outcome. They reveal one by one as they scroll into view. No intro line under the title on any sub-page (the owner removed them).
 - **hangar.html:**
-  - the SL-01 three-view at large size, on a blueprint-dark panel;
-  - hovering or focusing a callout highlights the part it points to (callouts are real buttons, accessible);
-  - a spec table beside it: height, weight and generator output. These are fictional mech specs, labelled as the design's specs, not claims about Sylas.
+  - the owner's own mesh in 3D on a blueprint grid (`js/hangar.js`, WebGL2; data `js/suitmesh.js` from `tools/gen_dmgmap.py`): turns on its own except under reduced motion, drag or arrow keys turn it, FRONT/SIDE/REAR swing to those views, and the 8 part callouts light the same zones as the cockpit's damage map (replaced the SL-01 three-view, 2026-09-30);
+  - a status row of true facts about the model (designer, callsign, triangle count, parts). The old fictional spec table is gone.
 
 ## 8. Graphics specs (AI-drawn SVG)
 - **`img/pano.svg`:** viewBox `0 0 9600 2000`, seamless (the content at x=0 and x=9600 matches), horizon at y≈1150. Contents:
@@ -191,13 +193,23 @@ Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
 **How art agents verify:** render each SVG in headless Chrome, look at the screenshot, and fix any problems before reporting. For the panorama, also render the seam: a 400px crop spanning the x=9600 wrap to x=0.
 
 ## 9. Content (verbatim facts; wording can be condensed)
-- **Name:** Sylas Lyu. LinkedIn: `https://www.linkedin.com/in/steven-lyu-73815525b/` (the URL legitimately says steven).
-- **Intro:** Psychology and UX design at Purdue. Researches how people's everyday data can inform mental health and healthcare decisions.
-- **Mission 1, UNC NIcE X Lab:** undergraduate research assistant (internship), July 2026 to now.
-  - Everyday smartphone and wearable data and student mental health, using a multi-year dataset spanning four student cohorts.
-  - Tested whether large language models can translate behavioural and self-report data into established mental health measures; co-wrote the paper through three rounds of review to publication.
-  - Built Python tools for data quality and coverage across cohorts, and visualisations comparing groups; reviewed lab manuscripts; presented at lab meetings.
-- **Mission 2, Human Betterment Analytics Research Lab (Purdue):** undergraduate research assistant, December 2025 to now. Healthcare, data science and decision systems: models that inform clinical decisions, healthcare delivery and public health policy under uncertainty.
+Sources: the owner's resume (supplied 2026-09-30) and what they wrote for site2's Work page. Nothing else.
+- **Name:** Sylas Lyu. Callsign BUNNyS. LinkedIn: `https://www.linkedin.com/in/sylas-lyu-73815525/`.
+- **Contact on the site:** email `yutinglyu050131@gmail.com`, location Providence, Rhode Island, LinkedIn. Links are the words themselves (a name, the unit), never a URL or an "open the ..." label. **No phone number** (the owner took it off, 2026-09-30).
+- **Intro:** Psychology and UX design junior at Purdue. Researches how people's everyday data can inform mental health and healthcare decisions.
+- **Education:** Purdue University, B.S. Psychology and UX Design, 2024 to present (junior), West Lafayette, Indiana. GPA 3.9; Dean's List & Semester Honors (2 years).
+- **Commendations:** Google Data Analytics Certificate; AWS Certified Cloud Practitioner; USACO Platinum (Top 50 in US); ISEF Second & Third Grant (verbatim).
+- **Skills:** Python, Java, JavaScript, MySQL, HTML/CSS, Git; Pandas, NumPy, Jupyter Notebook, Power BI, Tableau, Excel; Figma, Adobe XD, Axure RP; Raspberry Pi + Arduino.
+- **Leadership:** Student Senate; Robotics Captain; Varsity Captain; ACG Club Treasurer. **Involvement:** Student Government; Psychology Club; ACG Club; PUCSSA.
+- **Interests:** Weightlifting; Cooking; Vinyls; Frugal travel; Sailing; Ornithology.
+- **The suit:** the RX-124 Gundam TR-6 [Woundwort], mechanical design by Kenki Fujioka (credited on the hangar, with its debut). Sylas Lyu is its pilot on the site; the 3D mesh is the owner's own STL.
+- **Hangar unit file:** the profile, technology, armaments, equipment, history and variants text on hangar.html is the owner's own supplied write-up of the RX-124 Gundam TR-6 [Woundwort] (2026-09-30), kept as given, with its real-world credits (designer, debut). Personal project, not published.
+- **Missions** (numbered in the order they began; MSN-04 and MSN-05 are active):
+  - **MSN-05, UNC NIcE X Lab:** undergraduate research assistant (internship), July 2026 to now. Everyday smartphone and wearable data and student mental health, using a multi-year dataset spanning four student cohorts. Tested whether large language models can translate behavioural and self-report data into established mental health measures; co-wrote the paper through three rounds of review to publication. Built Python tools for data quality and coverage across cohorts, and visualisations comparing groups; reviewed lab manuscripts; presented at lab meetings.
+  - **MSN-04, Human Betterment Analytics Research Lab (Purdue):** undergraduate research assistant, February 2026 to now (the resume's date; site2 had said December 2025), West Lafayette. Healthcare, data science and decision systems: models that inform clinical decisions, healthcare delivery and public health policy under uncertainty. Supports research on data optimization in healthcare and clinical decision making; literature review, data processing and model implementation; documentation, reproducible code and version control.
+  - **MSN-03, Brown University CNTR** (Center for Technological Responsibility, Reimagination, and Redesign): Research Assistant, March 2022 to May 2023, Providence. Responsible AI and technology policy, analysing system impact; literature reviews on bias, accessibility and fairness in technology design; research findings synthesized into structured summaries.
+  - **MSN-02, Antagen Biotech:** Computational Biology Research Assistant, June 2021 to June 2022, Boston. A computational biology project applying AlphaFold for protein prediction; ran models on GPU-based systems and analysed 3D structural outputs.
+  - **MSN-01, BrainCo Inc.:** Technology, Media and Telecommunications Intern, May to September 2021, Somerville, Massachusetts. Investor-facing presentation materials for live Q&A sessions; competitive analysis on market positioning and product differentiation; structured and managed a client data room.
 
 ## 10. Verification (definition of done)
 - **Screenshots:** headless Chrome/Edge screenshots of every page at the section 2 test widths, with no horizontal overflow and no console errors.

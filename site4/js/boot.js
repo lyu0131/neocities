@@ -99,12 +99,17 @@
   }
 
   function onSkip() { finish(true); }
+  // Space skips (the button says so); Enter and Esc too. Not any key: 1-4 mean a contact.
+  function onSkipKey(e) {
+    if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Escape') return;
+    e.preventDefault(); finish(true);
+  }
 
   function finish(instant) {
     if (done) return;
     done = true;
     timers = [];
-    document.removeEventListener('keydown', onSkip);
+    document.removeEventListener('keydown', onSkipKey);
     document.removeEventListener('click', onSkip);
     drawHudOnce();
     BUNNYS.state.yaw = ARRIVE_YAW;
@@ -129,7 +134,10 @@
   var already = false;
   // Skip only when returning from our own pages; sessionStorage alone would also skip
   // the intro on a plain reload from an external referrer.
-  var fromInside = /\/(pilot|missions|hangar|index)\.html/.test(document.referrer || '');
+  // link.js marks a page reached through the canopy shutters, which holds even where no
+  // referrer is sent (file://, a strict referrer policy).
+  var fromInside = /\/(pilot|missions|hangar|index)\.html/.test(document.referrer || '') ||
+    document.documentElement.classList.contains('linked');
   try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
   if (BUNNYS.reduce || already) { finish(true); return; }
 
@@ -628,7 +636,7 @@
   if (ctx) { size(); draw(0); }
 
   function run() {
-    document.addEventListener('keydown', onSkip);
+    document.addEventListener('keydown', onSkipKey);
     document.addEventListener('click', onSkip);
     size(); placeCaptions();
     addEventListener('resize', function () { size(); placeCaptions(); });
@@ -665,7 +673,7 @@
     at(T.cut[0], function () {
       stage(4, 'LAUNCH');
       // the screens show the launch bay: the captions rise clear of the rails, below the log
-      var clear = logEl ? logEl.offsetTop + logEl.offsetHeight + 18 : 0;
+      var clear = logEl ? logEl.parentNode.getBoundingClientRect().bottom + 18 : 0;
       if (capEl) capEl.style.transform = 'translateY(' + Math.round(Math.max(H * 0.14, clear) - capEl.offsetTop) + 'px)';
     });
     at(T.lights, function () { log('CATAPULT ......... CHARGED'); });

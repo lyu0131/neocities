@@ -3,65 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
+<script src="js/link.js"></script>
 <title>Missions, Sylas Lyu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/cockpit.css">
 </head>
-<body class="page">
-<img id="frame" src="img/frame.svg" alt="" width="1920" height="1080">
-<canvas id="fx" aria-hidden="true"></canvas>
-<svg id="hud" aria-hidden="true"></svg>
+<body class="page" style="--pano-x: 0">
 
 <nav class="strip" aria-label="Cockpit">
-  <a class="ret" href="index.html">&#9666; RETURN TO COCKPIT</a>
-  <ul>
+  <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
+  <ul aria-keyshortcuts="Q E">
+    <li><kbd aria-hidden="true">Q</kbd></li>
     <li><a href="pilot.html">PILOT</a></li>
     <li><a href="missions.html" aria-current="page">MISSIONS</a></li>
     <li><a href="hangar.html">HANGAR</a></li>
+    <li><kbd aria-hidden="true">E</kbd></li>
   </ul>
 </nav>
 
 <main class="screen">
-  <p class="bar"><span>MISSION LOG</span> <span class="unit">SL-01 BUNNyS &#183; COMBAT SYSTEM</span></p>
+  <p class="bar"><span>MISSION LOG</span> <span class="unit">RX-124 TR-6 [WOUNDWORT] &#183; COMBAT SYSTEM</span></p>
   <h1>MISSION LOG</h1>
 
   <ul class="rail">
-    <li><b>MISSION LOG</b><span>2 ACTIVE</span></li>
-    <li><b>COMBAT SYSTEM</b><span>STANDBY</span></li>
-    <li><b>TARGET ACQUISITION</b><span>3 TRACKED</span></li>
-    <li class="is-caution"><b>DEPLOYMENT READY</b><span>HOLD</span></li>
+    <li><b>ACTIVE</b><span>2</span></li>
+    <li><b>COMPLETE</b><span>3</span></li>
+    <li><b>PUBLISHED</b><span>1 PAPER</span></li>
+    <li><b>FLYING SINCE</b><span>2021</span></li>
   </ul>
 
-  <article class="panel reveal" data-ref="MSN-01 &#183; TEST ARTICLE 02">
-    <p class="sub">TARGET ACQUISITION</p>
-    <p class="meta">MSN-01 &nbsp;/&nbsp; JULY 2026 &ndash; PRESENT &nbsp;/&nbsp; <span class="tag">ACTIVE</span></p>
-    <h2>UNC NIcE X Lab</h2>
-    <p class="meta">UNDERGRADUATE RESEARCH ASSISTANT, INTERNSHIP</p>
-    <p>Everyday smartphone and wearable data and student mental health, using a multi-year
-    dataset spanning four student cohorts.</p>
-    <p>Tested whether large language models can translate behavioural and self-report data into
-    established mental health measures, and co-wrote the paper through three rounds of review
-    to publication.</p>
-    <p>Built Python tools for data quality and coverage across cohorts, and visualisations
-    comparing groups. Reviewed lab manuscripts and presented at lab meetings.</p>
+  <!-- flight record: months from May 2021 (0) to October 2026 (66) -->
+  <figure class="flight" aria-label="Mission timeline, May 2021 to now">
+    <ol>
+      <li><span>MSN-01<small> BrainCo</small></span><b><i style="--a:0;--b:4"></i></b></li>
+      <li><span>MSN-02<small> Antagen</small></span><b><i style="--a:1;--b:13"></i></b></li>
+      <li><span>MSN-03<small> Brown CNTR</small></span><b><i style="--a:10;--b:24"></i></b></li>
+      <li class="is-active"><span>MSN-04<small> HBA Lab</small></span><b><i style="--a:57;--b:66"></i></b></li>
+      <li class="is-active"><span>MSN-05<small> UNC NIcE X</small></span><b><i style="--a:62;--b:66"></i></b></li>
+      <li class="axis" aria-hidden="true"><span></span><b>
+        <em style="--a:0">2021</em><em style="--a:8">2022</em><em style="--a:20">2023</em>
+        <em style="--a:32">2024</em><em style="--a:44">2025</em><em style="--a:56">2026</em>
+      </b></li>
+    </ol>
+  </figure>
+
+  <h2 class="log-head">Active</h2>
+
+  <article class="panel reveal" data-ref="MSN-05 &#183; REV A" data-sector="UNC NIcE X">
+    <p class="meta">MSN-05 &nbsp;/&nbsp; JULY 2026 &ndash; PRESENT &nbsp; <span class="tag">ACTIVE</span></p>
+    <h3>UNC NIcE X Lab</h3>
+    <p class="role"><b>Undergraduate Research Assistant</b>, internship</p>
+    <dl class="rows">
+      <dt>OBJECTIVE</dt>
+      <dd>How everyday smartphone and wearable data can help us understand student mental health,
+      using a multi-year dataset that spans four student cohorts.</dd>
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Tested whether large language models can translate behavioural and self-report data
+        into established mental health measures.</li>
+        <li>Built Python tools to check data quality and coverage across cohorts.</li>
+        <li>Made visualisations comparing groups.</li>
+        <li>Reviewed lab manuscripts and presented at lab meetings.</li>
+      </ul></dd>
+      <dt>OUTCOME</dt>
+      <dd>Co-wrote the paper through three rounds of review to publication.</dd>
+    </dl>
   </article>
 
-  <article class="panel reveal" data-ref="MSN-02 &#183; TEST ARTICLE 02">
-    <p class="sub">SENSOR ARRAY</p>
-    <p class="meta">MSN-02 &nbsp;/&nbsp; DECEMBER 2025 &ndash; PRESENT &nbsp;/&nbsp; <span class="tag">ACTIVE</span></p>
-    <h2>Human Betterment Analytics Research Lab</h2>
-    <p class="meta">UNDERGRADUATE RESEARCH ASSISTANT, PURDUE</p>
-    <p>Healthcare, data science and decision systems: models that inform clinical decisions,
-    healthcare delivery and public health policy under uncertainty.</p>
+  <article class="panel reveal" data-ref="MSN-04 &#183; REV A" data-sector="HBA Lab">
+    <p class="meta">MSN-04 &nbsp;/&nbsp; FEBRUARY 2026 &ndash; PRESENT &nbsp; <span class="tag">ACTIVE</span></p>
+    <h3>Human Betterment Analytics Research Lab</h3>
+    <p class="role"><b>Undergraduate Research Assistant</b>, Purdue University &#183; West Lafayette, Indiana</p>
+    <dl class="rows">
+      <dt>OBJECTIVE</dt>
+      <dd>Healthcare, data science and decision systems: models that inform clinical decisions,
+      healthcare delivery and public health policy under uncertainty.</dd>
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Support research on data optimization in healthcare and clinical decision making.</li>
+        <li>Assist with literature review, data processing and model implementation.</li>
+        <li>Maintain documentation, reproducible code and version control for ongoing projects.</li>
+      </ul></dd>
+    </dl>
+  </article>
+
+  <h2 class="log-head">Archive</h2>
+
+  <article class="panel reveal" data-ref="MSN-03 &#183; REV A" data-sector="Brown CNTR">
+    <p class="meta">MSN-03 &nbsp;/&nbsp; MARCH 2022 &ndash; MAY 2023 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>Brown University CNTR</h3>
+    <p class="role"><b>Research Assistant</b>, Center for Technological Responsibility, Reimagination,
+    and Redesign &#183; Providence, Rhode Island</p>
+    <dl class="rows">
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Supported research on responsible AI and technology policy, analysing system impact.</li>
+        <li>Conducted literature reviews on bias, accessibility and fairness in technology design.</li>
+        <li>Synthesized research findings into structured summaries for projects.</li>
+      </ul></dd>
+    </dl>
+  </article>
+
+  <article class="panel reveal" data-ref="MSN-02 &#183; REV A" data-sector="Antagen">
+    <p class="meta">MSN-02 &nbsp;/&nbsp; JUNE 2021 &ndash; JUNE 2022 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>Antagen Biotech</h3>
+    <p class="role"><b>Computational Biology Research Assistant</b> &#183; Boston, Massachusetts</p>
+    <dl class="rows">
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Contributed to a computational biology project applying AlphaFold for protein prediction.</li>
+        <li>Ran models on GPU-based systems and analysed the 3D structural outputs.</li>
+      </ul></dd>
+    </dl>
+  </article>
+
+  <article class="panel reveal" data-ref="MSN-01 &#183; REV A" data-sector="BrainCo">
+    <p class="meta">MSN-01 &nbsp;/&nbsp; MAY 2021 &ndash; SEPTEMBER 2021 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>BrainCo Inc.</h3>
+    <p class="role"><b>Technology, Media and Telecommunications Intern</b> &#183; Somerville, Massachusetts</p>
+    <dl class="rows">
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Developed investor-facing presentation materials for live Q&amp;A sessions.</li>
+        <li>Conducted competitive analysis on market positioning and product differentiation.</li>
+        <li>Structured and managed a client data room, organizing stakeholder documents.</li>
+      </ul></dd>
+    </dl>
   </article>
 
 </main>
 
 <script src="js/bunnys.js" defer></script>
-<script src="js/hud.js" defer></script>
-<script src="js/fx.js" defer></script>
 <script src="js/pages.js" defer></script>
+<script src="js/pagehud.js" defer></script>
 </body>
 </html>

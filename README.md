@@ -37,4 +37,4 @@ Screenshots land in `site4/tests/out/`, which git ignores.
 
 ## Artwork
 
-All artwork is original. site4's suit, the RX-124 TR-6 [WOUNDWORT], is the author's own design.
+site4's suit, the RX-124 Gundam TR-6 [Woundwort], is Kenki Fujioka's mechanical design from *Advance of Zeta: The Flag of Titans*; the 3D mesh on its Hangar page is the author's own STL, and the author is its pilot on the site. The rest of the artwork is original.

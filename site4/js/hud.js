@@ -1,7 +1,7 @@
 /* hud.js: everything inside svg#hud — heading tape, pitch ladder, FPM, boresight,
    SPD/ALT bars, radar scope, system gauges, caution banner and status line.
-   Hub: driven by bunnys:view/bunnys:lock. Sub-pages (body.page): a reduced set
-   driven by scroll.
+   Hub only, driven by bunnys:view/bunnys:lock. (The sub-pages have their own HUD,
+   js/pagehud.js.)
 
    Layout is responsive: the viewBox tracks the real viewport and every group is
    placed against an edge in place(). A fixed 1920x1080 viewBox desynced from
@@ -12,7 +12,6 @@
   var BUNNYS = window.BUNNYS;
   var wrap360 = BUNNYS.wrap360, shortestDelta = BUNNYS.shortestDelta, clamp = BUNNYS.clamp;
   var svg = document.getElementById('hud');
-  var isPage = document.body.classList.contains('page');
   var NS = 'http://www.w3.org/2000/svg';
   var W = 0, H = 0;
 
@@ -26,7 +25,7 @@
   var UI_REF_W = 1800, UI_REF_H = 940, UI_MIN = 0.65;
   var K = 1;
   function uiScale() {
-    if (isPage || innerWidth < 1000 || innerWidth < innerHeight) return 1;
+    if (innerWidth < 1000 || innerWidth < innerHeight) return 1;
     return clamp(Math.min(innerWidth / UI_REF_W, innerHeight / UI_REF_H), UI_MIN, 1);
   }
   function rectOf(e) {
@@ -1519,271 +1518,269 @@
     // Keep the bars clear of the left instrument column, and mirror them so the pair stays
     // symmetric about the centre.
     var colRight = 22 + (RAD + PAD) * 2;
-    var inset = isPage ? clamp(W * 0.05, 52, 120) : clamp(colRight + 54, 60, W * 0.28);
+    var inset = clamp(colRight + 54, 60, W * 0.28);
     xf(spd.g, inset, cy);
     xf(alt.g, W - inset, cy);
 
-    if (!isPage) {
-      // the scope needs real estate; drop it on small screens rather than crush it
-      var room = W > 760 && H > 520;
-      // the heading tape's own housing reaches wide enough to run into both columns below about
-      // W=1222, so anything under it has to clear this, not just a fixed margin.
-      var tapeBottom = Math.max(40, H * 0.055) + 42;
+    // the scope needs real estate; drop it on small screens rather than crush it
+    var room = W > 760 && H > 520;
+    // the heading tape's own housing reaches wide enough to run into both columns below about
+    // W=1222, so anything under it has to clear this, not just a fixed margin.
+    var tapeBottom = Math.max(40, H * 0.055) + 42;
 
-      // Two columns, each centred on the middle of its own gutter -- the band between the
-      // screen edge and the SPD/ALT bar -- so a column reads as one line of instruments.
-      var colW = Math.min(PANEL_W, inset - 30);
-      var colS = colW / PANEL_W;
-      var laneL = inset / 2, laneR = W - inset / 2;
-      var colLx = laneL - colW / 2, colRx = laneR - colW / 2;
-      var colTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
-      lane.setAttribute('opacity', room ? 1 : 0);
-      if (room) {
-        laneRuleL.setAttribute('x1', laneL); laneRuleL.setAttribute('x2', laneL);
-        laneRuleR.setAttribute('x1', laneR); laneRuleR.setAttribute('x2', laneR);
-        [laneRuleL, laneRuleR].forEach(function (r) {
-          r.setAttribute('y1', colTop - 8);
-        });
-      }
-
-      var reactor = PANELS[0], thruster = PANELS[1], combat = PANELS[2], env = PANELS[3];
-      PANELS.forEach(function (sp) { sp.g.setAttribute('opacity', room ? 1 : 0); });
-
-      // LEFT column, top to bottom: REACTOR STATUS, THRUSTER VECTOR, ENVIRONMENT, SENSOR ARRAY
-      radar.setAttribute('opacity', room ? 1 : 0);
-      // the radar's housing is PANEL_W wide by construction, so the same colS fits it
-      var radarCy = H - 26 - (RAD + PAD) * colS;
-      var radarTop = radarCy - (RAD + R_HEAD) * colS;
-      xf(radar, laneL, radarCy, ' scale(' + colS.toFixed(4) + ')');
-      xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
-      var thrusterY = colTop + reactor.h * colS + 14;
-      xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
-      var envY = thrusterY + thruster.h * colS + 14;
-      xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
-
-      // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
-      // onto the same lane and width here rather than in the stylesheet.
-      var slewEl = document.getElementById('slew');
-      // back to their natural heights; the pod block below may stretch them again
-      [slewEl, modeEl].forEach(function (e) { if (e) e.style.height = ''; });
-      var slewR = slewEl && rectOf(slewEl);
-      if (slewEl && room) {
-        slewEl.style.left = colRx + 'px';
-        slewEl.style.right = 'auto';
-        slewEl.style.width = colW + 'px';
-        slewR = rectOf(slewEl);
-      }
-      var slewVisible = !!(slewR && slewR.height);
-      var modeR = null;
-      if (modeEl && room && slewVisible) {
-        modeEl.style.left = colRx + 'px';
-        modeEl.style.width = colW + 'px';
-        modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
-        modeR = rectOf(modeEl);
-      }
-      // The slew panel's media query hides it below 860px/520px, and a hidden element's rect is
-      // all zeros -- then there's no right pod and a fixed foot margin instead. -16 under a pod
-      // top: its edge sits mid-gap, 8px either side, like a rail bracket.
-      var podTopR = modeR ? modeR.top : slewVisible ? slewR.top : null;
-      var floorR = function (top) { return top != null ? top - 16 : H - 26; };
-      var leftFits = function (top) { return (thrusterY + thruster.h * colS <= top - 16) + (envY + env.h * colS <= top - 16); };
-      // The columns line up in rows: DIAGNOSTIC MODE takes REACTOR STATUS's height (its map
-      // shrinks to fit), so COMBAT SYSTEM starts level with THRUSTER VECTOR, and stretches to
-      // end level with it too. On a short screen the map takes whatever still leaves COMBAT
-      // room above the pod, and the rows give up.
-      var fitDamage = function (top) {
-        layoutDamage(colRx, colTop, Math.min(floorR(top) - combat.h0 * colS - 14, colTop + reactor.h * colS), room, colS);
-        return dmgOn;
-      };
-      // Both console pods share one top line, 8px over the taller of the two bottom-corner
-      // stacks, unless that would cost an instrument -- then each pod hugs its own stack.
-      var podTopL = radarTop, podTopRt = podTopR;
-      if (podTopR != null) {
-        var shared = Math.min(radarTop, podTopR);
-        if (leftFits(shared) === leftFits(radarTop) && fitDamage(shared) === fitDamage(podTopR)) {
-          podTopL = podTopRt = shared;
-          // ...and the instruments inside sit level too: a right stack shorter than the radar
-          // stretches to its height, the two panels sharing the difference (their button rows
-          // grow to fill -- see .slew in the CSS).
-          if (modeR && podTopR > radarTop) {
-            var grow = (podTopR - radarTop) / 2;
-            slewEl.style.height = (slewEl.offsetHeight + grow) + 'px';
-            modeEl.style.height = (modeEl.offsetHeight + grow) + 'px';
-            slewR = rectOf(slewEl);
-            modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
-            modeR = rectOf(modeEl);
-          }
-        }
-      }
-      // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
-      // pod first), then THRUSTER.
-      if (thrusterY + thruster.h * colS > podTopL - 16) thruster.g.setAttribute('opacity', 0);
-      if (envY + env.h * colS > podTopL - 16) env.g.setAttribute('opacity', 0);
-      var rightFloor = floorR(podTopRt);
-      fitDamage(podTopRt);
-      var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
-      var rowMate = Math.abs(combatY - thrusterY) < 0.5 && thruster.g.getAttribute('opacity') !== '0'
-                 && combatY + thruster.h * colS <= rightFloor;
-      fitPanel(combat, rowMate ? Math.max(combat.h0, thruster.h) : combat.h0);
-      xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
-
-      var rails = [];
-      if (room) {
-        var shown = function (g) { return g.getAttribute('opacity') !== '0'; };
-        var bySpan = function (list) { return list.filter(Boolean).sort(function (a, b) { return a[0] - b[0]; }); };
-        // [top, bottom, sits in a console pod]; no bracket where a column meets its pod -- the
-        // pod's edge is that joint
-        [[laneL, bySpan([
-            [colTop, colTop + reactor.h * colS],
-            shown(thruster.g) && [thrusterY, thrusterY + thruster.h * colS],
-            shown(env.g) && [envY, envY + env.h * colS],
-            [radarTop, radarCy + (RAD + PAD) * colS, true]])],
-         [laneR, bySpan([
-            dmgOn && [colTop, colTop + dmgH],
-            [combatY, combatY + combat.h * colS],
-            modeR && [modeR.top, modeR.bottom, true],
-            slewVisible && [slewR.top, slewR.bottom, true]])]
-        ].forEach(function (c) {
-          var s = c[1];
-          // no caps: the top band's edge and the console are the column's end joints
-          for (var i = 1; i < s.length; i++) {
-            if (!(s[i][2] && !s[i - 1][2])) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
-          }
-        });
-      }
-      railBrackets.forEach(function (b, i) {
-        var r = rails[i];
-        b.setAttribute('opacity', r ? 1 : 0);
-        if (r) xf(b, r[0], r[1]);
-      });
-
-      // the foot row runs between the two bottom-corner instruments
-      var slewLeft = slewVisible ? slewR.left : (W - 22);
-      layoutFoot(laneL + colW / 2 + 26, slewLeft - 26, statusY + 16);
-
-      // Low in the frame, clear of the reticle and any contact under it, but never closer
-      // than 18px to the status line -- derived from the card's own box height, not a
-      // fixed fraction, since a fixed fraction runs through the status line at short sizes.
-      var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
-      var dosY = deckY - 20 - dosBot;
-      xf(dossier, cx, dosY);
-
-      // UNIT DATA and ARMAMENT are placed beside the contact, not in a column, so they read
-      // as belonging to the suit and both side columns stay free for your own instruments.
-      // If the pair won't fit, it stands down and the plain dossier card covers the contact
-      // instead. Position is measured off the ALT/LOCK/IFF readouts' own box (which spans
-      // x-HX_PAD .. x+w+HX_PAD, hence the HX_PAD terms), not guessed.
-      var rb = hx.right.getBBox();
-      var readR = cx + 92 + rb.x + rb.width;
-      var readTop = cy - 17 + rb.y, readBot = readTop + rb.height;
-      var boxW = hx.spec.w + HX_PAD * 2, rightLimit = colRx - 16;
-      var specX, specY, armsY;
-      if (readR + 16 + boxW <= rightLimit) {
-        // wide screens: the pair stands to the right of the readouts, beside the contact
-        specX = readR + 16 + HX_PAD;
-        specY = cy - 128;
-        armsY = specY + hx.spec.h + 16;
-      } else {
-        // Narrower: the pair straddles the readouts' band instead -- UNIT DATA above, ARMAMENT
-        // below, flush to the right column.
-        specX = rightLimit - boxW + HX_PAD;
-        specY = readTop - 14 - hx.spec.h + HX_PAD;
-        armsY = readBot + 14 + HX_PAD;
-      }
-      var specLeft = specX - HX_PAD, specTop = specY - HX_PAD;
-      hxArmsBottom = armsY - HX_PAD + hx.arms.h;
-      // TARGET ID's own top/bottom and the alarm log flush beneath it are computed here
-      // (not inside logBottom()) so the hxRoom check below and the xf() calls further
-      // down share one set of numbers and can't drift apart.
-      var idY = Math.max(112, H * 0.135);
-      var idBottom = idY - HX_PAD + hx.id.h;
-      var logY = idBottom + HX_LOG_GAP;
-      hxLogBottom = logY + hxLogH;
-      hxRoom = room && W > 1100
-            && specLeft >= cx + hx.id.w / 2 + HX_PAD + 12   // clear of TARGET ID
-            && specLeft >= cx + hx.warn.w / 2 + HX_PAD + 12 // and of the anchor warning
-            && specTop >= tapeBottom + 8                     // under the heading tape
-            && hxArmsBottom + 14 <= deckY                    // over the console
-            && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
-      xf(hx.id, cx - hx.id.w / 2, idY);
-      var idHalf = hx.id.w / 2 + HX_PAD;
-      // The caution banner sits directly under TARGET ID's alarm log whenever that leaves
-      // room over the pitch ladder's rest position (a margin, since the ladder sways live);
-      // too short a screen and it falls back to TARGET ID's own slot instead, always empty
-      // when the banner can fire since hideCaution() clears it on every mode switch. When the
-      // banner takes that slot, the toast and COMMS' centre fallback stack below its bottom
-      // (popTop) instead of sharing the row.
-      var warnFits = hxLogBottom + 12 + 60 <= cy - 148;
-      var warnTop = warnFits ? hxLogBottom + 12 : idY - HX_PAD;
-      var popTop = warnFits ? idY - HX_PAD : warnTop + 60 + 12;
-      var clearOfBars = popTop + POP_H <= cy - barH - 24;
-      // COMMS beside the SPD bar: centred on it when the band to the reticle readouts (or the
-      // dossier card, whichever is tighter) is wide enough; failing that, sliding up the bar
-      // instead, bottom-anchored 12px above the readouts; the shared centre slot only as a
-      // last resort. The left edge (clear of the SPD caption and needle, and 16px past the left
-      // wing's seam) is the same in every band -- only the vertical anchor and the right bound
-      // change. wingX: the wings' inner vertical, 36px right of the SPD bar (whose caption and
-      // needle reach 12px either side); with the columns stood down, tucked into the gutter.
-      var wingX = room ? Math.max(W * 0.24, inset + 36) : Math.min(W * 0.24, inset / 2);
-      var commsLeft = Math.max(inset + 24, wingX + 16), lb = hx.left.getBBox();
-      // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX
-      // independently.
-      var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
-      // hx.left and hx.right are one shared row layout (same y per index, mirrored x -- see
-      // buildHostile), so readTop from either bbox is the same value: reuse the one already
-      // computed above from rb rather than shadowing it with a second binding.
-      if (!popSlot(commsEl, commsLeft, midRight, cy, false, 0, 'mid', true)) {
-        if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true, POP_MIN_SLIDE)) {
-          // Last resort: the shared centre slot is centred on cx, same as the ladder, so no
-          // width can dodge it -- only its vertical anchor can. If popTop would still overlap
-          // the rungs, push the anchor past LADDER_SPAN, the ladder's own worst-case reach.
-          var commsFallbackTop = popTop;
-          if (commsFallbackTop < cy + LADDER_SPAN && commsFallbackTop + POP_H > cy - LADDER_SPAN) {
-            commsFallbackTop = cy + LADDER_SPAN + 12;
-          }
-          popSlot(commsEl, clearOfBars ? colLx + colW + 24 : commsLeft, cx - idHalf - 24, commsFallbackTop, true, 0);
-        }
-      }
-      // The toast keeps its slot right of TARGET ID, top-aligned with it; too narrow at any
-      // size, and it takes the centre slot instead. 132: a two-line transmission at full
-      // width is 121px tall, plus an 11px gap. POP_MIN_SLIDE, not POP_MIN: this band's left
-      // edge already starts well clear of the ladder's rungs, so a narrower band here still
-      // can't drop the toast onto them the way the centre slot does.
-      popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132, undefined, false, POP_MIN_SLIDE);
-      xf(hx.spec, specX, specY);
-      xf(hx.arms, specX, armsY);
-      xf(hx.warn, cx - hx.warn.w / 2, deckY - 12 - hx.warn.h);
-      xf(hx.left, cx - 92, cy - 17);
-      xf(hx.right, cx + 92, cy - 17);
-      if (hxLogW !== hx.id.w) hxLogSetWidth(hx.id.w);
-      xf(hxLog, cx - hx.id.w / 2, logY);
-      var hostileNow = hxRoom && hxLockId === 't-unknown';
-      showHostile(hostileNow);
-      if (hostileNow) dossier.setAttribute('opacity', 0);
-      xf(warn, cx, warnTop + 30); // +30: warnTop is the box's top edge, xf() wants its centre
-      fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
-      // ladder's own transform is re-applied by tick() every frame off the spring's
-      // current values, so a resize needs no extra push here
-      if (fpm) xf(fpm, cx, cy);
-
-      // The canopy screens, cut around what was just placed. The top band runs 14px over the
-      // columns, then slants down to its centre edge between the heading readout and TARGET
-      // ID's slot; the wings come down at wingX (above). Each console pod sits 8px over the
-      // instruments it holds, its corner mid-gap between a column and its bar. With the columns
-      // stood down the console is flat.
-      var pod = function (top) { return room && top != null ? top - 8 : deckY; };
-      var podL = pod(podTopL), podR = pod(podTopRt);
-      [laneRuleL, laneRuleR].forEach(function (r, i) { r.setAttribute('y2', i ? podR : podL); });
-      layoutScreens({
-        yS: Math.min(H * 0.10, colTop - 14),
-        cY: Math.max(tapeBottom + 10, Math.min(H * 0.14, idY - HX_PAD - 10)),
-        colL: room ? colLx + colW + 12 : 0, colR: room ? colRx - 12 : W,
-        xv: wingX,
-        pL: room ? (colLx + colW + inset - 12) / 2 : inset / 2,
-        pR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2,
-        podL: podL, podR: podR, deck: deckY
+    // Two columns, each centred on the middle of its own gutter -- the band between the
+    // screen edge and the SPD/ALT bar -- so a column reads as one line of instruments.
+    var colW = Math.min(PANEL_W, inset - 30);
+    var colS = colW / PANEL_W;
+    var laneL = inset / 2, laneR = W - inset / 2;
+    var colLx = laneL - colW / 2, colRx = laneR - colW / 2;
+    var colTop = Math.max(72, H * 0.11 - 12, tapeBottom + 10);
+    lane.setAttribute('opacity', room ? 1 : 0);
+    if (room) {
+      laneRuleL.setAttribute('x1', laneL); laneRuleL.setAttribute('x2', laneL);
+      laneRuleR.setAttribute('x1', laneR); laneRuleR.setAttribute('x2', laneR);
+      [laneRuleL, laneRuleR].forEach(function (r) {
+        r.setAttribute('y1', colTop - 8);
       });
     }
+
+    var reactor = PANELS[0], thruster = PANELS[1], combat = PANELS[2], env = PANELS[3];
+    PANELS.forEach(function (sp) { sp.g.setAttribute('opacity', room ? 1 : 0); });
+
+    // LEFT column, top to bottom: REACTOR STATUS, THRUSTER VECTOR, ENVIRONMENT, SENSOR ARRAY
+    radar.setAttribute('opacity', room ? 1 : 0);
+    // the radar's housing is PANEL_W wide by construction, so the same colS fits it
+    var radarCy = H - 26 - (RAD + PAD) * colS;
+    var radarTop = radarCy - (RAD + R_HEAD) * colS;
+    xf(radar, laneL, radarCy, ' scale(' + colS.toFixed(4) + ')');
+    xf(reactor.g, colLx, colTop, ' scale(' + colS.toFixed(4) + ')');
+    var thrusterY = colTop + reactor.h * colS + 14;
+    xf(thruster.g, colLx, thrusterY, ' scale(' + colS.toFixed(4) + ')');
+    var envY = thrusterY + thruster.h * colS + 14;
+    xf(env.g, colLx, envY, ' scale(' + colS.toFixed(4) + ')');
+
+    // The slew panel is a CSS-positioned HTML panel (its buttons are real links), so it's driven
+    // onto the same lane and width here rather than in the stylesheet.
+    var slewEl = document.getElementById('slew');
+    // back to their natural heights; the pod block below may stretch them again
+    [slewEl, modeEl].forEach(function (e) { if (e) e.style.height = ''; });
+    var slewR = slewEl && rectOf(slewEl);
+    if (slewEl && room) {
+      slewEl.style.left = colRx + 'px';
+      slewEl.style.right = 'auto';
+      slewEl.style.width = colW + 'px';
+      slewR = rectOf(slewEl);
+    }
+    var slewVisible = !!(slewR && slewR.height);
+    var modeR = null;
+    if (modeEl && room && slewVisible) {
+      modeEl.style.left = colRx + 'px';
+      modeEl.style.width = colW + 'px';
+      modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
+      modeR = rectOf(modeEl);
+    }
+    // The slew panel's media query hides it below 860px/520px, and a hidden element's rect is
+    // all zeros -- then there's no right pod and a fixed foot margin instead. -16 under a pod
+    // top: its edge sits mid-gap, 8px either side, like a rail bracket.
+    var podTopR = modeR ? modeR.top : slewVisible ? slewR.top : null;
+    var floorR = function (top) { return top != null ? top - 16 : H - 26; };
+    var leftFits = function (top) { return (thrusterY + thruster.h * colS <= top - 16) + (envY + env.h * colS <= top - 16); };
+    // The columns line up in rows: DIAGNOSTIC MODE takes REACTOR STATUS's height (its map
+    // shrinks to fit), so COMBAT SYSTEM starts level with THRUSTER VECTOR, and stretches to
+    // end level with it too. On a short screen the map takes whatever still leaves COMBAT
+    // room above the pod, and the rows give up.
+    var fitDamage = function (top) {
+      layoutDamage(colRx, colTop, Math.min(floorR(top) - combat.h0 * colS - 14, colTop + reactor.h * colS), room, colS);
+      return dmgOn;
+    };
+    // Both console pods share one top line, 8px over the taller of the two bottom-corner
+    // stacks, unless that would cost an instrument -- then each pod hugs its own stack.
+    var podTopL = radarTop, podTopRt = podTopR;
+    if (podTopR != null) {
+      var shared = Math.min(radarTop, podTopR);
+      if (leftFits(shared) === leftFits(radarTop) && fitDamage(shared) === fitDamage(podTopR)) {
+        podTopL = podTopRt = shared;
+        // ...and the instruments inside sit level too: a right stack shorter than the radar
+        // stretches to its height, the two panels sharing the difference (their button rows
+        // grow to fill -- see .slew in the CSS).
+        if (modeR && podTopR > radarTop) {
+          var grow = (podTopR - radarTop) / 2;
+          slewEl.style.height = (slewEl.offsetHeight + grow) + 'px';
+          modeEl.style.height = (modeEl.offsetHeight + grow) + 'px';
+          slewR = rectOf(slewEl);
+          modeEl.style.top = (slewR.top - 14 - modeEl.offsetHeight) + 'px';
+          modeR = rectOf(modeEl);
+        }
+      }
+    }
+    // Stand-down order under a short column: ENVIRONMENT gives way first (sits lowest, hits the
+    // pod first), then THRUSTER.
+    if (thrusterY + thruster.h * colS > podTopL - 16) thruster.g.setAttribute('opacity', 0);
+    if (envY + env.h * colS > podTopL - 16) env.g.setAttribute('opacity', 0);
+    var rightFloor = floorR(podTopRt);
+    fitDamage(podTopRt);
+    var combatY = dmgOn ? colTop + dmgH + 14 : colTop;
+    var rowMate = Math.abs(combatY - thrusterY) < 0.5 && thruster.g.getAttribute('opacity') !== '0'
+               && combatY + thruster.h * colS <= rightFloor;
+    fitPanel(combat, rowMate ? Math.max(combat.h0, thruster.h) : combat.h0);
+    xf(combat.g, colRx, combatY, ' scale(' + colS.toFixed(4) + ')');
+
+    var rails = [];
+    if (room) {
+      var shown = function (g) { return g.getAttribute('opacity') !== '0'; };
+      var bySpan = function (list) { return list.filter(Boolean).sort(function (a, b) { return a[0] - b[0]; }); };
+      // [top, bottom, sits in a console pod]; no bracket where a column meets its pod -- the
+      // pod's edge is that joint
+      [[laneL, bySpan([
+          [colTop, colTop + reactor.h * colS],
+          shown(thruster.g) && [thrusterY, thrusterY + thruster.h * colS],
+          shown(env.g) && [envY, envY + env.h * colS],
+          [radarTop, radarCy + (RAD + PAD) * colS, true]])],
+       [laneR, bySpan([
+          dmgOn && [colTop, colTop + dmgH],
+          [combatY, combatY + combat.h * colS],
+          modeR && [modeR.top, modeR.bottom, true],
+          slewVisible && [slewR.top, slewR.bottom, true]])]
+      ].forEach(function (c) {
+        var s = c[1];
+        // no caps: the top band's edge and the console are the column's end joints
+        for (var i = 1; i < s.length; i++) {
+          if (!(s[i][2] && !s[i - 1][2])) rails.push([c[0], (s[i - 1][1] + s[i][0]) / 2]);
+        }
+      });
+    }
+    railBrackets.forEach(function (b, i) {
+      var r = rails[i];
+      b.setAttribute('opacity', r ? 1 : 0);
+      if (r) xf(b, r[0], r[1]);
+    });
+
+    // the foot row runs between the two bottom-corner instruments
+    var slewLeft = slewVisible ? slewR.left : (W - 22);
+    layoutFoot(laneL + colW / 2 + 26, slewLeft - 26, statusY + 16);
+
+    // Low in the frame, clear of the reticle and any contact under it, but never closer
+    // than 18px to the status line -- derived from the card's own box height, not a
+    // fixed fraction, since a fixed fraction runs through the status line at short sizes.
+    var dosBot = parseFloat(dosBox.getAttribute('y')) + parseFloat(dosBox.getAttribute('height'));
+    var dosY = deckY - 20 - dosBot;
+    xf(dossier, cx, dosY);
+
+    // UNIT DATA and ARMAMENT are placed beside the contact, not in a column, so they read
+    // as belonging to the suit and both side columns stay free for your own instruments.
+    // If the pair won't fit, it stands down and the plain dossier card covers the contact
+    // instead. Position is measured off the ALT/LOCK/IFF readouts' own box (which spans
+    // x-HX_PAD .. x+w+HX_PAD, hence the HX_PAD terms), not guessed.
+    var rb = hx.right.getBBox();
+    var readR = cx + 92 + rb.x + rb.width;
+    var readTop = cy - 17 + rb.y, readBot = readTop + rb.height;
+    var boxW = hx.spec.w + HX_PAD * 2, rightLimit = colRx - 16;
+    var specX, specY, armsY;
+    if (readR + 16 + boxW <= rightLimit) {
+      // wide screens: the pair stands to the right of the readouts, beside the contact
+      specX = readR + 16 + HX_PAD;
+      specY = cy - 128;
+      armsY = specY + hx.spec.h + 16;
+    } else {
+      // Narrower: the pair straddles the readouts' band instead -- UNIT DATA above, ARMAMENT
+      // below, flush to the right column.
+      specX = rightLimit - boxW + HX_PAD;
+      specY = readTop - 14 - hx.spec.h + HX_PAD;
+      armsY = readBot + 14 + HX_PAD;
+    }
+    var specLeft = specX - HX_PAD, specTop = specY - HX_PAD;
+    hxArmsBottom = armsY - HX_PAD + hx.arms.h;
+    // TARGET ID's own top/bottom and the alarm log flush beneath it are computed here
+    // (not inside logBottom()) so the hxRoom check below and the xf() calls further
+    // down share one set of numbers and can't drift apart.
+    var idY = Math.max(112, H * 0.135);
+    var idBottom = idY - HX_PAD + hx.id.h;
+    var logY = idBottom + HX_LOG_GAP;
+    hxLogBottom = logY + hxLogH;
+    hxRoom = room && W > 1100
+          && specLeft >= cx + hx.id.w / 2 + HX_PAD + 12   // clear of TARGET ID
+          && specLeft >= cx + hx.warn.w / 2 + HX_PAD + 12 // and of the anchor warning
+          && specTop >= tapeBottom + 8                     // under the heading tape
+          && hxArmsBottom + 14 <= deckY                    // over the console
+          && logBottom() <= cy - 40;            // Task 3's alarm log; see logBottom() below
+    xf(hx.id, cx - hx.id.w / 2, idY);
+    var idHalf = hx.id.w / 2 + HX_PAD;
+    // The caution banner sits directly under TARGET ID's alarm log whenever that leaves
+    // room over the pitch ladder's rest position (a margin, since the ladder sways live);
+    // too short a screen and it falls back to TARGET ID's own slot instead, always empty
+    // when the banner can fire since hideCaution() clears it on every mode switch. When the
+    // banner takes that slot, the toast and COMMS' centre fallback stack below its bottom
+    // (popTop) instead of sharing the row.
+    var warnFits = hxLogBottom + 12 + 60 <= cy - 148;
+    var warnTop = warnFits ? hxLogBottom + 12 : idY - HX_PAD;
+    var popTop = warnFits ? idY - HX_PAD : warnTop + 60 + 12;
+    var clearOfBars = popTop + POP_H <= cy - barH - 24;
+    // COMMS beside the SPD bar: centred on it when the band to the reticle readouts (or the
+    // dossier card, whichever is tighter) is wide enough; failing that, sliding up the bar
+    // instead, bottom-anchored 12px above the readouts; the shared centre slot only as a
+    // last resort. The left edge (clear of the SPD caption and needle, and 16px past the left
+    // wing's seam) is the same in every band -- only the vertical anchor and the right bound
+    // change. wingX: the wings' inner vertical, 36px right of the SPD bar (whose caption and
+    // needle reach 12px either side); with the columns stood down, tucked into the gutter.
+    var wingX = room ? Math.max(W * 0.24, inset + 36) : Math.min(W * 0.24, inset / 2);
+    var commsLeft = Math.max(inset + 24, wingX + 16), lb = hx.left.getBBox();
+    // dossier's left edge, read off the box (not hard-coded), so it can't drift from padX
+    // independently.
+    var midRight = Math.min(cx - 92 + lb.x, cx + parseFloat(dosBox.getAttribute('x'))) - 16;
+    // hx.left and hx.right are one shared row layout (same y per index, mirrored x -- see
+    // buildHostile), so readTop from either bbox is the same value: reuse the one already
+    // computed above from rb rather than shadowing it with a second binding.
+    if (!popSlot(commsEl, commsLeft, midRight, cy, false, 0, 'mid', true)) {
+      if (!popSlot(commsEl, commsLeft, cx - idHalf - 16, readTop - 12, false, 0, 'bottom', true, POP_MIN_SLIDE)) {
+        // Last resort: the shared centre slot is centred on cx, same as the ladder, so no
+        // width can dodge it -- only its vertical anchor can. If popTop would still overlap
+        // the rungs, push the anchor past LADDER_SPAN, the ladder's own worst-case reach.
+        var commsFallbackTop = popTop;
+        if (commsFallbackTop < cy + LADDER_SPAN && commsFallbackTop + POP_H > cy - LADDER_SPAN) {
+          commsFallbackTop = cy + LADDER_SPAN + 12;
+        }
+        popSlot(commsEl, clearOfBars ? colLx + colW + 24 : commsLeft, cx - idHalf - 24, commsFallbackTop, true, 0);
+      }
+    }
+    // The toast keeps its slot right of TARGET ID, top-aligned with it; too narrow at any
+    // size, and it takes the centre slot instead. 132: a two-line transmission at full
+    // width is 121px tall, plus an 11px gap. POP_MIN_SLIDE, not POP_MIN: this band's left
+    // edge already starts well clear of the ladder's rungs, so a narrower band here still
+    // can't drop the toast onto them the way the centre slot does.
+    popSlot(toastEl, cx + idHalf + 24, clearOfBars ? colRx - 24 : W - inset - 24, popTop, false, 132, undefined, false, POP_MIN_SLIDE);
+    xf(hx.spec, specX, specY);
+    xf(hx.arms, specX, armsY);
+    xf(hx.warn, cx - hx.warn.w / 2, deckY - 12 - hx.warn.h);
+    xf(hx.left, cx - 92, cy - 17);
+    xf(hx.right, cx + 92, cy - 17);
+    if (hxLogW !== hx.id.w) hxLogSetWidth(hx.id.w);
+    xf(hxLog, cx - hx.id.w / 2, logY);
+    var hostileNow = hxRoom && hxLockId === 't-unknown';
+    showHostile(hostileNow);
+    if (hostileNow) dossier.setAttribute('opacity', 0);
+    xf(warn, cx, warnTop + 30); // +30: warnTop is the box's top edge, xf() wants its centre
+    fitWarn(); // re-clamp the banner's width to the (possibly new) viewport
+    // ladder's own transform is re-applied by tick() every frame off the spring's
+    // current values, so a resize needs no extra push here
+    if (fpm) xf(fpm, cx, cy);
+
+    // The canopy screens, cut around what was just placed. The top band runs 14px over the
+    // columns, then slants down to its centre edge between the heading readout and TARGET
+    // ID's slot; the wings come down at wingX (above). Each console pod sits 8px over the
+    // instruments it holds, its corner mid-gap between a column and its bar. With the columns
+    // stood down the console is flat.
+    var pod = function (top) { return room && top != null ? top - 8 : deckY; };
+    var podL = pod(podTopL), podR = pod(podTopRt);
+    [laneRuleL, laneRuleR].forEach(function (r, i) { r.setAttribute('y2', i ? podR : podL); });
+    layoutScreens({
+      yS: Math.min(H * 0.10, colTop - 14),
+      cY: Math.max(tapeBottom + 10, Math.min(H * 0.14, idY - HX_PAD - 10)),
+      colL: room ? colLx + colW + 12 : 0, colR: room ? colRx - 12 : W,
+      xv: wingX,
+      pL: room ? (colLx + colW + inset - 12) / 2 : inset / 2,
+      pR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2,
+      podL: podL, podR: podR, deck: deckY
+    });
   }
 
   var ladder = null, fpm = null, hxRoom = false, hxLockId = null, hxArmsBottom = 0;
@@ -1791,174 +1788,146 @@
   // against cy - 40 so the log always clears the reticle readouts (hx.left/hx.right).
   function logBottom() { return hxLogBottom; }
 
-  if (!isPage) {
-    // Pitch ladder: rungs built once (this runs beside a 360-element CSS-3D panorama, so no
-    // per-frame DOM churn), values rewritten per frame by updateLadder(). Roll/dx/dy come
-    // from a damped spring in tick() below, off real yaw/pitch rate rather than drag-only
-    // vx, so WASD and a held key bank it too.
-    ladder = el('g', { class: 'ladder' });
-    svg.appendChild(ladder);
-    var ladderRungs = [-10, -5, 5, 10].map(function (r) {
-      var w = r > 0 ? 90 : 60, tick = r > 0 ? 8 : -8;
-      var rung = el('line', { x1: -w, y1: 0, x2: w, y2: 0 });
-      if (r < 0) rung.setAttribute('stroke-dasharray', '6 6');
-      var tickL = el('line', { x1: -w, y1: 0, x2: -w, y2: tick });
-      var tickR = el('line', { x1: w, y1: 0, x2: w, y2: tick });
-      ladder.appendChild(rung); ladder.appendChild(tickL); ladder.appendChild(tickR);
-      return { r: r, tick: tick, rung: rung, tickL: tickL, tickR: tickR };
+  // Pitch ladder: rungs built once (this runs beside a 360-element CSS-3D panorama, so no
+  // per-frame DOM churn), values rewritten per frame by updateLadder(). Roll/dx/dy come
+  // from a damped spring in tick() below, off real yaw/pitch rate rather than drag-only
+  // vx, so WASD and a held key bank it too.
+  ladder = el('g', { class: 'ladder' });
+  svg.appendChild(ladder);
+  var ladderRungs = [-10, -5, 5, 10].map(function (r) {
+    var w = r > 0 ? 90 : 60, tick = r > 0 ? 8 : -8;
+    var rung = el('line', { x1: -w, y1: 0, x2: w, y2: 0 });
+    if (r < 0) rung.setAttribute('stroke-dasharray', '6 6');
+    var tickL = el('line', { x1: -w, y1: 0, x2: -w, y2: tick });
+    var tickR = el('line', { x1: w, y1: 0, x2: w, y2: tick });
+    ladder.appendChild(rung); ladder.appendChild(tickL); ladder.appendChild(tickR);
+    return { r: r, tick: tick, rung: rung, tickL: tickL, tickR: tickR };
+  });
+  function updateLadder(pitch, roll, dx, dy) {
+    ladderRungs.forEach(function (rg) {
+      var y = -(rg.r - pitch) * 14;
+      rg.rung.setAttribute('y1', y); rg.rung.setAttribute('y2', y);
+      rg.tickL.setAttribute('y1', y); rg.tickL.setAttribute('y2', y + rg.tick);
+      rg.tickR.setAttribute('y1', y); rg.tickR.setAttribute('y2', y + rg.tick);
     });
-    function updateLadder(pitch, roll, dx, dy) {
-      ladderRungs.forEach(function (rg) {
-        var y = -(rg.r - pitch) * 14;
-        rg.rung.setAttribute('y1', y); rg.rung.setAttribute('y2', y);
-        rg.tickL.setAttribute('y1', y); rg.tickL.setAttribute('y2', y + rg.tick);
-        rg.tickR.setAttribute('y1', y); rg.tickR.setAttribute('y2', y + rg.tick);
-      });
-      xf(ladder, W / 2 + dx, H / 2 + dy, ' rotate(' + roll.toFixed(2) + ')');
-    }
-
-    // -- flight-path marker: lags the pointer via a CSS transition, recentres when idle --
-    fpm = el('g');
-    fpm.style.transition = 'transform .22s ease-out';
-    fpm.appendChild(el('circle', { r: 12 }));
-    fpm.appendChild(el('line', { x1: -30, y1: 0, x2: -14, y2: 0 }));
-    fpm.appendChild(el('line', { x1: 14, y1: 0, x2: 30, y2: 0 }));
-    fpm.appendChild(el('line', { x1: 0, y1: -14, x2: 0, y2: -6 }));
-    svg.appendChild(fpm);
-    var fpmIdleTimer = null;
-    addEventListener('mousemove', function (e) {
-      var ox = clamp((e.clientX / innerWidth - 0.5) * 260, -140, 140);
-      var oy = clamp((e.clientY / innerHeight - 0.5) * 160, -100, 100);
-      xf(fpm, W / 2 + ox, H / 2 + oy);
-      clearTimeout(fpmIdleTimer);
-      fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
-    });
-
-    buildScreens(); buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
-    place();
-    drawHeading(0); updateLadder(0, 0, 0, 0); drawRadar(0);
-
-    BUNNYS.on('view', function (d) {
-      drawHeading(d.yaw);
-      drawRadar(d.yaw);
-      // SPD and the ladder's roll/dx/dy come from tick()'s motion sampler instead --
-      // vx here is drag-only and never carries a 0 once the view stops moving.
-      setBar(alt, clamp((d.pitch + 12) / 24, 0, 1), (d.pitch >= 0 ? '+' : '') + Math.round(d.pitch));
-    });
-    BUNNYS.on('lock', function (d) {
-      status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
-      setDossier(d);
-      // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised
-      // the card, so this lowers it again.
-      hxLockId = d.id || null;
-      var hostile = hxRoom && hxLockId === 't-unknown';
-      showHostile(hostile);
-      if (hostile) dossier.setAttribute('opacity', 0);
-      drawRadar(BUNNYS.state.yaw);
-    });
-    BUNNYS.on('screens-on', function () { powerScreens(0); });
-    BUNNYS.on('boot-done', function () {
-      status.textContent = 'PANORAMIC MONITOR ONLINE';
-      setTimeout(function () {
-        if (status.textContent === 'PANORAMIC MONITOR ONLINE') status.textContent = IDLE_STATUS;
-      }, 1600);
-      powerScreens();
-      powerOn();
-      scheduleCaution();
-      scheduleComms(8000);
-    });
-    wireModes();
-
-    // state.yaw/pitch is what every input source (drag, keys, wheel, slew, magnetism, tilt)
-    // eases into each frame, so sampling it here -- not the drag-only vx the view event
-    // carries -- is the one place all of them show up. Feeds SPD and the ladder's spring below.
-    var prevYaw = BUNNYS.state.yaw, prevPitch = BUNNYS.state.pitch;
-    var SPD_TAU = 0.35, spdEma = 0, spdTextAt = 0;
-    var LADDER_OMEGA = 12, LADDER_ZETA = 0.55;
-    var ladderRoll = { cur: 0, vel: 0 }, ladderDx = { cur: 0, vel: 0 }, ladderDy = { cur: 0, vel: 0 };
-    // semi-implicit Euler step of a damped spring toward target, mutating axis in place
-    function springStep(axis, target, h) {
-      var acc = LADDER_OMEGA * LADDER_OMEGA * (target - axis.cur) - 2 * LADDER_ZETA * LADDER_OMEGA * axis.vel;
-      axis.vel += acc * h;
-      axis.cur += axis.vel * h;
-    }
-
-    // gauges tick on their own clock; cheap, and pauses with the tab
-    (function tick(now) {
-      requestAnimationFrame(tick);
-      if (document.hidden) return;
-      var t = now || performance.now();
-      var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
-      tick.last = t;
-      drawPanels(t);
-      drawFoot(t);
-      drawSweep(t);
-      drawHostile(t);
-      drawAlarmFlash(t);
-      drawDamage(t, dt);
-      drawBar(spd, dt); drawBar(alt, dt);
-
-      // dt floored so a near-zero frame interval can't blow the rate up
-      var rdt = Math.max(dt, 1 / 240);
-      var yawRate = shortestDelta(prevYaw, BUNNYS.state.yaw) / rdt;
-      var pitchRate = (BUNNYS.state.pitch - prevPitch) / rdt;
-      prevYaw = BUNNYS.state.yaw; prevPitch = BUNNYS.state.pitch;
-
-      // SPD: smoothed angular speed through a saturating curve -- WASD's 70deg/s lands
-      // around 0.54, a fast drag saturates near 1, idle sway (~0.3deg/s) reads ~0
-      var speed = Math.sqrt(yawRate * yawRate + pitchRate * pitchRate);
-      spdEma += (speed - spdEma) * (1 - Math.exp(-dt / SPD_TAU));
-      var spdFrac = 1 - Math.exp(-spdEma / 90);
-      setBar(spd, spdFrac);
-      if (t - spdTextAt >= 200) { spdTextAt = t; setText(spd.readout, pad3(spdFrac * 240)); }
-
-      // A damped spring banks and drifts the rungs off yaw/pitch rate, so release overshoots
-      // slightly instead of snapping to a value. Reduced motion skips the spring and tracks pitch
-      // only.
-      if (BUNNYS.reduce) {
-        updateLadder(BUNNYS.state.pitch, 0, 0, 0);
-      } else {
-        var rollG = BUNNYS.state.dragging ? 0.09 : 0.05, rollCap = BUNNYS.state.dragging ? 13 : 7;
-        var rollTarget = clamp(yawRate * rollG, -rollCap, rollCap);
-        var dxTarget = clamp(-yawRate * 0.12, -16, 16);
-        var dyTarget = clamp(-pitchRate * 0.35, -10, 10);
-        // sub-step so a slow (deferred-rAF) frame can't overdrive the spring
-        var subDt = 1 / 30, steps = dt > subDt ? Math.ceil(dt / subDt) : 1, h = dt / steps;
-        for (var i = 0; i < steps; i++) {
-          springStep(ladderRoll, rollTarget, h);
-          springStep(ladderDx, dxTarget, h);
-          springStep(ladderDy, dyTarget, h);
-        }
-        updateLadder(BUNNYS.state.pitch, ladderRoll.cur, ladderDx.cur, ladderDy.cur);
-      }
-    })();
-  } else {
-    // -- sub-pages: reduced set, driven by scroll --
-    place();
-    drawHeading(0);
-    var lastY = scrollY, lastT = performance.now();
-    function onScroll() {
-      var y = scrollY, t = performance.now();
-      var dt = Math.max(1, t - lastT);
-      var vel = (y - lastY) / dt * 1000; // px/s
-      lastY = y; lastT = t;
-      var max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-      var frac = clamp(y / max, 0, 1);
-      drawHeading(frac * 359);
-      setBar(spd, clamp(Math.abs(vel) / 900, 0, 1));
-      setBar(alt, frac, Math.round(y / 100) + 'M');
-    }
-    addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    (function tick(now) {
-      requestAnimationFrame(tick);
-      if (document.hidden) return;
-      var t = now || performance.now();
-      var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
-      tick.last = t;
-      drawBar(spd, dt); drawBar(alt, dt);
-    })();
+    xf(ladder, W / 2 + dx, H / 2 + dy, ' rotate(' + roll.toFixed(2) + ')');
   }
+
+  // -- flight-path marker: lags the pointer via a CSS transition, recentres when idle --
+  fpm = el('g');
+  fpm.style.transition = 'transform .22s ease-out';
+  fpm.appendChild(el('circle', { r: 12 }));
+  fpm.appendChild(el('line', { x1: -30, y1: 0, x2: -14, y2: 0 }));
+  fpm.appendChild(el('line', { x1: 14, y1: 0, x2: 30, y2: 0 }));
+  fpm.appendChild(el('line', { x1: 0, y1: -14, x2: 0, y2: -6 }));
+  svg.appendChild(fpm);
+  var fpmIdleTimer = null;
+  addEventListener('mousemove', function (e) {
+    var ox = clamp((e.clientX / innerWidth - 0.5) * 260, -140, 140);
+    var oy = clamp((e.clientY / innerHeight - 0.5) * 160, -100, 100);
+    xf(fpm, W / 2 + ox, H / 2 + oy);
+    clearTimeout(fpmIdleTimer);
+    fpmIdleTimer = setTimeout(function () { xf(fpm, W / 2, H / 2); }, 1500);
+  });
+
+  buildScreens(); buildLane(); buildRadar(); buildPanels(); buildDamage(); buildFoot(); buildWarn(); buildDossier();
+  place();
+  drawHeading(0); updateLadder(0, 0, 0, 0); drawRadar(0);
+
+  BUNNYS.on('view', function (d) {
+    drawHeading(d.yaw);
+    drawRadar(d.yaw);
+    // SPD and the ladder's roll/dx/dy come from tick()'s motion sampler instead --
+    // vx here is drag-only and never carries a 0 once the view stops moving.
+    setBar(alt, clamp((d.pitch + 12) / 24, 0, 1), (d.pitch >= 0 ? '+' : '') + Math.round(d.pitch));
+  });
+  BUNNYS.on('lock', function (d) {
+    status.textContent = d.id ? 'LOCK SEQUENCE: ' + d.label : IDLE_STATUS;
+    setDossier(d);
+    // A hostile contact gets its own boxes instead of the generic card; setDossier() just raised
+    // the card, so this lowers it again.
+    hxLockId = d.id || null;
+    var hostile = hxRoom && hxLockId === 't-unknown';
+    showHostile(hostile);
+    if (hostile) dossier.setAttribute('opacity', 0);
+    drawRadar(BUNNYS.state.yaw);
+  });
+  BUNNYS.on('screens-on', function () { powerScreens(0); });
+  BUNNYS.on('boot-done', function () {
+    status.textContent = 'PANORAMIC MONITOR ONLINE';
+    setTimeout(function () {
+      if (status.textContent === 'PANORAMIC MONITOR ONLINE') status.textContent = IDLE_STATUS;
+    }, 1600);
+    powerScreens();
+    powerOn();
+    scheduleCaution();
+    scheduleComms(8000);
+  });
+  wireModes();
+
+  // state.yaw/pitch is what every input source (drag, keys, wheel, slew, magnetism, tilt)
+  // eases into each frame, so sampling it here -- not the drag-only vx the view event
+  // carries -- is the one place all of them show up. Feeds SPD and the ladder's spring below.
+  var prevYaw = BUNNYS.state.yaw, prevPitch = BUNNYS.state.pitch;
+  var SPD_TAU = 0.35, spdEma = 0, spdTextAt = 0;
+  var LADDER_OMEGA = 12, LADDER_ZETA = 0.55;
+  var ladderRoll = { cur: 0, vel: 0 }, ladderDx = { cur: 0, vel: 0 }, ladderDy = { cur: 0, vel: 0 };
+  // semi-implicit Euler step of a damped spring toward target, mutating axis in place
+  function springStep(axis, target, h) {
+    var acc = LADDER_OMEGA * LADDER_OMEGA * (target - axis.cur) - 2 * LADDER_ZETA * LADDER_OMEGA * axis.vel;
+    axis.vel += acc * h;
+    axis.cur += axis.vel * h;
+  }
+
+  // gauges tick on their own clock; cheap, and pauses with the tab
+  (function tick(now) {
+    requestAnimationFrame(tick);
+    if (document.hidden) return;
+    var t = now || performance.now();
+    var dt = tick.last == null ? 1 / 60 : Math.min(0.25, (t - tick.last) / 1000);
+    tick.last = t;
+    drawPanels(t);
+    drawFoot(t);
+    drawSweep(t);
+    drawHostile(t);
+    drawAlarmFlash(t);
+    drawDamage(t, dt);
+    drawBar(spd, dt); drawBar(alt, dt);
+
+    // dt floored so a near-zero frame interval can't blow the rate up
+    var rdt = Math.max(dt, 1 / 240);
+    var yawRate = shortestDelta(prevYaw, BUNNYS.state.yaw) / rdt;
+    var pitchRate = (BUNNYS.state.pitch - prevPitch) / rdt;
+    prevYaw = BUNNYS.state.yaw; prevPitch = BUNNYS.state.pitch;
+
+    // SPD: smoothed angular speed through a saturating curve -- WASD's 70deg/s lands
+    // around 0.54, a fast drag saturates near 1, idle sway (~0.3deg/s) reads ~0
+    var speed = Math.sqrt(yawRate * yawRate + pitchRate * pitchRate);
+    spdEma += (speed - spdEma) * (1 - Math.exp(-dt / SPD_TAU));
+    var spdFrac = 1 - Math.exp(-spdEma / 90);
+    setBar(spd, spdFrac);
+    if (t - spdTextAt >= 200) { spdTextAt = t; setText(spd.readout, pad3(spdFrac * 240)); }
+
+    // A damped spring banks and drifts the rungs off yaw/pitch rate, so release overshoots
+    // slightly instead of snapping to a value. Reduced motion skips the spring and tracks pitch
+    // only.
+    if (BUNNYS.reduce) {
+      updateLadder(BUNNYS.state.pitch, 0, 0, 0);
+    } else {
+      var rollG = BUNNYS.state.dragging ? 0.09 : 0.05, rollCap = BUNNYS.state.dragging ? 13 : 7;
+      var rollTarget = clamp(yawRate * rollG, -rollCap, rollCap);
+      var dxTarget = clamp(-yawRate * 0.12, -16, 16);
+      var dyTarget = clamp(-pitchRate * 0.35, -10, 10);
+      // sub-step so a slow (deferred-rAF) frame can't overdrive the spring
+      var subDt = 1 / 30, steps = dt > subDt ? Math.ceil(dt / subDt) : 1, h = dt / steps;
+      for (var i = 0; i < steps; i++) {
+        springStep(ladderRoll, rollTarget, h);
+        springStep(ladderDx, dxTarget, h);
+        springStep(ladderDy, dyTarget, h);
+      }
+      updateLadder(BUNNYS.state.pitch, ladderRoll.cur, ladderDx.cur, ladderDy.cur);
+    }
+  })();
 
   var resizeTimer = null;
   addEventListener('resize', function () {

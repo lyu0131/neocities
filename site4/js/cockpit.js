@@ -193,10 +193,6 @@
   function applyRing(yaw, pitch) {
     var t = 'translateZ(' + PERSP.toFixed(1) + 'px) rotateX(' + pitch.toFixed(2)
           + 'deg) rotateY(' + (yaw - HALF_SLICE).toFixed(2) + 'deg)';
-    if (firing) {
-      var p = Math.min(1, (performance.now() - fireStart) / 280);
-      t += ' scale(' + (1 + p * 0.5).toFixed(3) + ')'; // boot.js owns filter on .pano-ring; we only scale
-    }
     ring.style.transform = t;
     placeTargets(yaw, pitch);
   }
@@ -234,6 +230,12 @@
   // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings
   // up its dossier.
   var boreTarget = null;
+  // a contact picked with 1-4: held through the swing, so Enter mid-turn opens what was picked and
+  // not whatever the reticle is crossing; any manual turn lets it go
+  var keyTarget = null;
+  function dropKeyLock() { if (keyTarget) { keyTarget = null; refreshLock(); } }
+  // what the dossier shows and Enter opens, highest priority first
+  function currentTarget() { return focusTarget || keyTarget || hoverTarget || boreTarget; }
   // Every target sits on the horizon, so a contact's elevation offset from the boresight is simply
   // -pitch.
   function boreOffset(t, yaw, pitch) {
@@ -251,23 +253,23 @@
     if (best !== boreTarget) { boreTarget = best; refreshLock(); }
   }
   function refreshLock() {
-    var t = focusTarget || hoverTarget || boreTarget, id = t ? t.id : null;
+    var t = currentTarget(), id = t ? t.id : null;
     if (id === desiredLock) return;
     desiredLock = id;
     if (t) BUNNYS.emit('lock', { id: t.id, label: t.dataset.label, readout: t.dataset.readout, info: t.dataset.info || '', brief: t.dataset.brief || '', href: t.dataset.href || '' });
     else BUNNYS.emit('lock', { id: null, label: null, readout: null, info: '', brief: '', href: '' });
   }
 
-  var firing = false, fireStart = 0;
+  // Firing blinks the lock, then link.js shutters the canopy and goes.
   function fire(t) {
     if (!state.booted) return;
     var href = t.dataset.href;
     if (!href) return; // t-unknown locks but never fires
     markInput();
-    BUNNYS.emit('fire', { id: t.id, href: href });
-    if (BUNNYS.reduce) { location.href = href; return; }
-    firing = true; fireStart = performance.now();
-    setTimeout(function () { location.href = href; }, 280);
+    if (BUNNYS.reduce || !BUNNYS.link) { location.href = href; return; }
+    t.classList.add('is-fired');
+    setTimeout(function () { t.classList.remove('is-fired'); }, 200);
+    BUNNYS.link.go(href, 160);
   }
 
   targets.forEach(function (t) {
@@ -306,6 +308,7 @@
     if (!state.booted || e.button !== 0) return;
     if (e.target.closest && e.target.closest('#targets-nav, .hud-btn')) return;
     dragging = true; state.dragging = true; velYaw = 0; dragDist = 0; lastDragX = e.clientX; lastDragY = e.clientY;
+    dropKeyLock();
     markInput();
   });
   document.addEventListener('mousemove', function (e) {
@@ -332,6 +335,7 @@
   addEventListener('wheel', function (e) {
     if (!state.booted) return;
     e.preventDefault();
+    dropKeyLock();
     targetYaw = wrap360(targetYaw + (e.deltaX + e.deltaY) * 0.04);
     markInput();
   }, { passive: false });
@@ -356,6 +360,7 @@
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     var role = keyRole(e);
     if (role) {
+      dropKeyLock();
       if (!e.repeat) {
         if (role === 'left' || role === 'right') targetYaw = wrap360(targetYaw + STEP[role]);
         else targetPitch = clampPitch(targetPitch + STEP[role]);
@@ -365,19 +370,51 @@
       e.preventDefault();
       return;
     }
-    if (e.key === 'Home') { targetYaw = 0; targetPitch = 0; markInput(); e.preventDefault(); }
+    if (e.key === 'Home') { dropKeyLock(); targetYaw = 0; targetPitch = 0; markInput(); e.preventDefault(); }
+    // Enter fires whatever is locked -- boresight, hover or focus -- as the dossier's "PRESS ENTER
+    // OR CLICK TO OPEN" says. A focused control keeps its own Enter, except a SLEW button whose
+    // contact is already locked: Enter once turns onto it, Enter again opens it.
+    if (e.key === 'Enter' && !e.defaultPrevented && !e.repeat) {
+      var t = currentTarget();
+      var ctl = e.target.closest && e.target.closest('button, a, input, textarea, select');
+      if (ctl && !(t && ctl.dataset.slew === t.id)) return;
+      if (t && t.dataset.href) { e.preventDefault(); fire(t); }
+      return;
+    }
+    if (e.repeat) return;
+    // 1-4: swing onto a contact and lock it; Enter then opens it
+    var n = '1234'.indexOf(e.key);
+    if (n >= 0) {
+      var c = document.getElementById(CONTACT_KEYS[n]);
+      if (c) { e.preventDefault(); keyTarget = c; turnTo(parseFloat(c.dataset.yaw) || 0); refreshLock(); }
+      return;
+    }
+    // HUD MODE by key -- X declutter, N night vision, R run diag, C comms -- and Esc acknowledges comms
+    var mode = { x: 'declutter', n: 'nv', r: 'diag', c: 'comms' }[e.key.toLowerCase()];
+    var mb = mode && document.querySelector('#hudmode [data-mode="' + mode + '"]');
+    if (mb) { e.preventDefault(); mb.click(); return; }
+    if (e.key === 'Escape') { var ack = document.querySelector('#comms:not([hidden]) .comms-ack'); if (ack) ack.click(); }
+  });
+  var CONTACT_KEYS = ['t-pilot', 't-missions', 't-hangar', 't-unknown'];
+  // index.html?face=t-unknown (a sub-page's 4 + Enter) arrives facing that contact. A query, not a
+  // #fragment: a fragment sends the browser scrolling toward the element, inside the overflow:hidden,
+  // 3D-transformed panorama.
+  BUNNYS.on('boot-done', function () {
+    var m = /[?&]face=([\w-]+)/.exec(location.search), c = m && document.getElementById(m[1]);
+    if (c && c.classList.contains('target')) turnTo(parseFloat(c.dataset.yaw) || 0);
   });
 
   // phone tilt: ask permission once, then map gamma/beta relative to the enable point
   if (!BUNNYS.fine && typeof DeviceOrientationEvent !== 'undefined') {
     tiltBtn.hidden = false;
-    var tiltBase = null, tiltBaseYaw = 0;
+    var tiltBase = null, tiltBaseYaw = 0, tiltLastG = 0;
     tiltBtn.addEventListener('click', function () {
       var start = function () {
         tiltBase = null;
         addEventListener('deviceorientation', function (e) {
           if (e.gamma == null) return;
-          if (!tiltBase) { tiltBase = { g: e.gamma, b: e.beta || 0 }; tiltBaseYaw = state.yaw; }
+          if (!tiltBase) { tiltBase = { g: e.gamma, b: e.beta || 0 }; tiltBaseYaw = state.yaw; tiltLastG = e.gamma; }
+          if (Math.abs(e.gamma - tiltLastG) > 1.5) { dropKeyLock(); tiltLastG = e.gamma; }
           targetYaw = wrap360(tiltBaseYaw + (e.gamma - tiltBase.g));
           targetPitch = clampPitch(-(e.beta - tiltBase.b) * 0.3);
           markInput();
@@ -397,6 +434,7 @@
       targetYaw = wrap360(parseFloat(t.dataset.yaw) || 0);
       targetPitch = 0;
       markInput();
+      keyTarget = t; refreshLock();   // a slew locks like its number key does
     });
   });
 
@@ -455,39 +493,37 @@
     // Magnetism pulls the aim onto a contact as the view slows near it. It waits out live input
     // (a wheel nudge or held key is never fought) but engages while a released flick is still
     // coasting, and closes the last degree outright -- a weaker asymptotic pull reads as drifting.
-    if (!firing) {
-      var near = null, nearOff = null, nearDist = SNAP_DEG;
-      targets.forEach(function (t) {
-        var o = boreOffset(t, targetYaw, targetPitch);
-        var d = boreDist(o);
-        if (d < nearDist) { nearDist = d; nearOff = o; near = t; }
-      });
-      // Assist applies during a drag too, at reduced strength (SNAP_DRAG) so it guides rather than
-      // fights; full strength (SNAP_STRENGTH) is for a released flick settling.
-      var settling = !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90;
-      // While dragging, only assist when it already heads toward the contact (below), or a drag
-      // starting on a target gets pulled straight back and can never move away from it.
-      var strength = dragging ? SNAP_DRAG : (settling ? SNAP_STRENGTH : 0);
-      // `near` has to be tested FIRST: nearOff is null when nothing is in range, and
-      // reading it unguarded threw on every frame with no contact nearby.
-      if (near && strength > 0 && (!dragging || velYaw * nearOff.yaw >= 0)) {
-        var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
-        targetYaw = wrap360(targetYaw + nearOff.yaw * pull * strength);
-        // Elevation is corrected on the settle only, and skipped while a held up/down key is
-        // active (!tilt) -- otherwise the pull fights deliberate vertical input either way.
-        if (!dragging && !tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
-        if (!dragging) {
-          velYaw *= Math.pow(0.55, dt * 60);
-          if (nearDist < SNAP_CLICK) {
-            targetYaw = wrap360(parseFloat(near.dataset.yaw) || 0);
-            targetPitch = 0;
-            velYaw = 0;
-          }
+    var near = null, nearOff = null, nearDist = SNAP_DEG;
+    targets.forEach(function (t) {
+      var o = boreOffset(t, targetYaw, targetPitch);
+      var d = boreDist(o);
+      if (d < nearDist) { nearDist = d; nearOff = o; near = t; }
+    });
+    // Assist applies during a drag too, at reduced strength (SNAP_DRAG) so it guides rather than
+    // fights; full strength (SNAP_STRENGTH) is for a released flick settling.
+    var settling = !turn && Math.abs(velYaw) < 3.5 && now - lastInputTime > 90;
+    // While dragging, only assist when it already heads toward the contact (below), or a drag
+    // starting on a target gets pulled straight back and can never move away from it.
+    var strength = dragging ? SNAP_DRAG : (settling ? SNAP_STRENGTH : 0);
+    // `near` has to be tested FIRST: nearOff is null when nothing is in range, and
+    // reading it unguarded threw on every frame with no contact nearby.
+    if (near && strength > 0 && (!dragging || velYaw * nearOff.yaw >= 0)) {
+      var pull = 1 - Math.pow(0.0001, dt);          // frame-rate independent
+      targetYaw = wrap360(targetYaw + nearOff.yaw * pull * strength);
+      // Elevation is corrected on the settle only, and skipped while a held up/down key is
+      // active (!tilt) -- otherwise the pull fights deliberate vertical input either way.
+      if (!dragging && !tilt) targetPitch = clampPitch(targetPitch + nearOff.pitch * pull * strength * 0.7);
+      if (!dragging) {
+        velYaw *= Math.pow(0.55, dt * 60);
+        if (nearDist < SNAP_CLICK) {
+          targetYaw = wrap360(parseFloat(near.dataset.yaw) || 0);
+          targetPitch = 0;
+          velYaw = 0;
         }
       }
     }
 
-    var idle = !dragging && !firing && !BUNNYS.reduce && (now - lastInputTime > 4000);
+    var idle = !dragging && !BUNNYS.reduce && (now - lastInputTime > 4000);
     var wantYaw = targetYaw, wantPitch = targetPitch;
     if (idle) { wantYaw = wrap360(wantYaw + 0.6 * Math.sin(now / 2200)); wantPitch = clampPitch(wantPitch + 0.3 * Math.sin(now / 2900 + 1)); }
 
