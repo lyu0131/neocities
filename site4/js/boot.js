@@ -279,7 +279,7 @@
     if (t < T.screens) {
       drawCockpit(t);
     } else {
-      if (suit) drawIFF(t);
+      if (suit) { drawFigure(t); drawIFF(t); }
       drawBay(t);
       drawGlitch(t);
     }
@@ -420,6 +420,20 @@
     ctx.globalAlpha = Math.sin(Math.PI * g) * .55;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(noiseCanvas(), 0, 0, W, H);
+    ctx.restore();
+  }
+
+  // Stage 3: the suit as one solid silhouette (no edges per part), in on the channel switch,
+  // out on the cut to the bay. Opaque, mixed toward the ground to fade, so overlapping parts
+  // never show a seam.
+  function drawFigure(t) {
+    var a = ease(seg(t, T.glitch[0], T.glitch[1])) * (1 - ease(seg(t, T.cut[0], T.cut[0] + 350)));
+    if (a <= 0) return;
+    var fit = suitFit();
+    ctx.save();
+    ctx.translate(fit.x, fit.y); ctx.scale(fit.s, fit.s);
+    ctx.fillStyle = mix([6, 10, 18], [22, 52, 62], a, 1);
+    suit.zones.forEach(function (z) { ctx.fill(z.path); });
     ctx.restore();
   }
 

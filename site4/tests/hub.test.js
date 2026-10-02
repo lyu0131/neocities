@@ -128,8 +128,16 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
         const bar = document.querySelector('.boot-bar i');
         const m = bar && new DOMMatrix(getComputedStyle(bar).transform);
         const q = s => (document.querySelector(s) || {}).textContent || '';
+        // how much of the canvas's middle is lifted off the #060A12 ground: the suit figure under the IFF brackets
+        let fig = 0;
+        const c = document.getElementById('boot-scene');
+        if (c && c.width) {
+          const w = c.width * .3, h = c.height * .5, d = c.getContext('2d').getImageData(c.width * .35, c.height * .25, w, h).data;
+          let n = 0; for (let i = 0; i < d.length; i += 16) if (Math.abs(d[i] - 6) + Math.abs(d[i + 1] - 10) + Math.abs(d[i + 2] - 18) > 40) n++;
+          fig = n / (d.length / 16);
+        }
         return { scaleX: m ? m.a : 0, stage: q('.boot-stage-txt'), note: q('.boot-note'), log: q('#boot-log'),
-                 powering: !!document.querySelector('#screens.powering') };
+                 powering: !!document.querySelector('#screens.powering'), fig: fig };
       })()`));
       await b.sleep(60);
     }
@@ -139,6 +147,8 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     samples.forEach(s => { const n = (s.stage.match(/^0(\d)/) || [])[1]; if (n && order[order.length - 1] !== n) order.push(n); });
     check('the four stages run in order', order.join('') === '1234', order.join(','));
     check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
+    const figAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.fig);
+    check('PILOT ID shows the suit figure under the brackets', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] > 0.08, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
     check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
     check('the blueprint stage is gone', !samples.some(s => /DRAFTING|DESIGNED BY/.test(s.note)), samples.map(s => s.note).filter((v, i, a) => v && a.indexOf(v) === i).join(','));
     check('stage 2 verifies the unit', samples.some(s => s.note === 'UNIT VERIFIED'));
