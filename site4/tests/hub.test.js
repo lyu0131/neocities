@@ -142,8 +142,10 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
         }
         return { scaleX: m ? m.a : 0, stage: q('.boot-stage-txt'), note: q('.boot-note'), log: q('#boot-log'),
                  powering: !!document.querySelector('#screens.powering'), fig: fig, glow: glow,
-                 static: [...document.querySelectorAll('#screens .scr-static')].some(e => +getComputedStyle(e).opacity > .5),
-                 slide: [...document.querySelectorAll('#screens .scr-slide')].some(e => Math.abs(new DOMMatrix(getComputedStyle(e).transform).e) > 10) };
+                 scr: Object.fromEntries([...document.querySelectorAll('#screens .screen')].map(g => {
+                   const st = g.querySelector('.scr-static'), pn = g.querySelector('.scr-panel'), m = pn && new DOMMatrix(getComputedStyle(pn).transform);
+                   return [g.dataset.id, { st: st ? +getComputedStyle(st).opacity : 0, off: m ? Math.hypot(m.e, m.f) : 0 }];
+                 })) };
       })()`));
       await b.sleep(60);
     }
@@ -154,11 +156,13 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     check('the four stages run in order', order.join('') === '1234', order.join(','));
     check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
     const figAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.fig);
-    const glowAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.glow);
-    check('the silhouette glows round its edge', glowAt.length && glowAt.slice().sort((a, b) => a - b)[glowAt.length >> 1] > 0.01, 'glow ' + glowAt.map(v => v.toFixed(3)).join(','));
-    check('the screens come up as static', samples.some(s => s.static));
-    check('then the picture slides in over the static', samples.some(s => s.slide));
-    check('PILOT ID shows the suit figure under the brackets', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] > 0.08, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
+    check('PILOT ID has no suit silhouette (the emblem is what it verifies)', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] < 0.05, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
+    // the centre screen's lights come on, no static; the other four start as static together,
+    // then each slides in from outside its edge and slots into place
+    const sides = ['L', 'R', 'T', 'B'];
+    check('the centre screen never shows static', samples.every(s => !s.scr || !s.scr.C || s.scr.C.st < .05));
+    check('the side screens all start as static', samples.some(s => s.scr && sides.every(id => s.scr[id] && s.scr[id].st > .5)));
+    check('each side screen slides in to its slot', sides.every(id => samples.some(s => s.scr && s.scr[id] && s.scr[id].off > 10)), sides.map(id => id + Math.max(...samples.map(s => s.scr && s.scr[id] ? s.scr[id].off : 0)).toFixed(0)).join(' '));
     check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
     check('the blueprint stage is gone', !samples.some(s => /DRAFTING|DESIGNED BY/.test(s.note)), samples.map(s => s.note).filter((v, i, a) => v && a.indexOf(v) === i).join(','));
     check('stage 2 verifies the unit', samples.some(s => s.note === 'UNIT VERIFIED'));
@@ -466,6 +470,19 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
+  // the side screens come online in a random order each load (the centre is always first)
+  {
+    const b = await launch({ width: 1440, height: 900 });
+    const orders = [];
+    for (let i = 0; i < 4; i++) {
+      await b.goto('index.html', 300);
+      orders.push(await b.eval("[...document.querySelectorAll('#screens .screen')].sort((x, y) => x.dataset.at - y.dataset.at).map(g => g.dataset.id).join('')"));
+    }
+    check('the centre screen always comes on first', orders.every(o => o[0] === 'C'), orders.join(','));
+    check('the side screens come online in a random order', new Set(orders).size > 1, orders.join(','));
+    b.close();
+  }
+
   // Space skips from the first frame the boot shows, not only once its clock is running (the
   // clock waits for the page to load and the emblem to decode: on a slow line that's seconds)
   {
@@ -485,29 +502,33 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     b.close();
   }
 
-  // boot stage 2 is the emblem (the blueprint is gone): it waits for the screens to light up
-  // (LINEAR SEAT, boot clock 2300), holds well over a second, and is gone by PILOT ID (5000)
+  // the emblem: it waits for the screens to light up (LINEAR SEAT, boot clock 2300), turns, then
+  // stays up through PILOT ID -- it is what the IFF verifies -- and is gone once the launch is called
   {
     const b = await launch({ width: 1440, height: 900 });
     await b.eval("sessionStorage.clear()");
     await b.goto('index.html', 50);
-    let beforeScreens = 0, peak = 0, atPilot = null, firstFull = null, lastFull = null, minA = 1;
-    for (let i = 0; i < 400 && atPilot === null; i++) {
-      const raw = await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'), q = s => (document.querySelector(s) || {}).textContent || ''; return { o: e ? +getComputedStyle(e).opacity : 0, a: e ? new DOMMatrix(getComputedStyle(e).transform).a : 1, log: q('#boot-log'), stage: q('.boot-stage-txt') }; })())");
+    let seat = false, beforeScreens = 0, peak = 0, atPilot = null, atLaunch = null, firstFull = null, lastFull = null, minA = 1;
+    for (let i = 0; i < 500 && atLaunch === null; i++) {
+      const raw = await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'), q = s => (document.querySelector(s) || {}).textContent || ''; return { o: e ? +getComputedStyle(e).opacity : 0, a: e ? new DOMMatrix(getComputedStyle(e).transform).a : 1, log: q('#boot-log'), stage: q('.boot-stage-txt'), note: q('.boot-note') }; })())");
       if (!raw) { await b.sleep(20); continue; }
       const s = JSON.parse(raw), now = Date.now();
-      if (!/LINEAR SEAT/.test(s.log)) beforeScreens = Math.max(beforeScreens, s.o);
+      // latched: the line scrolls out of the 4-line log while the emblem is still up
+      if (/LINEAR SEAT/.test(s.log)) seat = true;
+      if (!seat) beforeScreens = Math.max(beforeScreens, s.o);
       peak = Math.max(peak, s.o);
       if (s.o > .5) minA = Math.min(minA, s.a);
       if (s.o >= 0.9) { if (firstFull === null) firstFull = now; lastFull = now; }
-      if (/PILOT ID/.test(s.stage)) atPilot = s.o;
+      if (s.note === 'PILOT CONNECTED' && atPilot === null) atPilot = s.o;
+      if (s.note === 'LAUNCHING') atLaunch = s.o;
       await b.sleep(40);
     }
     check('the emblem waits for the screens to light up', beforeScreens < 0.05, 'before screens ' + beforeScreens);
     check('boot shows the emblem', peak >= 0.8, 'peak ' + peak);
     check('the emblem turns right round while it is up', minA < -0.5, 'min cos ' + minA.toFixed(2));
-    check('the emblem stays up over a second', firstFull !== null && lastFull - firstFull >= 1000, 'held ' + (lastFull - firstFull) + 'ms');
-    check('the emblem is gone by PILOT ID', atPilot !== null && atPilot < 0.05, 'at pilot ' + atPilot);
+    check('the emblem stays up a long while', firstFull !== null && lastFull - firstFull >= 2500, 'held ' + (lastFull - firstFull) + 'ms');
+    check('the emblem is still up when the pilot connects', atPilot !== null && atPilot > 0.9, 'at pilot ' + atPilot);
+    check('the emblem is gone by the launch call', atLaunch !== null && atLaunch < 0.05, 'at launch ' + atLaunch);
     b.close();
   }
 

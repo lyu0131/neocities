@@ -4,9 +4,10 @@
    plays inside the real cockpit:
      1 COCKPIT     in the centre screen the chest hatch, hinged at its sill, swings up shut,
                    locks and seals; the cockpit goes dark and the linear seat slides back;
-     2 UNIT CHECK  the five screens power up in turn (bunnys:screens-on); once they're lit, the
-                   owner's emblem (img/emblem-hud.webp) holds on them: UNIT VERIFIED;
-     3 PILOT ID    IFF brackets close on the cockpit block: PILOT CONNECTED, SYLAS LYU;
+     2 UNIT CHECK  the screens come online (bunnys:screens-on): the centre's lights come on, the
+                   other four slot in out of static; the owner's emblem (img/emblem-hud.webp)
+                   comes up on the centre screen and turns: UNIT VERIFIED;
+     3 PILOT ID    IFF brackets close on the emblem: PILOT CONNECTED, SYLAS LYU;
      4 LAUNCH      the screens show the catapult bay; the launch call; the suit flies out
                    through the bay hatch into the city.
    The city at the end is the hub's own arrival view, so the hand-over is one picture: the
@@ -60,7 +61,8 @@
     dark: [1750, 2100],           // the hangar light is gone: the cockpit goes dark
     seat: [1900, 2300],           // the linear seat slides back into the core
     screens: 2300,                // the five screens power up (hud.js), left to console
-    emblem: [3450, 4950],         // once the centre screen is clear: CSS flickers it on, turns it, fades
+    emblem: [2900, 6700],         // once the centre screen's lights are on: CSS flickers it on, turns it,
+                                  // holds it through the IFF (it's what PILOT ID verifies), fades on the cut
     glitch: [5000, 5220],         // channel switch to IFF
     iff: [5100, 5650],            // brackets close on the cockpit block
     friend: 5850,
@@ -211,33 +213,6 @@
     [canvas, screensEl, frameEl].forEach(function (el) { if (el) el.style.transform = tf; });
   }
 
-  // ---- the suit: the damage map's front frame, traced from the owner's STL ----
-  var suit = (function () {
-    var D = window.BUNNYS_DMG;
-    if (!D || !window.Path2D) return null;
-    var f = D.frames[0], zones = [], byId = {}, box = [1e9, 1e9, -1e9, -1e9];
-    f.order.forEach(function (i) {
-      var d = f.d[i], len = 0, zb = [1e9, 1e9, -1e9, -1e9], sx = 0, sy = 0, lx = 0, ly = 0;
-      d.replace(/([MLZ])([^MLZ]*)/g, function (_, c, args) {
-        if (c === 'Z') { len += Math.hypot(sx - lx, sy - ly); lx = sx; ly = sy; return ''; }
-        var n = args.trim().split(/[\s,]+/).map(Number), x = n[0], y = n[1];
-        if (c === 'M') { sx = x; sy = y; } else len += Math.hypot(x - lx, y - ly);
-        lx = x; ly = y;
-        zb[0] = Math.min(zb[0], x); zb[1] = Math.min(zb[1], y); zb[2] = Math.max(zb[2], x); zb[3] = Math.max(zb[3], y);
-        return '';
-      });
-      var z = { id: D.zones[i].id, path: new Path2D(d), len: len, box: zb };
-      zones.push(z); byId[z.id] = z;
-      box = [Math.min(box[0], zb[0]), Math.min(box[1], zb[1]), Math.max(box[2], zb[2]), Math.max(box[3], zb[3])];
-    });
-    return { zones: zones, byId: byId, box: box };
-  })();
-  function suitFit() {
-    var b = base(), bx = suit.box, bw = bx[2] - bx[0], bh = bx[3] - bx[1];
-    var s = Math.min(b.w * 0.8 / bw, b.h * 0.86 / bh);
-    return { s: s, x: b.x + b.w / 2 - (bx[0] + bw / 2) * s, y: b.y + b.h / 2 - (bx[1] + bh / 2) * s };
-  }
-
   // ---- the city at the end: the hub's arrival view, pre-rendered once ----
   var city = null;
   (function () {
@@ -279,7 +254,7 @@
     if (t < T.screens) {
       drawCockpit(t);
     } else {
-      if (suit) { drawFigure(t); drawIFF(t); }
+      drawIFF(t);
       drawBay(t);
       drawGlitch(t);
     }
@@ -423,49 +398,16 @@
     ctx.restore();
   }
 
-  // Stage 3: the suit as one solid silhouette with a phosphor glow round its outer edge only (no
-  // edges per part), in on the channel switch, out on the cut to the bay. Drawn once to its own
-  // canvas -- the parts filled as one shape, then the glow cast from that shape -- and stamped
-  // each frame, so overlapping parts never show a seam and the blur isn't paid every frame.
-  // start() builds it before the clock runs: built on its first frame it was a 75ms hitch.
-  var figure = null;
-  function figureImage() {
-    var fit = suitFit(), key = W + 'x' + H + '@' + dpr;
-    if (!figure || figure.key !== key) {
-      var bx = suit.box, m = 30, c = document.createElement('canvas');
-      var x0 = fit.x + bx[0] * fit.s - m, y0 = fit.y + bx[1] * fit.s - m;
-      c.width = Math.ceil(((bx[2] - bx[0]) * fit.s + 2 * m) * dpr); c.height = Math.ceil(((bx[3] - bx[1]) * fit.s + 2 * m) * dpr);
-      var shape = document.createElement('canvas'), sx = shape.getContext('2d');
-      shape.width = c.width; shape.height = c.height;
-      sx.setTransform(dpr * fit.s, 0, 0, dpr * fit.s, (fit.x - x0) * dpr, (fit.y - y0) * dpr);
-      sx.fillStyle = 'rgb(22,52,62)';
-      suit.zones.forEach(function (z) { sx.fill(z.path); });
-      var cx = c.getContext('2d');
-      cx.shadowColor = 'rgba(140,255,193,.85)';
-      cx.shadowBlur = 14 * dpr; cx.drawImage(shape, 0, 0);
-      cx.shadowBlur = 3 * dpr; cx.drawImage(shape, 0, 0);
-      figure = { key: key, img: c, x: x0, y: y0 };
-    }
-    return figure;
-  }
-  function drawFigure(t) {
-    var a = ease(seg(t, T.glitch[0], T.glitch[1])) * (1 - ease(seg(t, T.cut[0], T.cut[0] + 350)));
-    if (a <= 0) return;
-    var figure = figureImage();
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.drawImage(figure.img, figure.x, figure.y, figure.img.width / dpr, figure.img.height / dpr);
-    ctx.restore();
-  }
-
-  // Stage 3: IFF brackets close from the centre screen's edges onto the cockpit block.
+  // Stage 3: IFF brackets close from the centre screen's edges onto the emblem: it's what the
+  // interrogation verifies. Its box from the CSS (left 50%, top 46%, centred by transform), so
+  // the turn and the flicker don't move the target.
+  var emblemEl = overlay.querySelector('.boot-emblem');
   function drawIFF(t) {
-    if (t < T.iff[0]) return;
+    if (t < T.iff[0] || !emblemEl) return;
     var fade = 1 - ease(seg(t, T.cut[0], T.cut[0] + 350));
     if (fade <= 0) return;
-    var b = base(), fit = suitFit(), chest = suit.byId.chest;
-    var cb = chest ? chest.box : suit.box;
-    var to = [fit.x + cb[0] * fit.s - 12, fit.y + cb[1] * fit.s - 12, fit.x + cb[2] * fit.s + 12, fit.y + cb[3] * fit.s + 12];
+    var b = base(), ew = emblemEl.offsetWidth / 2 + 14, eh = emblemEl.offsetHeight / 2 + 14;
+    var to = [emblemEl.offsetLeft - ew, emblemEl.offsetTop - eh, emblemEl.offsetLeft + ew, emblemEl.offsetTop + eh];
     var from = [b.x, b.y, b.x + b.w, b.y + b.h];
     var p = ease(seg(t, T.iff[0], T.iff[1]));
     var x0 = lerp(from[0], to[0], p), y0 = lerp(from[1], to[1], p), x1 = lerp(from[2], to[2], p), y1 = lerp(from[3], to[3], p);
@@ -584,7 +526,6 @@
     var em = overlay.querySelector('.boot-emblem');
     var ready = em && em.decode ? em.decode().catch(function () {}) : Promise.resolve();
     ready.then(function () {
-      try { size(); if (suit) figureImage(); } catch (e) {}
       requestAnimationFrame(function () { requestAnimationFrame(function () {
         if (done) return;   // skipped while it loaded
         try { run(); requestAnimationFrame(runClock); } catch (e) { finish(true); }
@@ -617,10 +558,10 @@
       // the five canopy screens power up: hud.js runs their bring-up now instead of at boot-done
       BUNNYS.emit('screens-on', {});
     });
-    at(T.screens + 1300, function () { log('CANOPY SCREENS ... 5 / 5'); });
-    // stage 2 is the emblem on the lit screens (the CSS .is-on runs its flicker-on, hold and fade
-    // across T.emblem), with the unit's name under it
-    at(T.emblem[0], function () { var em = overlay.querySelector('.boot-emblem'); if (em) em.classList.add('is-on'); });
+    at(T.screens + 1850, function () { log('CANOPY SCREENS ... 5 / 5'); });
+    // the emblem comes up on the lit centre screen (the CSS .is-on runs its flicker-on, turn, hold
+    // and fade across T.emblem), with the unit's name under it, and stays for PILOT ID
+    at(T.emblem[0], function () { if (emblemEl) emblemEl.classList.add('is-on'); });
     at(T.emblem[0] + 200, function () { swap(titleEl, 'RX-124 TR-6 [WOUNDWORT]'); });
     at(T.emblem[0] + 800, function () { swap(noteEl, 'UNIT VERIFIED', 'hud'); log('UNIT ............. VERIFIED'); });
 

@@ -22,8 +22,10 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
   `img/emblem-hud.webp` (brightness mapped onto `--hud` phosphor, faint scanlines, the glow **baked in**) and
   `img/emblem.webp` (full colour pulled toward the palette: whites to ice, the dark half to navy, yellow to amber,
   purples calmed). Four places:
-  - boot stage 2 (`#boot > img.boot-emblem`): `.is-on` at boot clock 3450 (`T.emblem`), once the centre screen is
-    clear; a 1.5s CSS flicker-on, one full coin turn (rotateY 360deg) and fade, gone before PILOT ID at 5000. It replaced the blueprint drafting stage
+  - the boot (`#boot > img.boot-emblem`): `.is-on` at boot clock 2900 (`T.emblem`), once the centre screen's lights
+    are on; a 3.8s CSS flicker-on, one full coin turn (rotateY 360deg), a hold through PILOT ID -- the IFF brackets
+    close on it, it is what the boot verifies (the suit silhouette is gone, owner 2026-10-02) -- and a fade on the cut
+    to the bay. It replaced the blueprint drafting stage
     (owner, 2026-10-01). boot.js `decode()`s it before the clock starts.
   - the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded);
   - the hangar's `UNIT INSIGNIA` panel (`.insignia`, full colour);
@@ -286,10 +288,12 @@ frame. `place()` cuts them from the same numbers that place the instruments, so 
   edge and the pod edges are the columns' end joints, so the rail carries no cap there.
 
 Every seam is one machined line: the lit 1.5px line over a faint bevel, bolt pairs at the joints, and a tick scale
-along the console's centre edge. On entering the cockpit (`boot-done`) each screen starts dark and comes online in
-turn, left -> centre -> right -> top -> bottom: its outline traces in, it fills with green static (one noise tile
-drawn once, jittered up and down by CSS steps), then the picture slides in from the left behind a lit edge, carrying
-the dark shutter and the static off the screen, and the seam underneath shows. Each instrument's power-on flicker lands after its own screen
+along the console's centre edge. On entering the cockpit (`bunnys:screens-on` in the boot, else `boot-done`) the screens
+come online together: the centre screen's lights come on with a fluorescent flicker (never static); the other four start as
+green static (one noise tile drawn once, jittered up and down by CSS steps) and, in a random order each load
+(`SIDE_AT`, shuffled; `data-at` on each screen), each one's lit glass slides in from outside its edge, overshoots a
+touch, slots into place and flashes as it locks -- the HUD coming online. The dark shutter clears as each locks, and
+the permanent seam lines take over. Each instrument's power-on flicker lands after its own screen
 is online. None of the animation runs under reduced motion.
 
 ## Cautions and alarms

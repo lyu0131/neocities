@@ -1131,7 +1131,7 @@
       var n = e[0];
       if (!n || n.getAttribute('opacity') === '0') return;
       k[e[1]] = (k[e[1]] || 0) + 1;
-      var d = SCREEN_LEAD + screenAt(e[1]) + 260 + (k[e[1]] - 1) * POWER_STEP;
+      var d = SCREEN_LEAD + screenAt(e[1]) + SCREEN_SLOT + (k[e[1]] - 1) * POWER_STEP;
       n.style.setProperty('--d', d + 'ms');
       n.classList.add('pw');
       last = Math.max(last, d);
@@ -1147,10 +1147,14 @@
   // rather than across it. place() works the edges out from the same numbers that place the
   // instruments (see canopy()), so a seam never runs through a box at any size. The screens
   // live in their own viewport-true layer (#screens, between the panorama and the frame). On
-  // entering the cockpit each screen starts dark and comes online in turn: its outline traces
-  // in, it fills with static, then the picture slides in across it behind a lit edge.
+  // entering the cockpit the screens come online: the centre one's lights come on (a flicker,
+  // no static); the other four start as static together and, in a random order each load, each
+  // one's panel slides in from outside its edge and slots into place -- the HUD coming online.
   var SCREEN_LEAD = 300;   // let the boot overlay's own 350ms fade get under way first
-  var SCREENS = [['L', 0], ['C', 380], ['R', 760], ['T', 1080], ['B', 1300]];   // [id, start ms]
+  var SCREEN_SLOT = 450;   // ms from a screen's start until it's in place (CSS scr-slot, scr-lights)
+  var SIDE_AT = [450, 750, 1050, 1350].sort(function () { return Math.random() - .5; });
+  var SCREENS = [['L', SIDE_AT[0]], ['C', 0], ['R', SIDE_AT[1]], ['T', SIDE_AT[2]], ['B', SIDE_AT[3]]];   // [id, start ms]
+  var SLOT_FROM = { L: [-90, 0], R: [90, 0], T: [0, -60], B: [0, 60] };   // where each panel slides in from
   function screenAt(id) { for (var i = 0; i < SCREENS.length; i++) if (SCREENS[i][0] === id) return SCREENS[i][1]; return 0; }
   var screensEl = document.getElementById('screens'), screenParts = [];
   var consoleFill, consoleTicks, seamBolts, seams = [];
@@ -1191,20 +1195,21 @@
       var clip = el('clipPath', { id: 'scr-clip-' + s[0] }), cpoly = el('polygon', {});
       clip.appendChild(cpoly);
       defs.appendChild(clip);
-      var g = el('g', { class: 'screen' });
-      // the dark shutter and the static ride one panel that slides off sideways, clipped to the
-      // screen, so the picture comes in behind its lit edge
-      var cover = el('g', { 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
-      var slide = el('g', { class: 'scr-slide' });
-      var shutter = el('polygon', { class: 'shutter' });
-      var stat = el('g', { class: 'scr-static' }), noise = el('rect', { class: 'scr-noise', fill: 'url(#scr-noise)' });
-      var edge = el('line', { class: 'scr-edge' });
-      stat.appendChild(noise); stat.appendChild(edge);
-      slide.appendChild(shutter); slide.appendChild(stat); cover.appendChild(slide);
-      var seam = el('polygon', { class: 'seam' });
-      g.appendChild(cover); g.appendChild(seam);
+      var g = el('g', { class: 'screen', 'data-id': s[0], 'data-at': s[1] });
+      // dark until it's online; the side screens show static (clipped to the screen) until their
+      // panel -- the screen's lit glass, unclipped -- slides in and slots into place
+      var shutter = el('polygon', { class: 'shutter' }), noise = null;
+      g.appendChild(shutter);
+      if (SLOT_FROM[s[0]]) {
+        var stat = el('g', { class: 'scr-static', 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
+        noise = el('rect', { class: 'scr-noise', fill: 'url(#scr-noise)' });
+        stat.appendChild(noise); g.appendChild(stat);
+        g.style.setProperty('--ox', SLOT_FROM[s[0]][0] + 'px'); g.style.setProperty('--oy', SLOT_FROM[s[0]][1] + 'px');
+      }
+      var panel = el('polygon', { class: 'scr-panel' });
+      g.appendChild(panel);
       screensEl.appendChild(g);
-      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, slide: slide, noise: noise, edge: edge, seam: seam });
+      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, noise: noise, panel: panel });
     });
   }
   function toPts(poly, dx, dy) {
@@ -1248,13 +1253,11 @@
     };
     screenParts.forEach(function (p) {
       var poly = polys[p.id], pts = toPts(poly), b = [1e9, 1e9, -1e9, -1e9];
-      p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.seam.setAttribute('points', pts);
+      p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.panel.setAttribute('points', pts);
+      if (!p.noise) return;
       poly.forEach(function (q) { b = [Math.min(b[0], q[0]), Math.min(b[1], q[1]), Math.max(b[2], q[0]), Math.max(b[3], q[1])]; });
-      // the static overhangs below by its jitter (CSS scr-noise moves it up to ~100px up; only
-      // up, so none of it ever shows ahead of the lit edge as the panel slides off)
-      [['x', b[0]], ['y', b[1]], ['width', b[2] - b[0] + 4], ['height', b[3] - b[1] + 200]].forEach(function (a) { p.noise.setAttribute(a[0], a[1]); });
-      [['x1', b[0] + 1], ['y1', b[1]], ['x2', b[0] + 1], ['y2', b[3]]].forEach(function (a) { p.edge.setAttribute(a[0], a[1]); });
-      p.slide.style.setProperty('--sw', (b[2] - b[0] + 4).toFixed(1) + 'px');
+      // the static overhangs below by its jitter (CSS scr-noise moves it up to ~100px)
+      [['x', b[0]], ['y', b[1]], ['width', b[2] - b[0]], ['height', b[3] - b[1] + 200]].forEach(function (a) { p.noise.setAttribute(a[0], a[1]); });
     });
     consoleFill.setAttribute('points', toPts(polys.B));
     // each seam's bevel sits 5px to the inside of the centre screen (or of the console)
@@ -1283,7 +1286,7 @@
     lead = lead == null ? SCREEN_LEAD : lead;
     screenParts.forEach(function (p) { p.g.style.setProperty('--d', (lead + screenAt(p.id)) + 'ms'); });
     screensEl.classList.add('powering');
-    setTimeout(function () { screensEl.classList.remove('powering'); }, lead + 1300 + 900);
+    setTimeout(function () { screensEl.classList.remove('powering'); }, lead + Math.max.apply(null, SIDE_AT) + SCREEN_SLOT + 900);
   }
 
   // ----------------------------------------------- HUD MODE, comms and status toast
