@@ -33,7 +33,10 @@ const PROBE = `(() => {
     const t = g === radar ? [...g.querySelectorAll('text')].find(t => t.textContent === 'SENSOR ARRAY') : titled(g);
     return Math.round(t.getBoundingClientRect().left - rectOf(g).getBoundingClientRect().left);
   });
-  return JSON.stringify({ all, hits, insets });
+  // the top seam's right end: where the band over the right column ends (screens' viewBox -> px)
+  const sv = document.getElementById('screens'), sl = sv.querySelector('.seam-line'), sp = sl && sl.points[sl.points.numberOfItems - 1];
+  const seamY = sp ? Math.round(sp.y * innerWidth / sv.viewBox.baseVal.width) : null;
+  return JSON.stringify({ all, hits, insets, seamY });
 })()`;
 const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)).map(b => b.l + '..' + b.r))];
 
@@ -65,6 +68,12 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         check(`${tag} all 8 column instruments present`, missing.length === 0, missing.join(', '));
       }
       check(`${tag} unit insignia present`, names.includes('INSIGNIA'));
+      // it lines up with the right column (flush right edge) and sits centred in the band above it
+      const ins = r.all.find(b => b.name === 'INSIGNIA'), diag = r.all.find(b => b.name === 'DIAGNOSTIC MODE');
+      if (ins && diag) {
+        check(`${tag} insignia flush with the right column`, Math.abs(ins.r - diag.r) <= 1, ins.r + ' vs ' + diag.r);
+        check(`${tag} insignia centred between screen top and the seam`, r.seamY !== null && Math.abs(ins.t - (r.seamY - ins.b)) <= 2, 'top gap ' + ins.t + ', seam gap ' + (r.seamY - ins.b));
+      }
       const anchors = ['REACTOR STATUS', 'SENSOR ARRAY', 'DIAGNOSTIC MODE', 'SLEW TO'];
       const missingAnchors = anchors.filter(name => !names.includes(name));
       check(`${tag} column anchors present (top and bottom)`, missingAnchors.length === 0, missingAnchors.join(', '));

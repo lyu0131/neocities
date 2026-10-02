@@ -30,8 +30,8 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
   - the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded);
   - the hangar's `UNIT INSIGNIA` panel (`.insignia`, full colour);
   - the cockpit's `#insignia`: a coin turning (9s a turn, two faces) in the top band's corner over the right
-    column. hud.js `place()` puts it in HUD units (`zoom: var(--ui)`, like `.slew`), 8 clear of the screen top
-    and of the band's edge, and stands it down where it would crowd the heading tape or the columns are down
+    column. hud.js `place()` puts it in HUD units (`zoom: var(--ui)`, like `.slew`): right edge flush with the
+    column's, centred between the screen top and the band's edge (at least 8 clear of each), and stands it down where it would crowd the heading tape or the columns are down
     (phones). Hidden during the boot; still under reduced motion; in layout.test.js's no-overlap set.
   **No CSS `filter` on any emblem:** a `drop-shadow` there made the first visible frame a 38-100ms hitch at
   1440x900 (measured); that is why the glow lives in the image.
