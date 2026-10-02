@@ -7,7 +7,8 @@
 (function () {
   'use strict';
   var KEY = 'bunnys-link';      // {to, t}: written as a page leaves, read once by the next
-  var GEO = 'bunnys-canopy';    // the cockpit's last measured screens, as 5 polys of viewport percentages
+  var GEO = 'bunnys-canopy';
+  var EMBLEM = 'img/emblem-hud.webp';   // the owner's emblem in HUD phosphor, shown on the closed glass    // the cockpit's last measured screens, as 5 polys of viewport percentages
   var OWN = /^(index|pilot|missions|hangar|unknown)\.html$/;   // unknown: the UNKNOWN contact's open channel
   // A rough canopy, as percentages of the viewport (originally measured at 1440x900), for a page
   // that has never measured the cockpit's own (a visitor who landed straight on a sub-page).
@@ -83,6 +84,9 @@
     var c = to === 'index' ? { label: 'COCKPIT' } : (window.BUNNYS.contacts.filter(function (k) { return k.page === to; })[0] || {});
     label.textContent = 'LINK ▸ ' + (c.label || to.toUpperCase());
     var small = document.createElement('small'); small.textContent = 'CHANNEL OPEN'; label.appendChild(small);
+    // the emblem on the closed glass (preloaded at DOMContentLoaded, so it never pops in late)
+    var em = document.createElement('img'); em.className = 'link-emblem'; em.src = EMBLEM; em.alt = '';
+    label.insertBefore(em, label.firstChild);
     ov.appendChild(label);
     document.body.appendChild(ov);
   }
@@ -127,6 +131,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     if (window.BUNNYS) window.BUNNYS.link = { go: go };
+    if (!reduce) new Image().src = EMBLEM;   // warm the cache for the closed glass
 
     if (arriving) {
       // The cockpit brings its own screens up (hud.js, at boot-done), so it only needs the dark

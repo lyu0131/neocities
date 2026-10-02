@@ -627,9 +627,15 @@
   // Start once the page has loaded and painted twice, so the heaviest first-frame work is
   // behind us; until then the opening frame holds.
   function start() {
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      try { run(); requestAnimationFrame(runClock); } catch (e) { finish(true); }
-    }); });
+    // decode the emblem first: left to its first visible frame, the decode lands as a hitch exactly
+    // as it flickers on (measured: 100ms at 1440x900). decode() runs off the main thread.
+    var em = overlay.querySelector('.boot-emblem');
+    var ready = em && em.decode ? em.decode().catch(function () {}) : Promise.resolve();
+    ready.then(function () {
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        try { run(); requestAnimationFrame(runClock); } catch (e) { finish(true); }
+      }); });
+    });
   }
   if (document.readyState === 'complete') start(); else addEventListener('load', start);
   // while the page finishes loading, hold on the opening frame: the hangar through the hatch
@@ -644,7 +650,9 @@
     // this function's clock and stay in sync.
     overlay.classList.add('is-booting');
 
-    at(0, function () { stage(1, 'COCKPIT'); });
+    // the emblem comes up as the BUNNyS system logo and is gone before the hatch thud (1050);
+    // CSS runs the one-second flicker-on and fade (.boot-emblem.is-on)
+    at(0, function () { stage(1, 'COCKPIT'); var em = overlay.querySelector('.boot-emblem'); if (em) em.classList.add('is-on'); });
     at(T.thud[0], function () { log('CHEST HATCH ...... CLOSED'); });
     at(T.latch + 3 * T.latchEach + 160, function () { log('HATCH LOCKS ...... 4 / 4'); });
     at(T.seal[1], function () { log('PRESSURE SEAL .... OK'); });

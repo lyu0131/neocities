@@ -41,6 +41,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
     await p.goto('hangar.html', 900);
     const n = await p.eval("document.querySelectorAll('button[data-zone]').length");
     check('hangar has a callout per zone', n === 8, n + ' callouts');
+    check('hangar shows the unit insignia', await p.eval("(() => { const i = document.querySelector('.insignia img'); return !!i && i.complete && i.naturalWidth > 0; })()"));
     // the owner's own mesh, drawn: the canvas has real pixels in it, not just the grid behind
     // (read inside a frame, straight after hangar.js has drawn: outside one the buffer is cleared)
     check('hangar draws the model', await p.eval("new Promise(r=>requestAnimationFrame(()=>{const c=document.getElementById('suit');const g=c&&c.getContext('webgl2');if(!g)return r(false);const px=new Uint8Array(4*64*64);g.readPixels((c.width>>1)-32,(c.height>>1)-32,64,64,g.RGBA,g.UNSIGNED_BYTE,px);let n=0;for(let i=3;i<px.length;i+=4)if(px[i]>0)n++;r(n>200)}))"));

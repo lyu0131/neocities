@@ -219,6 +219,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   check('firing closes the canopy shutters', await p.eval("(()=>{const l=document.getElementById('link');return !!l && l.querySelectorAll('.link-blade').length===5})()"));
   // #link polygon's points are percentages (its svg is a 0-100 viewBox, preserveAspectRatio="none"),
   // so they're converted back to px on each axis before comparing against the cockpit's own seam
+  check('the closed glass carries the emblem, already loaded', await p.eval("(() => { const i = document.querySelector('#link .link-emblem'); return !!i && i.complete && i.naturalWidth > 0; })()"));
   check('shutters sit on the cockpit seams', await p.eval("(()=>{const vb=document.getElementById('screens').viewBox.baseVal,k=innerWidth/vb.width,c=document.querySelectorAll('#screens .shutter')[1].points[0],l=document.querySelectorAll('#link polygon')[1].points[0],lx=l.x/100*innerWidth,ly=l.y/100*innerHeight;return Math.abs(c.x*k-lx)<1&&Math.abs(c.y*k-ly)<1})()"));
   await p.sleep(1050);
   check('Enter navigates to hangar', /hangar\.html$/.test(await p.eval('location.pathname')));
@@ -239,8 +240,6 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(1600);
   check('unknown opens the open channel', /unknown\.html$/.test(await p.eval('location.pathname')));
 
-  // the one contacts table (bunnys.js) and the cockpit's targets must agree
-  check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label && (!c.rng || t.dataset.readout.includes(c.rng)); })"));
   // Enter fires whatever is locked, not just a focused nav link
   const backToHub = async () => {
     await p.goto('index.html', 800); await ready(p);
@@ -248,6 +247,8 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     for (let i = 0; i < 20 && !(await p.eval('BUNNYS.state.booted === true')); i++) await p.sleep(100);
   };
   await backToHub();
+  // the one contacts table (bunnys.js) and the cockpit's targets must agree (checked back in the cockpit: the UNKNOWN click above now opens unknown.html)
+  check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label && (!c.rng || t.dataset.readout.includes(c.rng)); })"));
   await p.eval("BUNNYS.emit('face', {yaw:0}); document.activeElement && document.activeElement.blur()"); await p.sleep(1500);
   await p.key('Enter', 'Enter', 13); await p.sleep(1600);
   check('Enter opens the boresight lock', /missions\.html$/.test(await p.eval('location.pathname')));
@@ -438,6 +439,24 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   check('wind arrow stays >=6px clear of the value text across headings',
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
+
+  // the boot opens on the emblem as the BUNNyS system logo: it comes up, then it's gone by the
+  // hatch thud (the log's CHEST HATCH line, boot clock 1050), so it never sits over the cockpit
+  {
+    const b = await launch({ width: 1440, height: 900 });
+    await b.eval("sessionStorage.clear()");
+    await b.goto('index.html', 50);
+    let peak = 0, atThud = null;
+    for (let i = 0; i < 120 && atThud === null; i++) {
+      const s = JSON.parse(await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'); return { o: e ? +getComputedStyle(e).opacity : 0, log: (document.getElementById('boot-log') || {}).textContent || '' }; })())"));
+      peak = Math.max(peak, s.o);
+      if (/CHEST HATCH/.test(s.log)) atThud = s.o;
+      await b.sleep(40);
+    }
+    check('boot shows the emblem first', peak >= 0.8, 'peak ' + peak);
+    check('the emblem is gone by the hatch thud', atThud !== null && atThud < 0.05, 'at thud ' + atThud);
+    b.close();
+  }
 
   // phones: a finger swipe turns the view (pointer events; tilt is gone), and the lock-on card
   // fits the screen instead of running off both edges
