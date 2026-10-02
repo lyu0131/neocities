@@ -60,7 +60,7 @@
     dark: [1750, 2100],           // the hangar light is gone: the cockpit goes dark
     seat: [1900, 2300],           // the linear seat slides back into the core
     screens: 2300,                // the five screens power up (hud.js), left to console
-    emblem: [3200, 4950],         // once they're lit, the emblem: CSS flickers it on, holds, fades
+    emblem: [3450, 4950],         // once the centre screen is clear: CSS flickers it on, turns it, fades
     glitch: [5000, 5220],         // channel switch to IFF
     iff: [5100, 5650],            // brackets close on the cockpit block
     friend: 5850,
@@ -423,17 +423,38 @@
     ctx.restore();
   }
 
-  // Stage 3: the suit as one solid silhouette (no edges per part), in on the channel switch,
-  // out on the cut to the bay. Opaque, mixed toward the ground to fade, so overlapping parts
-  // never show a seam.
+  // Stage 3: the suit as one solid silhouette with a phosphor glow round its outer edge only (no
+  // edges per part), in on the channel switch, out on the cut to the bay. Drawn once to its own
+  // canvas -- the parts filled as one shape, then the glow cast from that shape -- and stamped
+  // each frame, so overlapping parts never show a seam and the blur isn't paid every frame.
+  // start() builds it before the clock runs: built on its first frame it was a 75ms hitch.
+  var figure = null;
+  function figureImage() {
+    var fit = suitFit(), key = W + 'x' + H + '@' + dpr;
+    if (!figure || figure.key !== key) {
+      var bx = suit.box, m = 30, c = document.createElement('canvas');
+      var x0 = fit.x + bx[0] * fit.s - m, y0 = fit.y + bx[1] * fit.s - m;
+      c.width = Math.ceil(((bx[2] - bx[0]) * fit.s + 2 * m) * dpr); c.height = Math.ceil(((bx[3] - bx[1]) * fit.s + 2 * m) * dpr);
+      var shape = document.createElement('canvas'), sx = shape.getContext('2d');
+      shape.width = c.width; shape.height = c.height;
+      sx.setTransform(dpr * fit.s, 0, 0, dpr * fit.s, (fit.x - x0) * dpr, (fit.y - y0) * dpr);
+      sx.fillStyle = 'rgb(22,52,62)';
+      suit.zones.forEach(function (z) { sx.fill(z.path); });
+      var cx = c.getContext('2d');
+      cx.shadowColor = 'rgba(140,255,193,.85)';
+      cx.shadowBlur = 14 * dpr; cx.drawImage(shape, 0, 0);
+      cx.shadowBlur = 3 * dpr; cx.drawImage(shape, 0, 0);
+      figure = { key: key, img: c, x: x0, y: y0 };
+    }
+    return figure;
+  }
   function drawFigure(t) {
     var a = ease(seg(t, T.glitch[0], T.glitch[1])) * (1 - ease(seg(t, T.cut[0], T.cut[0] + 350)));
     if (a <= 0) return;
-    var fit = suitFit();
+    var figure = figureImage();
     ctx.save();
-    ctx.translate(fit.x, fit.y); ctx.scale(fit.s, fit.s);
-    ctx.fillStyle = mix([6, 10, 18], [22, 52, 62], a, 1);
-    suit.zones.forEach(function (z) { ctx.fill(z.path); });
+    ctx.globalAlpha = a;
+    ctx.drawImage(figure.img, figure.x, figure.y, figure.img.width / dpr, figure.img.height / dpr);
     ctx.restore();
   }
 
@@ -563,26 +584,28 @@
     var em = overlay.querySelector('.boot-emblem');
     var ready = em && em.decode ? em.decode().catch(function () {}) : Promise.resolve();
     ready.then(function () {
+      try { size(); if (suit) figureImage(); } catch (e) {}
       requestAnimationFrame(function () { requestAnimationFrame(function () {
+        if (done) return;   // skipped while it loaded
         try { run(); requestAnimationFrame(runClock); } catch (e) { finish(true); }
       }); });
     });
   }
   if (document.readyState === 'complete') start(); else addEventListener('load', start);
+  // the skip works from the first frame, not only once the clock runs (it waits for load and
+  // the emblem's decode); boot.js is the last deferred script, so every boot-done listener is in
+  document.addEventListener('keydown', onSkipKey);
+  document.addEventListener('click', onSkip);
   // while the page finishes loading, hold on the opening frame: the hangar through the hatch
   if (ctx) { size(); draw(0); }
 
   function run() {
-    document.addEventListener('keydown', onSkipKey);
-    document.addEventListener('click', onSkip);
     size(); placeCaptions();
     addEventListener('resize', function () { size(); placeCaptions(); });
     // Added here, not at first paint, so the bar, the scene and the captions all run on
     // this function's clock and stay in sync.
     overlay.classList.add('is-booting');
 
-    // the emblem comes up as the BUNNyS system logo and is gone before the hatch thud (1050);
-    // CSS runs the one-second flicker-on and fade (.boot-emblem.is-on)
     at(0, function () { stage(1, 'COCKPIT'); });
     at(T.thud[0], function () { log('CHEST HATCH ...... CLOSED'); });
     at(T.latch + 3 * T.latchEach + 160, function () { log('HATCH LOCKS ...... 4 / 4'); });

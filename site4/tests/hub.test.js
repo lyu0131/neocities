@@ -129,15 +129,21 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
         const m = bar && new DOMMatrix(getComputedStyle(bar).transform);
         const q = s => (document.querySelector(s) || {}).textContent || '';
         // how much of the canvas's middle is lifted off the #060A12 ground: the suit figure under the IFF brackets
-        let fig = 0;
+        let fig = 0, glow = 0;
         const c = document.getElementById('boot-scene');
         if (c && c.width) {
           const w = c.width * .3, h = c.height * .5, d = c.getContext('2d').getImageData(c.width * .35, c.height * .25, w, h).data;
-          let n = 0; for (let i = 0; i < d.length; i += 16) if (Math.abs(d[i] - 6) + Math.abs(d[i + 1] - 10) + Math.abs(d[i + 2] - 18) > 40) n++;
-          fig = n / (d.length / 16);
+          let n = 0, gl = 0;
+          for (let i = 0; i < d.length; i += 16) {
+            if (Math.abs(d[i] - 6) + Math.abs(d[i + 1] - 10) + Math.abs(d[i + 2] - 18) > 40) n++;
+            if (d[i + 1] > 110 && d[i + 1] > d[i] + 30) gl++;
+          }
+          fig = n / (d.length / 16); glow = gl / (d.length / 16);
         }
         return { scaleX: m ? m.a : 0, stage: q('.boot-stage-txt'), note: q('.boot-note'), log: q('#boot-log'),
-                 powering: !!document.querySelector('#screens.powering'), fig: fig };
+                 powering: !!document.querySelector('#screens.powering'), fig: fig, glow: glow,
+                 static: [...document.querySelectorAll('#screens .scr-static')].some(e => +getComputedStyle(e).opacity > .5),
+                 slide: [...document.querySelectorAll('#screens .scr-slide')].some(e => Math.abs(new DOMMatrix(getComputedStyle(e).transform).e) > 10) };
       })()`));
       await b.sleep(60);
     }
@@ -148,6 +154,10 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     check('the four stages run in order', order.join('') === '1234', order.join(','));
     check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
     const figAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.fig);
+    const glowAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.glow);
+    check('the silhouette glows round its edge', glowAt.length && glowAt.slice().sort((a, b) => a - b)[glowAt.length >> 1] > 0.01, 'glow ' + glowAt.map(v => v.toFixed(3)).join(','));
+    check('the screens come up as static', samples.some(s => s.static));
+    check('then the picture slides in over the static', samples.some(s => s.slide));
     check('PILOT ID shows the suit figure under the brackets', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] > 0.08, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
     check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
     check('the blueprint stage is gone', !samples.some(s => /DRAFTING|DESIGNED BY/.test(s.note)), samples.map(s => s.note).filter((v, i, a) => v && a.indexOf(v) === i).join(','));
@@ -456,26 +466,47 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
+  // Space skips from the first frame the boot shows, not only once its clock is running (the
+  // clock waits for the page to load and the emblem to decode: on a slow line that's seconds)
+  {
+    const b = await launch({ width: 1440, height: 900 });
+    await b.eval("sessionStorage.clear()");
+    await b.goto('index.html', 0);
+    let early = false;
+    for (let i = 0; i < 200; i++) {
+      if (await b.eval("!!window.BUNNYS && !!document.getElementById('boot') && !document.querySelector('#boot.is-booting')")) { early = true; break; }
+      await b.sleep(5);
+    }
+    await b.key(' ', 'Space', 32);
+    await b.sleep(400);
+    check('Space skips the boot before its clock starts', early && await b.eval('BUNNYS.state.booted === true'), early ? '' : 'never caught the boot before its clock');
+    await b.sleep(1500);
+    check('and the boot does not start up again after', await b.eval("!document.querySelector('#boot.is-booting') && !document.getElementById('boot-scene')"));
+    b.close();
+  }
+
   // boot stage 2 is the emblem (the blueprint is gone): it waits for the screens to light up
   // (LINEAR SEAT, boot clock 2300), holds well over a second, and is gone by PILOT ID (5000)
   {
     const b = await launch({ width: 1440, height: 900 });
     await b.eval("sessionStorage.clear()");
     await b.goto('index.html', 50);
-    let beforeScreens = 0, peak = 0, atPilot = null, firstFull = null, lastFull = null;
+    let beforeScreens = 0, peak = 0, atPilot = null, firstFull = null, lastFull = null, minA = 1;
     for (let i = 0; i < 400 && atPilot === null; i++) {
-      const raw = await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'), q = s => (document.querySelector(s) || {}).textContent || ''; return { o: e ? +getComputedStyle(e).opacity : 0, log: q('#boot-log'), stage: q('.boot-stage-txt') }; })())");
+      const raw = await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'), q = s => (document.querySelector(s) || {}).textContent || ''; return { o: e ? +getComputedStyle(e).opacity : 0, a: e ? new DOMMatrix(getComputedStyle(e).transform).a : 1, log: q('#boot-log'), stage: q('.boot-stage-txt') }; })())");
       if (!raw) { await b.sleep(20); continue; }
       const s = JSON.parse(raw), now = Date.now();
       if (!/LINEAR SEAT/.test(s.log)) beforeScreens = Math.max(beforeScreens, s.o);
       peak = Math.max(peak, s.o);
+      if (s.o > .5) minA = Math.min(minA, s.a);
       if (s.o >= 0.9) { if (firstFull === null) firstFull = now; lastFull = now; }
       if (/PILOT ID/.test(s.stage)) atPilot = s.o;
       await b.sleep(40);
     }
     check('the emblem waits for the screens to light up', beforeScreens < 0.05, 'before screens ' + beforeScreens);
     check('boot shows the emblem', peak >= 0.8, 'peak ' + peak);
-    check('the emblem holds over a second', firstFull !== null && lastFull - firstFull >= 1000, 'held ' + (lastFull - firstFull) + 'ms');
+    check('the emblem turns right round while it is up', minA < -0.5, 'min cos ' + minA.toFixed(2));
+    check('the emblem stays up over a second', firstFull !== null && lastFull - firstFull >= 1000, 'held ' + (lastFull - firstFull) + 'ms');
     check('the emblem is gone by PILOT ID', atPilot !== null && atPilot < 0.05, 'at pilot ' + atPilot);
     b.close();
   }

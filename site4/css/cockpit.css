@@ -537,27 +537,28 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 #screens { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-fx); pointer-events: none; color: var(--hud); }
 #screens .shutter { fill: #03060B; opacity: 0; }
 #screens .seam { fill: none; stroke: var(--hud); stroke-opacity: 0; stroke-width: 1; }
-#screens .calib { opacity: 0; }
-#screens .calib line { stroke: var(--hud); stroke-width: 1; }
-#screens .calib-horizon { stroke-opacity: .85; }
-#screens .calib-rung, #screens .calib-tick { stroke-opacity: .5; }
-#screens .calib-spin { transform-box: view-box; transform-origin: 0 0; transform: translate(var(--cx), var(--cy)); }
+#screens .scr-static { opacity: 0; }
+#screens .scr-edge { stroke: var(--hud); stroke-width: 2; }
 /* every seam -- the console edge and the lines between screens -- is one machined line */
 #screens .seam-line { fill: none; stroke: var(--hud); stroke-opacity: .6; stroke-width: 1.5; }
 #screens .seam-bevel { fill: none; stroke: var(--ice); stroke-opacity: .14; stroke-width: 1; }
 #screens .console-ticks line { stroke: var(--hud); stroke-opacity: .35; stroke-width: 1; }
 #screens .seam-bolts { opacity: .45; }
-#screens.powering .shutter { opacity: 1; animation: scr-shutter .8s var(--d) forwards; }
-#screens.powering .calib { animation: scr-calib .8s var(--d) forwards; }
-#screens.powering .calib-spin { animation: scr-level .8s var(--d) forwards; }
+#screens.powering .shutter { opacity: 1; }
+#screens.powering .scr-slide { animation: scr-slide .8s var(--d) forwards; }
+#screens.powering .scr-static { animation: scr-static .8s var(--d) forwards; }
+#screens.powering .scr-noise { animation: scr-noise .24s steps(1) infinite; }
 #screens.powering .seam { stroke-dasharray: 6000; stroke-dashoffset: 6000; animation: scr-trace .8s var(--d) forwards; }
-/* dark -> outline traces in -> dim picture with a calibration grid at 30deg -> grid swings
-   level -> screen clears */
-@keyframes scr-shutter { 0%, 20% { opacity: 1; } 28%, 76% { opacity: .8; } 100% { opacity: 0; } }
-@keyframes scr-calib { 0%, 20% { opacity: 0; } 26%, 78% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes scr-level {
-  0%, 26% { transform: translate(var(--cx), var(--cy)) rotate(30deg); animation-timing-function: cubic-bezier(.12, .9, .25, 1); }
-  66%, 100% { transform: translate(var(--cx), var(--cy)) rotate(0deg); }
+/* dark -> outline traces in -> static flickers up -> the picture slides in from the left behind
+   a lit edge, carrying the static and the dark off the screen */
+@keyframes scr-static { 0%, 20% { opacity: 0; } 23% { opacity: 1; } 25% { opacity: .35; } 28%, 100% { opacity: 1; } }
+@keyframes scr-slide {
+  0%, 50% { transform: translateX(0); animation-timing-function: cubic-bezier(.6, 0, .3, 1); }
+  92%, 100% { transform: translateX(var(--sw)); }
+}
+@keyframes scr-noise {
+  0% { transform: translateY(0); } 25% { transform: translateY(-37px); }
+  50% { transform: translateY(-89px); } 75% { transform: translateY(-13px); }
 }
 @keyframes scr-trace {
   0% { stroke-dashoffset: 6000; stroke-opacity: .8; }
@@ -565,7 +566,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   100% { stroke-dashoffset: 0; stroke-opacity: 0; }   /* the permanent .seam-line takes over */
 }
 @media (prefers-reduced-motion: reduce) {
-  #screens.powering .shutter, #screens.powering .calib, #screens.powering .calib-spin,
+  #screens.powering .scr-slide, #screens.powering .scr-static, #screens.powering .scr-noise,
   #screens.powering .seam { animation: none; }
 }
 
@@ -1107,18 +1108,22 @@ kbd {
 @media (hover: none) { kbd { display: none; } }
 
 /* ---------- the owner's emblem (img/emblem-hud.webp in HUD phosphor, img/emblem.webp in full colour) ---------- */
-/* boot stage 2: the emblem on the lit screens, boot clock 3200-4950 (boot.js T.emblem adds .is-on):
-   flickers on like a display striking up, holds about 1.3s, and is gone before PILOT ID at 5000 */
+/* boot stage 2: the emblem on the lit screens, boot clock 3450-4950 (boot.js T.emblem adds .is-on):
+   flickers on like a display striking up, turns once right round, and is gone before PILOT ID at 5000 */
 .boot-emblem {
   position: absolute; left: 50%; top: 46%; width: min(46vmin, 420px); height: auto;
   transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
 }
-.boot-emblem.is-on { animation: boot-emblem 1.75s linear both; }
+.boot-emblem.is-on { animation: boot-emblem 1.5s linear both; }
+/* flickers on, turns once right round on its upright (a quick coin turn, the cockpit insignia's
+   motion), settles, fades */
 @keyframes boot-emblem {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.03); }
-  4% { opacity: .75; } 6% { opacity: .12; } 9% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  82% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(.985); }
+  0% { opacity: 0; transform: translate(-50%, -50%) perspective(900px) rotateY(0deg) scale(1.03); }
+  4% { opacity: .75; } 6% { opacity: .12; }
+  9% { opacity: 1; transform: translate(-50%, -50%) perspective(900px) rotateY(0deg) scale(1); animation-timing-function: cubic-bezier(.45, 0, .2, 1); }
+  70% { transform: translate(-50%, -50%) perspective(900px) rotateY(360deg) scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) perspective(900px) rotateY(360deg) scale(.985); }
 }
 /* the closed glass between pages: the emblem above LINK > X, typed in with the label's wipe */
 /* no CSS filter on either emblem: a drop-shadow made the first visible frame a 38-100ms hitch;

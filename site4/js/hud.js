@@ -1148,7 +1148,7 @@
   // instruments (see canopy()), so a seam never runs through a box at any size. The screens
   // live in their own viewport-true layer (#screens, between the panorama and the frame). On
   // entering the cockpit each screen starts dark and comes online in turn: its outline traces
-  // in, a calibration grid tilted 30deg swings level, then the screen clears.
+  // in, it fills with static, then the picture slides in across it behind a lit edge.
   var SCREEN_LEAD = 300;   // let the boot overlay's own 350ms fade get under way first
   var SCREENS = [['L', 0], ['C', 380], ['R', 760], ['T', 1080], ['B', 1300]];   // [id, start ms]
   function screenAt(id) { for (var i = 0; i < SCREENS.length; i++) if (SCREENS[i][0] === id) return SCREENS[i][1]; return 0; }
@@ -1161,6 +1161,19 @@
       '<stop offset="0" stop-color="#0B121C" stop-opacity=".55"/><stop offset=".45" stop-color="#070B12" stop-opacity=".8"/>' +
       '<stop offset="1" stop-color="#04070C" stop-opacity=".94"/></linearGradient>';
     screensEl.appendChild(defs);
+    // one tile of static, drawn once; each screen's static jitters it about (CSS steps)
+    var nc = document.createElement('canvas'), nx = nc.getContext && nc.getContext('2d');
+    nc.width = nc.height = 96;
+    if (nx) {
+      var img = nx.createImageData(96, 96);
+      for (var n = 0; n < img.data.length; n += 4) {
+        var v = Math.random() * 95 | 0;
+        img.data[n] = v * .55; img.data[n + 1] = v; img.data[n + 2] = v * .8; img.data[n + 3] = 255;
+      }
+      nx.putImageData(img, 0, 0);
+      defs.innerHTML += '<pattern id="scr-noise" patternUnits="userSpaceOnUse" width="192" height="192">' +
+        '<image href="' + nc.toDataURL() + '" width="192" height="192" style="image-rendering:pixelated"/></pattern>';
+    }
     // the console and the seams sit under the screens, so each shutter hides them until its screen
     // is online
     consoleFill = el('polygon', { class: 'console-fill', fill: 'url(#console-grad)' });
@@ -1179,17 +1192,19 @@
       clip.appendChild(cpoly);
       defs.appendChild(clip);
       var g = el('g', { class: 'screen' });
+      // the dark shutter and the static ride one panel that slides off sideways, clipped to the
+      // screen, so the picture comes in behind its lit edge
+      var cover = el('g', { 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
+      var slide = el('g', { class: 'scr-slide' });
       var shutter = el('polygon', { class: 'shutter' });
-      var calib = el('g', { class: 'calib', 'clip-path': 'url(#scr-clip-' + s[0] + ')' });
-      var spin = el('g', { class: 'calib-spin' });
-      spin.appendChild(el('line', { class: 'calib-horizon', x1: -3000, y1: 0, x2: 3000, y2: 0 }));
-      [-80, -40, 40, 80].forEach(function (y) { spin.appendChild(el('line', { class: 'calib-rung', x1: -150, y1: y, x2: 150, y2: y })); });
-      for (var x = -900; x <= 900; x += 60) spin.appendChild(el('line', { class: 'calib-tick', x1: x, y1: -7, x2: x, y2: 7 }));
-      calib.appendChild(spin);
+      var stat = el('g', { class: 'scr-static' }), noise = el('rect', { class: 'scr-noise', fill: 'url(#scr-noise)' });
+      var edge = el('line', { class: 'scr-edge' });
+      stat.appendChild(noise); stat.appendChild(edge);
+      slide.appendChild(shutter); slide.appendChild(stat); cover.appendChild(slide);
       var seam = el('polygon', { class: 'seam' });
-      g.appendChild(shutter); g.appendChild(calib); g.appendChild(seam);
+      g.appendChild(cover); g.appendChild(seam);
       screensEl.appendChild(g);
-      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, spin: spin, seam: seam });
+      screenParts.push({ id: s[0], g: g, shutter: shutter, cpoly: cpoly, slide: slide, noise: noise, edge: edge, seam: seam });
     });
   }
   function toPts(poly, dx, dy) {
@@ -1232,11 +1247,14 @@
       B: edge.concat([[W, H], [0, H]])
     };
     screenParts.forEach(function (p) {
-      var poly = polys[p.id], pts = toPts(poly), cx = 0, cy = 0;
+      var poly = polys[p.id], pts = toPts(poly), b = [1e9, 1e9, -1e9, -1e9];
       p.shutter.setAttribute('points', pts); p.cpoly.setAttribute('points', pts); p.seam.setAttribute('points', pts);
-      poly.forEach(function (q) { cx += q[0]; cy += q[1]; });
-      p.spin.style.setProperty('--cx', (cx / poly.length).toFixed(1) + 'px');
-      p.spin.style.setProperty('--cy', (cy / poly.length).toFixed(1) + 'px');
+      poly.forEach(function (q) { b = [Math.min(b[0], q[0]), Math.min(b[1], q[1]), Math.max(b[2], q[0]), Math.max(b[3], q[1])]; });
+      // the static overhangs below by its jitter (CSS scr-noise moves it up to ~100px up; only
+      // up, so none of it ever shows ahead of the lit edge as the panel slides off)
+      [['x', b[0]], ['y', b[1]], ['width', b[2] - b[0] + 4], ['height', b[3] - b[1] + 200]].forEach(function (a) { p.noise.setAttribute(a[0], a[1]); });
+      [['x1', b[0] + 1], ['y1', b[1]], ['x2', b[0] + 1], ['y2', b[3]]].forEach(function (a) { p.edge.setAttribute(a[0], a[1]); });
+      p.slide.style.setProperty('--sw', (b[2] - b[0] + 4).toFixed(1) + 'px');
     });
     consoleFill.setAttribute('points', toPts(polys.B));
     // each seam's bevel sits 5px to the inside of the centre screen (or of the console)

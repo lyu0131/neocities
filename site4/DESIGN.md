@@ -22,8 +22,8 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
   `img/emblem-hud.webp` (brightness mapped onto `--hud` phosphor, faint scanlines, the glow **baked in**) and
   `img/emblem.webp` (full colour pulled toward the palette: whites to ice, the dark half to navy, yellow to amber,
   purples calmed). Four places:
-  - boot stage 2 (`#boot > img.boot-emblem`): `.is-on` at boot clock 3200 (`T.emblem`), once the screens are lit; a
-    1.75s CSS flicker-on, hold and fade, gone before PILOT ID at 5000. It replaced the blueprint drafting stage
+  - boot stage 2 (`#boot > img.boot-emblem`): `.is-on` at boot clock 3450 (`T.emblem`), once the centre screen is
+    clear; a 1.5s CSS flicker-on, one full coin turn (rotateY 360deg) and fade, gone before PILOT ID at 5000. It replaced the blueprint drafting stage
     (owner, 2026-10-01). boot.js `decode()`s it before the clock starts.
   - the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded);
   - the hangar's `UNIT INSIGNIA` panel (`.insignia`, full colour);
@@ -287,8 +287,9 @@ frame. `place()` cuts them from the same numbers that place the instruments, so 
 
 Every seam is one machined line: the lit 1.5px line over a faint bevel, bolt pairs at the joints, and a tick scale
 along the console's centre edge. On entering the cockpit (`boot-done`) each screen starts dark and comes online in
-turn, left -> centre -> right -> top -> bottom: its outline traces in, a calibration grid tilted 30deg swings level,
-then the shutter clears and the seam underneath shows. Each instrument's power-on flicker lands after its own screen
+turn, left -> centre -> right -> top -> bottom: its outline traces in, it fills with green static (one noise tile
+drawn once, jittered up and down by CSS steps), then the picture slides in from the left behind a lit edge, carrying
+the dark shutter and the static off the screen, and the seam underneath shows. Each instrument's power-on flicker lands after its own screen
 is online. None of the animation runs under reduced motion.
 
 ## Cautions and alarms
