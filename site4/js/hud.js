@@ -1800,6 +1800,22 @@
       pR: room ? (colRx + W - inset + 12) / 2 : W - inset / 2,
       podL: podL, podR: podR, deck: deckY
     });
+
+    // The unit insignia: a coin turning in the top band's corner over the right column. It keeps 8
+    // clear of the screen's top and of the band's edge (the seam), centres on the column, and stands
+    // down where it would crowd the heading tape or the columns aren't up.
+    var insEl = document.getElementById('insignia');
+    if (insEl) {
+      var bandEdge = Math.min(H * 0.10, colTop - 14), tb = hdg.getBBox();
+      var insH = Math.min(72, bandEdge - 16), insW = insH * 592 / 471;
+      var insX = colRx + colW / 2 - insW / 2;
+      var fits = room && insH >= 36 && insX > cx + tb.x + tb.width + 16;
+      insEl.style.display = fits ? '' : 'none';
+      if (fits) {
+        insEl.style.left = insX.toFixed(1) + 'px'; insEl.style.top = (bandEdge - 8 - insH).toFixed(1) + 'px';
+        insEl.style.width = insW.toFixed(1) + 'px'; insEl.style.height = insH.toFixed(1) + 'px';
+      }
+    }
   }
 
   var ladder = null, fpm = null, hxRoom = false, hxLockId = null, hxArmsBottom = 0;

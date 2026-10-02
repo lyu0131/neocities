@@ -4,8 +4,8 @@
    plays inside the real cockpit:
      1 COCKPIT     in the centre screen the chest hatch, hinged at its sill, swings up shut,
                    locks and seals; the cockpit goes dark and the linear seat slides back;
-     2 UNIT CHECK  the five screens power up in turn (bunnys:screens-on) and show the
-                   RX-124 TR-6 [WOUNDWORT] drafting itself on blueprint paper, then built solid;
+     2 UNIT CHECK  the five screens power up in turn (bunnys:screens-on); once they're lit, the
+                   owner's emblem (img/emblem-hud.webp) holds on them: UNIT VERIFIED;
      3 PILOT ID    IFF brackets close on the cockpit block: PILOT CONNECTED, SYLAS LYU;
      4 LAUNCH      the screens show the catapult bay; the launch call; the suit flies out
                    through the bay hatch into the city.
@@ -60,11 +60,7 @@
     dark: [1750, 2100],           // the hangar light is gone: the cockpit goes dark
     seat: [1900, 2300],           // the linear seat slides back into the core
     screens: 2300,                // the five screens power up (hud.js), left to console
-    grid: [2350, 2700],           // blueprint paper behind them
-    draw: 2700, drawEach: 100, drawDur: 800,
-    notes: [3700, 4000, 4300, 4600],
-    metal: [4300, 4750],          // fill in, lines go HUD green
-    sheen: [4400, 5050],
+    emblem: [3200, 4950],         // once they're lit, the emblem: CSS flickers it on, holds, fades
     glitch: [5000, 5220],         // channel switch to IFF
     iff: [5100, 5650],            // brackets close on the cockpit block
     friend: 5850,
@@ -283,9 +279,7 @@
     if (t < T.screens) {
       drawCockpit(t);
     } else {
-      drawGrid(t);
-      if (suit) { drawSuit(t); drawIFF(t); }
-      drawSheen(t);
+      if (suit) drawIFF(t);
       drawBay(t);
       drawGlitch(t);
     }
@@ -417,83 +411,6 @@
     ctx.strokeStyle = rgba(HUD, .9); ctx.lineWidth = 1.5;
     trace(-1); trace(1);
     ctx.restore();
-  }
-
-  // Stage 2: blueprint paper across all five screens, gone as the unit builds solid.
-  function drawGrid(t) {
-    var a = seg(t, T.grid[0], T.grid[1]) * (1 - ease(seg(t, T.metal[0], T.metal[1]))) * (1 - seg(t, T.cut[0], T.cut[1]));
-    if (a <= 0) return;
-    ctx.fillStyle = 'rgba(15,35,64,' + (a * .95).toFixed(3) + ')';
-    ctx.fillRect(0, 0, W, H);
-    var c = centre(), ox = c.x + c.w / 2, oy = c.y + c.h / 2;
-    [[24, .04], [96, .09]].forEach(function (g) {
-      ctx.strokeStyle = 'rgba(221,231,238,' + (g[1] * a).toFixed(3) + ')'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (var x = ox % g[0]; x < W; x += g[0]) { ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, H); }
-      for (var y = oy % g[0]; y < H; y += g[0]) { ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(W, Math.round(y) + .5); }
-      ctx.stroke();
-    });
-  }
-
-  function drawSuit(t) {
-    var fade = 1 - ease(seg(t, T.cut[0], T.cut[0] + 450));
-    if (fade <= 0 || t < T.draw) return;
-    var fit = suitFit(), s = fit.s;
-    ctx.save();
-    ctx.globalAlpha = fade;
-    ctx.translate(fit.x, fit.y); ctx.scale(s, s);
-    ctx.lineJoin = 'round'; ctx.lineWidth = 1.3 / s;
-    suit.zones.forEach(function (z, k) {
-      var d = ease(seg(t, T.draw + k * T.drawEach, T.draw + k * T.drawEach + T.drawDur));
-      if (d <= 0) return;
-      var m = ease(seg(t, T.metal[0] + k * 45, T.metal[1] + k * 45));
-      if (m > 0) { ctx.fillStyle = 'rgba(16,28,52,' + m.toFixed(3) + ')'; ctx.fill(z.path); }
-      ctx.setLineDash(d < 1 ? [z.len * d, z.len + 1] : []);
-      ctx.strokeStyle = mix(PAPER, HUD, m, .92);
-      ctx.stroke(z.path);
-    });
-    ctx.setLineDash([]);
-    ctx.restore();
-    drawNotes(t, fit, fade);
-  }
-
-  // Drafting marks in screen space (type stays crisp): overall height and three callouts.
-  function drawNotes(t, fit, fade) {
-    var a = seg(t, T.notes[0], T.notes[1]) * (1 - seg(t, T.notes[2], T.notes[3])) * fade;
-    if (a <= 0) return;
-    function P(x, y) { return [fit.x + x * fit.s, fit.y + y * fit.s]; }
-    var bx = suit.box, top = P(bx[2], bx[1]), bot = P(bx[2], bx[3]), dx = top[0] + 16;
-    ctx.save();
-    ctx.strokeStyle = rgba(PAPER, .7 * a); ctx.fillStyle = rgba(PAPER, a); ctx.lineWidth = 1;
-    ctx.font = "700 10px 'B612 Mono', monospace";
-    ctx.beginPath();
-    ctx.moveTo(dx - 5, top[1]); ctx.lineTo(dx + 5, top[1]); ctx.moveTo(dx, top[1]); ctx.lineTo(dx, bot[1]);
-    ctx.moveTo(dx - 5, bot[1]); ctx.lineTo(dx + 5, bot[1]);
-    ctx.stroke();
-    ctx.save(); ctx.translate(dx + 8, (top[1] + bot[1]) / 2); ctx.rotate(Math.PI / 2); ctx.textAlign = 'center';
-    ctx.fillText('HEAD HEIGHT 18.2 M', 0, 0); ctx.restore();
-    var left = P(bx[0], 0)[0] - 10, edge = centre().x + 10;
-    [['head', 'HEAD', -1], ['chest', 'CHEST', -1], ['weapon', 'RIFLE', 1]].forEach(function (c) {
-      var z = suit.byId[c[0]];
-      if (!z) return;
-      var p = P((z.box[0] + z.box[2]) / 2, z.box[1] + (z.box[3] - z.box[1]) * .4);
-      // left labels stay inside the centre screen
-      var tx = c[2] < 0 ? Math.max(left, edge + ctx.measureText(c[1]).width) : Math.min(dx - 40, P(z.box[2], 0)[0] + 16);
-      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(tx - c[2] * 10, p[1] - 12); ctx.lineTo(tx, p[1] - 12); ctx.stroke();
-      ctx.beginPath(); ctx.arc(p[0], p[1], 1.6, 0, 7); ctx.fill();
-      ctx.textAlign = c[2] < 0 ? 'right' : 'left';
-      ctx.fillText(c[1], tx + c[2] * 4, p[1] - 9);
-    });
-    ctx.restore();
-  }
-
-  function drawSheen(t) {
-    var p = seg(t, T.sheen[0], T.sheen[1]);
-    if (p <= 0 || p >= 1) return;
-    var w = W * .3, x = lerp(-w, W, ease(p));
-    var g = ctx.createLinearGradient(x, 0, x + w, 0);
-    g.addColorStop(0, 'rgba(140,255,193,0)'); g.addColorStop(.5, 'rgba(140,255,193,.11)'); g.addColorStop(1, 'rgba(140,255,193,0)');
-    ctx.fillStyle = g; ctx.fillRect(x, 0, w, H);
   }
 
   function drawGlitch(t) {
@@ -652,7 +569,7 @@
 
     // the emblem comes up as the BUNNyS system logo and is gone before the hatch thud (1050);
     // CSS runs the one-second flicker-on and fade (.boot-emblem.is-on)
-    at(0, function () { stage(1, 'COCKPIT'); var em = overlay.querySelector('.boot-emblem'); if (em) em.classList.add('is-on'); });
+    at(0, function () { stage(1, 'COCKPIT'); });
     at(T.thud[0], function () { log('CHEST HATCH ...... CLOSED'); });
     at(T.latch + 3 * T.latchEach + 160, function () { log('HATCH LOCKS ...... 4 / 4'); });
     at(T.seal[1], function () { log('PRESSURE SEAL .... OK'); });
@@ -664,8 +581,11 @@
       BUNNYS.emit('screens-on', {});
     });
     at(T.screens + 1300, function () { log('CANOPY SCREENS ... 5 / 5'); });
-    at(T.draw + 150, function () { swap(titleEl, 'RX-124 TR-6 [WOUNDWORT]'); swap(noteEl, 'DRAFTING'); });
-    at(T.metal[0] + 100, function () { swap(noteEl, 'DESIGNED BY SYLAS LYU', 'hud'); log('UNIT ............. VERIFIED'); });
+    // stage 2 is the emblem on the lit screens (the CSS .is-on runs its flicker-on, hold and fade
+    // across T.emblem), with the unit's name under it
+    at(T.emblem[0], function () { var em = overlay.querySelector('.boot-emblem'); if (em) em.classList.add('is-on'); });
+    at(T.emblem[0] + 200, function () { swap(titleEl, 'RX-124 TR-6 [WOUNDWORT]'); });
+    at(T.emblem[0] + 800, function () { swap(noteEl, 'UNIT VERIFIED', 'hud'); log('UNIT ............. VERIFIED'); });
 
     at(T.glitch[0], function () {
       stage(3, 'PILOT ID');

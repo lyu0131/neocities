@@ -423,7 +423,7 @@ a { color: inherit; }
 #boot.boot-out, #boot-scene.boot-out { opacity: 0; pointer-events: none; }
 /* The instruments stay dark through the boot -- only the screens and the frame are lit -- and
    power on at the hand-over (hud.js powerOn), the moment the boot starts to fade. */
-body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms, #toast) { visibility: hidden; }
+body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms, #toast, #insignia) { visibility: hidden; }
 
 /* The stage title and log share one housing, like every HUD box: an opaque plate, so the canopy
    grid and the top seam never run through the type, corner brackets, and a header rule with a
@@ -690,7 +690,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
 .pop[hidden] { display: none; }
 /* HTML panels placed in HUD units: hud.js sets --ui on a short laptop screen and scales the
    SVG HUD by the same factor, so these zoom with it (see uiScale() there) */
-.slew, .pop { zoom: var(--ui, 1); }
+.slew, .pop, #insignia { zoom: var(--ui, 1); }
 .comms { padding: 14px 14px 12px; }
 .pop-head {
   display: flex;
@@ -1107,17 +1107,17 @@ kbd {
 @media (hover: none) { kbd { display: none; } }
 
 /* ---------- the owner's emblem (img/emblem-hud.webp in HUD phosphor, img/emblem.webp in full colour) ---------- */
-/* boot: the BUNNyS system logo, the first second of the boot clock -- flickers on like a display
-   striking up, holds, and is gone before the hatch thud at 1050 (boot.js adds .is-on at 0) */
+/* boot stage 2: the emblem on the lit screens, boot clock 3200-4950 (boot.js T.emblem adds .is-on):
+   flickers on like a display striking up, holds about 1.3s, and is gone before PILOT ID at 5000 */
 .boot-emblem {
   position: absolute; left: 50%; top: 46%; width: min(46vmin, 420px); height: auto;
   transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
 }
-.boot-emblem.is-on { animation: boot-emblem 1s linear both; }
+.boot-emblem.is-on { animation: boot-emblem 1.75s linear both; }
 @keyframes boot-emblem {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(1.03); }
-  7% { opacity: .75; } 10% { opacity: .12; } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  70% { opacity: 1; }
+  4% { opacity: .75; } 6% { opacity: .12; } 9% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  82% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(.985); }
 }
 /* the closed glass between pages: the emblem above LINK > X, typed in with the label's wipe */
@@ -1131,4 +1131,12 @@ kbd {
   background: radial-gradient(ellipse 60% 70% at 50% 48%, rgba(140, 255, 193, .07), transparent 70%);
 }
 .insignia img { width: min(100%, 520px); height: auto; }
+/* the cockpit's unit insignia: a coin turning in the top band's corner over the right column (hud.js
+   place() sizes and puts it, in HUD units). Two faces, back one turned, so it reads both ways round. */
+#insignia { position: fixed; z-index: var(--z-hud); pointer-events: none; perspective: 420px; }
+#insignia .insignia-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 9s linear infinite; }
+#insignia img { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; }
+#insignia img + img { transform: rotateY(180deg); }
+@keyframes insignia-spin { to { transform: rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { #insignia .insignia-coin { animation: none; } }
 

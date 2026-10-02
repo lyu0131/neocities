@@ -20,7 +20,7 @@ const PROBE = `(() => {
     ...cols.map(g => box(g === radar ? 'SENSOR ARRAY' : titled(g).textContent, rectOf(g))),
     box('SLEW TO', document.getElementById('slew')), box('HUD MODE', document.getElementById('hudmode')),
     box('COMMS', document.getElementById('comms')), box('DOSSIER', document.querySelector('#hud > g.dossier > rect.plate')),
-    box('TOAST', document.getElementById('toast')),
+    box('TOAST', document.getElementById('toast')), box('INSIGNIA', document.getElementById('insignia')),
     ...[...hud.querySelectorAll(':scope > g.hostile')].map((g, i) =>
       rectOf(g) ? box('hx:' + g.querySelector('text').textContent, rectOf(g)) : box('readouts' + i, g))
   ].filter(Boolean);
@@ -64,6 +64,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         const missing = required.filter(name => !names.includes(name));
         check(`${tag} all 8 column instruments present`, missing.length === 0, missing.join(', '));
       }
+      check(`${tag} unit insignia present`, names.includes('INSIGNIA'));
       const anchors = ['REACTOR STATUS', 'SENSOR ARRAY', 'DIAGNOSTIC MODE', 'SLEW TO'];
       const missingAnchors = anchors.filter(name => !names.includes(name));
       check(`${tag} column anchors present (top and bottom)`, missingAnchors.length === 0, missingAnchors.join(', '));

@@ -111,6 +111,9 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   check('boot done fires', await p.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
   check('boot overlay gone', await p.eval("!document.getElementById('boot') || getComputedStyle(document.getElementById('boot')).display === 'none'"));
   check('boot canvas gone', await p.eval("!document.getElementById('boot-scene')"));
+  // the unit insignia turns in the top band's corner, above the right column, for good
+  check('cockpit shows the unit insignia', await p.eval("(() => { const e = document.getElementById('insignia'); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 30 && r.left > innerWidth / 2 && r.top >= 0 && cs.visibility === 'visible' && +cs.opacity > 0.5; })()"));
+  check('the insignia turns', /insignia-spin/.test(await p.eval("getComputedStyle(document.querySelector('#insignia .insignia-coin')).animationName")));
 
   // The boot is one continuous shot in four stages (boot.js): COCKPIT, UNIT CHECK, PILOT ID,
   // LAUNCH. Sample the live page every ~60ms across the whole boot instead of trusting a
@@ -137,6 +140,8 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     check('the four stages run in order', order.join('') === '1234', order.join(','));
     check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
     check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
+    check('the blueprint stage is gone', !samples.some(s => /DRAFTING|DESIGNED BY/.test(s.note)), samples.map(s => s.note).filter((v, i, a) => v && a.indexOf(v) === i).join(','));
+    check('stage 2 verifies the unit', samples.some(s => s.note === 'UNIT VERIFIED'));
     check('the log runs', samples.some(s => s.log.trim().length > 0));
     // one clock: the log is already rolling while the bar is still near-empty, and the bar
     // does reach the end before the hub takes over
@@ -339,6 +344,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   // script load and made the arrow check flaky.
   for (let i = 0; i < 40 && !(await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true')); i++) await r.sleep(100);
   check('reduced motion: booted at once', await r.eval('!!window.BUNNYS && BUNNYS.state.booted === true'));
+  check('reduced motion: the insignia holds still', await r.eval("(() => { const c = document.querySelector('#insignia .insignia-coin'); return !!c && getComputedStyle(c).animationName === 'none'; })()"));
   // Poll rather than sleep a fixed time: headless defers requestAnimationFrame until
   // something wakes the compositor, so the easing that applies the keypress can start
   // late. The keypress itself registers immediately.
@@ -440,21 +446,27 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     gapSamples > 0 && minGap >= 5.9, 'min gap ' + minGap.toFixed(2));
   e.close();
 
-  // the boot opens on the emblem as the BUNNyS system logo: it comes up, then it's gone by the
-  // hatch thud (the log's CHEST HATCH line, boot clock 1050), so it never sits over the cockpit
+  // boot stage 2 is the emblem (the blueprint is gone): it waits for the screens to light up
+  // (LINEAR SEAT, boot clock 2300), holds well over a second, and is gone by PILOT ID (5000)
   {
     const b = await launch({ width: 1440, height: 900 });
     await b.eval("sessionStorage.clear()");
     await b.goto('index.html', 50);
-    let peak = 0, atThud = null;
-    for (let i = 0; i < 120 && atThud === null; i++) {
-      const s = JSON.parse(await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'); return { o: e ? +getComputedStyle(e).opacity : 0, log: (document.getElementById('boot-log') || {}).textContent || '' }; })())"));
+    let beforeScreens = 0, peak = 0, atPilot = null, firstFull = null, lastFull = null;
+    for (let i = 0; i < 400 && atPilot === null; i++) {
+      const raw = await b.eval("JSON.stringify((() => { const e = document.querySelector('.boot-emblem'), q = s => (document.querySelector(s) || {}).textContent || ''; return { o: e ? +getComputedStyle(e).opacity : 0, log: q('#boot-log'), stage: q('.boot-stage-txt') }; })())");
+      if (!raw) { await b.sleep(20); continue; }
+      const s = JSON.parse(raw), now = Date.now();
+      if (!/LINEAR SEAT/.test(s.log)) beforeScreens = Math.max(beforeScreens, s.o);
       peak = Math.max(peak, s.o);
-      if (/CHEST HATCH/.test(s.log)) atThud = s.o;
+      if (s.o >= 0.9) { if (firstFull === null) firstFull = now; lastFull = now; }
+      if (/PILOT ID/.test(s.stage)) atPilot = s.o;
       await b.sleep(40);
     }
-    check('boot shows the emblem first', peak >= 0.8, 'peak ' + peak);
-    check('the emblem is gone by the hatch thud', atThud !== null && atThud < 0.05, 'at thud ' + atThud);
+    check('the emblem waits for the screens to light up', beforeScreens < 0.05, 'before screens ' + beforeScreens);
+    check('boot shows the emblem', peak >= 0.8, 'peak ' + peak);
+    check('the emblem holds over a second', firstFull !== null && lastFull - firstFull >= 1000, 'held ' + (lastFull - firstFull) + 'ms');
+    check('the emblem is gone by PILOT ID', atPilot !== null && atPilot < 0.05, 'at pilot ' + atPilot);
     b.close();
   }
 

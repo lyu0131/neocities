@@ -21,11 +21,18 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 - **The owner's emblem** (split helmet, V-fin, wreath), as two files generated from their image, not redrawn:
   `img/emblem-hud.webp` (brightness mapped onto `--hud` phosphor, faint scanlines, the glow **baked in**) and
   `img/emblem.webp` (full colour pulled toward the palette: whites to ice, the dark half to navy, yellow to amber,
-  purples calmed). Three places: the boot's first second (`#boot > img.boot-emblem`, `.is-on` added at boot clock 0,
-  a 1s CSS flicker-on and fade that is gone before the hatch thud at 1050; boot.js `decode()`s it before the clock
-  starts), the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded), and the hangar's `UNIT
-  INSIGNIA` panel (`.insignia`). **No CSS `filter` on either emblem:** a `drop-shadow` there made the first
-  visible frame a 38-100ms hitch at 1440x900 (measured); that is why the glow lives in the image.
+  purples calmed). Four places:
+  - boot stage 2 (`#boot > img.boot-emblem`): `.is-on` at boot clock 3200 (`T.emblem`), once the screens are lit; a
+    1.75s CSS flicker-on, hold and fade, gone before PILOT ID at 5000. It replaced the blueprint drafting stage
+    (owner, 2026-10-01). boot.js `decode()`s it before the clock starts.
+  - the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded);
+  - the hangar's `UNIT INSIGNIA` panel (`.insignia`, full colour);
+  - the cockpit's `#insignia`: a coin turning (9s a turn, two faces) in the top band's corner over the right
+    column. hud.js `place()` puts it in HUD units (`zoom: var(--ui)`, like `.slew`), 8 clear of the screen top
+    and of the band's edge, and stands it down where it would crowd the heading tape or the columns are down
+    (phones). Hidden during the boot; still under reduced motion; in layout.test.js's no-overlap set.
+  **No CSS `filter` on any emblem:** a `drop-shadow` there made the first visible frame a 38-100ms hitch at
+  1440x900 (measured); that is why the glow lives in the image.
 - `canvas#boot-scene` (the boot's picture: fixed, at the panorama's z-index but after `main`, so it paints over the panorama and under `#screens`, `#frame` and `#hud` -- the boot is seen through the five canopy screens the whole time) and `#boot` > `.boot-readout` (one HUD-style housing: `.boot-stage` with `.pips > i` and `.boot-stage-txt`, then `pre#boot-log`, fixed at four rows), `.boot-cap` (`.boot-title`, `.boot-note`, tone in `data-tone`), `.boot-bar > i`, `button#skip`. While `#boot` is up (and not `.boot-out`) the instruments stay hidden; the boot lands at yaw −52 (PILOT).
 - Z-index scale: pano 1, fx 2, frame 3, hud 4, nav 5, link 9, boot 10.
 - Sub-pages use `body.page`. They carry none of the cockpit HUD (no `#frame`, `#fx`, `#hud`, hud.js or fx.js);
