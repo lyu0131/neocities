@@ -3,10 +3,10 @@
    Hard rule: never set `transform` on .pano-ring, .pano-slice or .target —
    js/cockpit.js writes those inline every frame.
 
-   Sections, in order: tokens; base; shared corner-bracket mechanism; hub layers &
-   panorama; HUD SVG styling; controls (nav/sr-only/hud-btn); boot sequence; five
-   canopy screens; power-on; hub HTML panels (.slew/.pop/.hudmode); sub-page screen
-   & panels; sub-page HUD (.phud-*); page handover (#link); kbd.
+   Sections, in order: tokens; base; shared corner-bracket mechanism; hub panorama and
+   targets; the hub HUD (#hud); controls (nav/sr-only/hud-btn); boot sequence (boot.js is
+   not loaded on the hub for now; its styles stay for when it is); sub-page screen & panels;
+   sub-page HUD (.phud-*); page handover (#link); kbd.
    Each @media (prefers-reduced-motion: reduce) rule sits beside the thing it calms. */
 
 /* ---------- tokens ---------- */
@@ -20,6 +20,12 @@
   --amber: #FFB02E;
   --lock: #FF3347;
   --ice: #DDE7EE;
+  /* the hub HUD: white hairlines, the designator's yellow, a hostile contact, the city dimmed under it */
+  --line: #D3DAFB;
+  --mode: #FF7FB0;
+  --sight: #FFC94A;
+  --hostile: #FF6B5A;
+  --pano-dim: rgba(5, 10, 26, .66);
   /* painted machine housing, its lit top edge, and the recessed display glass set into it.
      These are opaque paint and glass, not frosted panes: no backdrop-filter anywhere. */
   --housing: #131A24;
@@ -77,13 +83,9 @@ a { color: inherit; }
 /* Four L-shaped brackets cut into a box's corners, as eight no-repeat background
    gradients (one long arm + one short arm per corner, so none of them tile). One rule,
    driven per use by --cnr-c (colour), --cnr-arm (long-arm length) and --cnr-th (stroke
-   thickness): .target's own background, and the ::before layer on .boot-readout,
-   .panel, .slew/.pop and .phud-blip.is-me/.is-lock, all drew this same eight-gradient
-   trick inline at their own sizes and colours before this rule unified them. */
-.target,
+   thickness): the ::before layer on .boot-readout, .panel and .phud-blip.is-me/.is-lock. */
 .boot-readout::before,
 .panel::before,
-.slew::before, .pop::before,
 .phud-blip.is-me::before, .phud-blip.is-lock::before {
   --cnr: linear-gradient(var(--cnr-c), var(--cnr-c));
   background-image: var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr), var(--cnr);
@@ -125,7 +127,7 @@ a { color: inherit; }
   left: 50%;
   /* size, background-size and background-position are written by cockpit.js:
      every tile is a different size and shows a different cell of the sphere */
-  background-image: url(../img/pano.svg);
+  background-image: linear-gradient(var(--pano-dim), var(--pano-dim)), url(../img/pano.svg);
   /* repeat-x, not no-repeat: tiles overlap their neighbours to hide the chord seams,
      and at the x=0 wrap that bleed runs off the image. The strip is periodic in x by
      construction, so repeating horizontally makes the wrap continuous. */
@@ -137,90 +139,68 @@ a { color: inherit; }
 }
 
 /* ---------- targets (children of .pano-ring, turn with the scene) ---------- */
+/* Each contact is a short solid arrowhead on the horizon pointing toward the nose; the label sits
+   beside it on the side that faces the centre (cockpit.js sets .is-left/.is-right from the
+   bearing), or under it when it's on the nose. Locked: yellow brackets round the arrow and the
+   designator over it, both drawn as SVG backgrounds in the box's top 22px and middle. The box is
+   the hit area (hover locks, click opens). */
 .target {
+  /* --s scales the whole contact: the panorama draws it ~.64 of its px size on a landscape screen
+     and smaller still on a phone's narrower view, so a phone gets it larger */
+  --s: 1;
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 72px;
-  height: 72px;
-  margin: -36px 0 0 -36px;
-  color: var(--hud);
+  width: calc(110px * var(--s));
+  height: calc(116px * var(--s));
+  margin: calc(-58px * var(--s)) 0 0 calc(-55px * var(--s));
+  color: var(--line);
   cursor: pointer;
   pointer-events: auto;
-  transition: width .35s steps(3, end), height .35s steps(3, end),
-              margin .35s steps(3, end), color .2s ease;
-  /* four corner brackets, via the shared mechanism above, pinned to the box's corners */
-  --cnr-c: currentColor;
-  --cnr-arm: 16px;
-  --cnr-th: 2px;
+  background-repeat: no-repeat;
 }
-/* the emblem: a small diamond mark centred in the bracket box */
+@media (max-width: 480px) { .target { --s: 1.6; } }
+.target.is-hostile { color: var(--hostile); }
 .target::before {
   content: '';
   position: absolute;
-  top: 50%; left: 50%;
-  width: 13px; height: 13px;
-  margin: -6.5px 0 0 -6.5px;
-  border: 1.5px solid currentColor;
-  transform: rotate(45deg);
+  top: calc(45px * var(--s)); left: calc(19px * var(--s));
+  width: calc(72px * var(--s)); height: calc(26px * var(--s));
+  background: currentColor;
+  opacity: .8;
+  /* tip at the left, a notched tail at the right */
+  clip-path: polygon(0 38.9%, 100% 0, 88% 50%, 100% 100%, 0 61.1%);
 }
-/* label + range readout, stacked under the box */
+.target.is-left::before { transform: scaleX(-1); }
 .target::after {
   content: attr(data-label) '\a' attr(data-readout);
   position: absolute;
-  top: 100%; left: 50%;
-  margin-top: 10px;
+  top: calc(96px * var(--s)); left: 50%;
   transform: translateX(-50%);
-  white-space: pre-line;
+  white-space: pre;
   text-align: center;
-  width: max-content;
-  max-width: 30ch;
-  font: 700 12px/1.6 'B612 Mono', monospace;
-  letter-spacing: .08em;
-  opacity: .8;
-  transition: opacity .3s ease;
-  /* the label sits directly on the scene; without a backing it falls below
-     4.5:1 wherever it crosses lit windows or water reflections (measured) */
-  background: rgba(6, 10, 18, .82);
-  padding: 2px 6px;
+  font: 700 calc(15px * var(--s))/1.4 'B612 Mono', monospace;
+  letter-spacing: .14em;
+  opacity: .75;
 }
+.target.is-left::after, .target.is-right::after { top: calc(34px * var(--s)); transform: none; }
+.target.is-left::after { left: calc(104px * var(--s)); text-align: left; }
+.target.is-right::after { left: auto; right: calc(104px * var(--s)); text-align: right; }
+.target.is-out::after { opacity: 0; }
+/* locked on the nose, the readout under the rail says it all; a label here would sit on the reticle */
+.target.is-locked:not(.is-left):not(.is-right)::after { opacity: 0; }
 .target.is-locked {
-  width: 56px; height: 56px; margin: -28px 0 0 -28px;
-  color: var(--lock);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-14 -19 28 27'%3E%3Cg fill='none' stroke='%23FFC94A' stroke-width='2'%3E%3Cpath d='M-9-12H9L0 2Z M-14-18l6 6 M14-18l-6 6 M-10 6H10'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 36'%3E%3Cpath d='M7 1H1v34h6M69 1h6v34h-6' fill='none' stroke='%23FFC94A' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-position: center 0, center calc(32px * var(--s));
+  background-size: calc(40px * var(--s)) calc(39px * var(--s)), calc(110px * var(--s)) calc(52px * var(--s));
 }
-.target.is-locked::after { opacity: 1; }
-@media (max-width: 480px) {
-  .target { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
-  .target.is-locked { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
-  .target::after { max-width: 22ch; font-size: 11px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .target { transition: none; }
-}
+.target.is-locked::before, .target.is-locked::after { opacity: 1; }
 
-/* ---------- layer 2: canvas fx ---------- */
-#fx {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-fx);
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* ---------- layer 3: the fixed cockpit frame ---------- */
-#frame {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-frame);
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* ============ HUD SVG styling ============ */
-/* ---------- layer 4: the HUD overlay ---------- */
+/* ============ the hub HUD (js/hud.js) ============ */
+/* One hairline weight family in --line; the only colour is the designator yellow (chevrons) and a
+   hostile contact's red. Opacity per stroke is set where it's drawn. */
 #hud {
   position: fixed;
   inset: 0;
@@ -228,100 +208,29 @@ a { color: inherit; }
   width: 100%;
   height: 100%;
   pointer-events: none;
-  color: var(--hud);
+  color: var(--line);
 }
-#hud :is(path, line, polyline, polygon, circle, rect):not([fill]) {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: square;
-}
-/* Graticules, brackets and rules are drawn in the machine green; the values read on them
-   are cool pale. Amber and red override per state, so colour always means something. */
-#hud text, #hud .hdg-readout {
-  font: 700 13px/1 'B612 Mono', monospace;
-  letter-spacing: .08em;
-  fill: var(--ice);
-}
-#hud .boresight { filter: var(--glow); }
-#hud .warn text, #hud .is-locked text, #hud .blip.is-locked text { fill: currentColor; }
-#hud .warn, #hud .is-locked { filter: var(--glow); }
-
-/* HUD draw-in during boot: strokes draw in, the reticle drops from 3x with a snap.
-   :not(.dmg-zone) excludes the damage map's 8 zone paths -- they redraw their `d`
-   every rotation frame, and dash-in would thrash on top of that churn. */
-#hud.hud-draw :is(path, line, polyline, circle, rect):not(.dmg-zone) {
-  stroke-dasharray: 260;
-  animation: hud-stroke-in 1.1s ease-out 1 both;
-}
-@keyframes hud-stroke-in {
-  from { stroke-dashoffset: 260; }
-  to   { stroke-dashoffset: 0; }
-}
-#hud.hud-draw .boresight,
-#hud.hud-draw [data-boresight] {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: reticle-drop .5s cubic-bezier(.2, 1.6, .4, 1) 1 both;
-}
-@keyframes reticle-drop {
-  0%   { transform: scale(3); opacity: 0; }
-  70%  { transform: scale(.94); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  #hud.hud-draw :is(path, line, polyline, circle, rect) { animation: none; stroke-dashoffset: 0; }
-  #hud.hud-draw .boresight, #hud.hud-draw [data-boresight] { animation: none; transform: none; opacity: 1; }
-}
-
-/* ---------- instruments: radar scope, system gauges, caution banner ---------- */
-#hud .radar text { font-size: 11px; opacity: .8; }
-#hud .blip rect { fill: rgba(6, 10, 18, .6); }
-#hud .blip text { font-size: 10px; }
-#hud .blip.is-locked { color: var(--lock); }
-#hud .warn { color: var(--amber); }
-#hud .warn text { font-size: 13px; }
-#hud .warn.is-blinking { animation: warn-blink 1s steps(2, end) infinite; }
-@keyframes warn-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .45; } }
-/* bigger caution banner text */
-#hud .warn text.warn-text { font-size: 22px; letter-spacing: .06em; }
-
-/* The hostile contact's alarm inverts its whole housing rather than glowing: a hard
-   two-frame flash catches the eye at the edge of vision without any bloom, which is the
-   look this HUD is after. Animations outrank the inline fills hud.js writes, so the text
-   and brackets invert with the box.
-   steps(1, end), not steps(2): the timing function runs per keyframe segment, so two
-   steps put a blended half-colour between the two states and softened the flash into a
-   pulse. One step holds each state flat for its whole segment -- a square wave. */
-/* Two static states, flipped together by drawAlarmFlash() in hud.js. These were three
-   separate CSS animations; each kept its own clock from whenever its element was last
-   attached, so box and ink drifted apart and the alarm went red-on-red or dark-on-dark.
-   Driving the flip from the one tick() clock keeps the inversion exact by construction. */
-/* !important because hud.js writes fill into each element's inline style: the animations
-   these rules replaced outranked it for free, a plain rule does not. */
-#hud .hx-alarm.is-inv rect { fill: var(--lock) !important; }
-#hud .hx-alarm.is-inv text { fill: var(--night) !important; }
-#hud .hx-alarm.is-inv line { stroke: var(--night) !important; }
-
-/* damage map: zones sit at a permanent state colour (set below) and amber/red ones
-   flash to it from a dim "off" tone -- steps(1, end), same hard square-wave as the
-   hostile alarm above, not steps(2) which blends a half-colour into a soft pulse. */
-#hud .dmg-zone.is-caution { fill: var(--amber); animation: dmg-zone-flash .8s steps(1, end) infinite; }
-#hud .dmg-zone.is-hit { fill: var(--lock); animation: dmg-zone-flash .8s steps(1, end) infinite; }
-@keyframes dmg-zone-flash { 50% { fill: rgba(140, 255, 193, .16); } }
-@media (prefers-reduced-motion: reduce) {
-  #hud .warn.is-blinking { animation: none; opacity: 1; }
-  /* the flash is JS-driven now; drawAlarmFlash() never sets .is-inv under reduced motion,
-     which leaves the legible base state (dark box, red ink) showing */
-  #hud .dmg-zone.is-caution, #hud .dmg-zone.is-hit { animation: none; }
-}
-
-/* target popup: raised under the reticle when a contact is latched */
-#hud .dossier { transition: opacity .18s ease-out; }
-#hud .dossier text { font-size: 14px; text-anchor: middle; }
-#hud .dossier .dim { font-size: 11px; opacity: .75; }
-#hud .dossier .dos-title { font-size: 22px; letter-spacing: .1em; }
-#hud .dossier .dos-hint { font-size: 11px; opacity: .7; letter-spacing: .14em; }
+#hud line { stroke: currentColor; }
+#hud .rim { fill: none; stroke: currentColor; stroke-opacity: .5; }
+#hud .rim-in { fill: none; stroke: currentColor; stroke-opacity: .35; stroke-width: 1.5; }
+#hud .spine { fill: none; stroke: currentColor; stroke-opacity: .25; }
+#hud .clamp { fill: #2A2E33; fill-opacity: .85; stroke: currentColor; stroke-width: 2; }
+#hud .chev { fill: none; stroke: var(--sight); stroke-width: 2.5; }
+#hud .cluster .chev { stroke-width: 2; }
+#hud .cell { fill: none; stroke: currentColor; stroke-opacity: .7; stroke-width: 1.5; }
+#hud .cell.is-solid { fill: #2A2E33; fill-opacity: .7; }
+#hud .floor { fill: none; stroke: currentColor; stroke-opacity: .32; stroke-width: 1.5; }
+#hud text { font: 11px 'B612 Mono', monospace; letter-spacing: .14em; fill: currentColor; }
+#hud .hdg { font-weight: 700; fill-opacity: .85; }
+#hud .lock-line { font-size: 10px; font-weight: 700; }
+#hud .hint-line { font-size: 9px; fill-opacity: .6; }
+#hud .edge text { fill-opacity: .7; }
+#hud .is-hostile { fill: var(--hostile); }
+/* the triangle reticle */
+#hud .tri-panel { fill: rgba(170, 185, 245, .07); stroke: currentColor; stroke-opacity: .32; }
+#hud .tri-bar { fill: none; stroke: currentColor; stroke-opacity: .6; stroke-linecap: square; }
+#hud .tri-brk { fill: none; stroke: currentColor; stroke-opacity: .55; stroke-linejoin: miter; }
+#hud .mode { font-size: 15px; letter-spacing: .32em; fill: var(--mode); }
 
 /* ---------- controls: nav, sr-only, hud buttons ---------- */
 .sr-only {
@@ -396,6 +305,8 @@ a { color: inherit; }
 }
 
 /* ============ boot sequence ============ */
+/* Not loaded on the hub for now (index.html has no #boot or boot.js); kept for when it returns,
+   at which point it needs the canopy screens and frame it was written for. */
 /* The boot is seen through the cockpit's five canopy screens and frame, which stay on screen
    the whole time. Its picture is canvas#boot-scene, a fixed layer at the panorama's z-index but
    later in the document, so it paints over the panorama and under #fx/#screens, #frame and
@@ -530,220 +441,6 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   .boot-bar i { transform: scaleX(1); }
   #frame.seam-glow { animation: none; filter: none; }
 }
-
-/* ============ five canopy screens ============ */
-/* The canopy is five screens, not one pane (hud.js buildScreens): between the panorama and the
-   frame; never takes input. The shutter is each screen's "off" state; .powering runs the bring-up. */
-#screens { position: fixed; inset: 0; width: 100%; height: 100%; z-index: var(--z-fx); pointer-events: none; color: var(--hud); }
-#screens .shutter { fill: #03060B; opacity: 0; }
-#screens .scr-static { opacity: 0; }
-#screens .scr-panel { fill: var(--hud); fill-opacity: 0; stroke: var(--hud); stroke-width: 1.5; opacity: 0; }
-/* every seam -- the console edge and the lines between screens -- is one machined line */
-#screens .seam-line { fill: none; stroke: var(--hud); stroke-opacity: .6; stroke-width: 1.5; }
-#screens .seam-bevel { fill: none; stroke: var(--ice); stroke-opacity: .14; stroke-width: 1; }
-#screens .console-ticks line { stroke: var(--hud); stroke-opacity: .35; stroke-width: 1; }
-#screens .seam-bolts { opacity: .45; }
-#screens.powering .shutter { opacity: 1; animation: scr-dark-off .3s calc(var(--d) + .4s) forwards; }
-#screens.powering .scr-static { animation: scr-static-cut .14s var(--d) both; }
-#screens.powering .scr-noise { animation: scr-noise .24s steps(1) infinite; }
-#screens.powering .scr-panel { animation: scr-slot .45s var(--d) both, scr-lock .7s calc(var(--d) + .45s) forwards; }
-#screens.powering .screen[data-id="C"] .scr-panel { animation: scr-lights .45s var(--d) both, scr-lock .7s calc(var(--d) + .45s) forwards; }
-/* side screens: static from the start; at its turn (--d) the static cuts out and the screen's lit
-   glass slides in from outside its edge (--ox/--oy), overshoots a touch and slots home, flashes
-   as it locks, then hands over to the permanent seam lines. The centre screen: no static, its
-   lights come on with a fluorescent flicker. Either way the dark shutter clears as it locks. */
-@keyframes scr-dark-off { to { opacity: 0; } }
-@keyframes scr-static-cut { 0% { opacity: 1; } 40% { opacity: .2; } 60% { opacity: .9; } 100% { opacity: 0; } }
-@keyframes scr-noise {
-  0% { transform: translateY(0); } 25% { transform: translateY(-37px); }
-  50% { transform: translateY(-89px); } 75% { transform: translateY(-13px); }
-}
-@keyframes scr-slot {
-  0% { opacity: 0; transform: translate(var(--ox), var(--oy)); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
-  15% { opacity: .9; }
-  78% { transform: translate(calc(var(--ox) * -.06), calc(var(--oy) * -.06)); animation-timing-function: ease-in-out; }
-  100% { opacity: 1; fill-opacity: .14; transform: translate(0, 0); }
-}
-@keyframes scr-lights {
-  0% { opacity: 0; } 10% { opacity: 1; fill-opacity: .1; } 17% { opacity: .1; fill-opacity: 0; }
-  32% { opacity: 1; fill-opacity: .12; } 40% { opacity: .3; fill-opacity: .02; } 55%, 100% { opacity: 1; fill-opacity: .14; }
-}
-@keyframes scr-lock { 0% { opacity: 1; fill-opacity: .14; } 100% { opacity: 0; fill-opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  #screens.powering .shutter, #screens.powering .scr-static, #screens.powering .scr-noise,
-  #screens.powering .scr-panel { animation: none; }
-}
-
-/* ============ power-on ============ */
-/* Cockpit power-on: each instrument group flickers on in turn (delay set per group by hud.js
-   powerOn()). Stepped, not faded -- a display striking up, not a dissolve. `backwards` only, so
-   after its run the group's own opacity attribute is back in charge. */
-.pw { animation: power-on .3s steps(1, end) var(--d, 0ms) backwards; }
-@keyframes power-on {
-  0%   { opacity: 0; }
-  25%  { opacity: .7; }
-  50%  { opacity: .15; }
-  75%  { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pw { animation: none; }
-}
-
-/* ============ hub HTML panels: .slew / .pop / .hudmode ============ */
-/* Matches the SVG instrument housings it now sits under: the same dark backing, corner
-   registration brackets, a rule under the header and a stencilled part number. It is HTML
-   rather than SVG because its children are real buttons, so the brackets are drawn as
-   background gradients instead of stroked lines. */
-.slew {
-  position: fixed;
-  right: 22px;
-  bottom: 26px;
-  top: auto;
-  left: auto;
-  transform: none;
-  /* left/width are driven from place() so this lands on the same lane, and at the same
-     width, as the SVG instruments above it -- see the two-column block there */
-  width: 232px;
-  z-index: var(--z-nav);
-  background: var(--panel);
-  border: none;
-  padding: 14px 14px 20px;   /* G_PAD in js/hud.js: same text inset as every other panel */
-  color: var(--ice);
-  font: 700 11px/1 'B612 Mono', monospace;
-  letter-spacing: .12em;
-  /* a column, so when place() stretches the panel to the radar's height the button rows take
-     the extra */
-  display: flex;
-  flex-direction: column;
-}
-/* four corner brackets, 10px arms, via the shared mechanism above -- same geometry as
-   corners() draws in the SVG panels */
-.slew::before, .pop::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  --cnr-c: var(--hud); --cnr-arm: 10px; --cnr-th: 1px;
-}
-.slew::after {
-  content: 'RX-124 · BNS-NAV-118A';
-  position: absolute;
-  right: 14px; bottom: 7px;
-  font: 400 7px/1 'B612 Mono', monospace;
-  letter-spacing: .08em;
-  color: var(--ice);
-  opacity: .55;
-}
-/* Matched to the SVG panel headers: same pale ink, same rule, same tick scale under it.
-   It was red, which reads as a lock or a warning -- this is a navigation control, and the
-   odd colour plus a missing tick rule is what made the box look unlike the rest of the
-   group it sits in. */
-.slew-head {
-  position: relative;
-  margin: 0 0 13px;
-  padding-bottom: 6px;
-  color: var(--hud);
-  font-size: 10px;
-  letter-spacing: .18em;
-  border-bottom: 1px solid rgba(140, 255, 193, .55);
-}
-.slew-head::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: 100%;
-  height: 4px;
-  background: repeating-linear-gradient(to right, var(--hud) 0 1px, transparent 1px 12px);
-  opacity: .5;
-}
-.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 6px; flex: 1; }
-.slew li { display: flex; }
-.slew button {
-  display: block;
-  width: 100%;
-  /* the WCAG 2.5.8 floor, not the real height: at this padding the button's own
-     content sets it taller (~31px) than this minimum ever has to act on */
-  min-height: 24px;
-  padding: 6px 8px;
-  font: inherit;
-  text-align: left;
-  color: var(--hud);
-  background: transparent;
-  border: 1px solid rgba(140, 255, 193, .4);
-  cursor: pointer;
-}
-.slew button:hover, .slew button:focus-visible { background: var(--hud); color: var(--night); }
-@media (max-width: 860px), (max-height: 520px) { .slew { display: none; } }
-
-/* HUD MODE: a second .slew panel, so it inherits the housing, brackets, header rule and
-   button style outright -- only its stencil code differs. place() stacks it above SLEW TO
-   on the same lane. A pressed toggle stays lit, the way a latched cockpit switch does. */
-.hudmode { bottom: auto; }
-.hudmode::after { content: 'RX-124 · BNS-HUD-031M'; }
-.slew button[aria-pressed="true"] { background: rgba(140, 255, 193, .16); border-color: var(--hud); }
-
-/* Popups in the open sky either side of TARGET ID. Same housing as every panel: the .97
-   backing, 10px corner brackets, 14px inset. Positioned by place(). */
-.pop {
-  position: fixed;
-  z-index: var(--z-nav);
-  margin: 0;
-  background: var(--panel);
-  color: var(--ice);
-  font: 700 10px/1.45 'B612 Mono', monospace;
-  letter-spacing: .1em;
-}
-.pop[hidden] { display: none; }
-/* HTML panels placed in HUD units: hud.js sets --ui on a short laptop screen and scales the
-   SVG HUD by the same factor, so these zoom with it (see uiScale() there) */
-.slew, .pop, #insignia { zoom: var(--ui, 1); }
-.comms { padding: 14px 14px 12px; }
-.pop-head {
-  display: flex;
-  justify-content: space-between;
-  margin: 0 0 8px;
-  padding-bottom: 6px;
-  color: var(--amber);            /* amber: something wants your attention, not a threat */
-  border-bottom: 1px solid rgba(140, 255, 193, .55);
-  letter-spacing: .18em;
-}
-.comms-ch { color: var(--ice); opacity: .55; }
-.comms-msg { margin: 0 0 10px; min-height: 2.9em; }
-.comms-ack {
-  font: inherit;
-  padding: 5px 14px;
-  min-height: 24px;
-  color: var(--hud);
-  background: transparent;
-  border: 1px solid rgba(140, 255, 193, .4);
-  cursor: pointer;
-}
-.comms-ack:hover, .comms-ack:focus-visible { background: var(--hud); color: var(--night); }
-.toast { padding: 9px 14px; color: var(--hud); letter-spacing: .16em; }
-@media (prefers-reduced-motion: no-preference) {
-  .pop:not([hidden]) { animation: pop-in .18s steps(3, end); }   /* a stepped raster wipe, not a soft fade */
-}
-@keyframes pop-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
-
-/* DECLUTTER strips the secondary instruments and leaves the flight HUD: reticle, tape,
-   SPD/ALT, radar, status line. CSS beats the opacity attributes hud.js sets. On a hostile
-   lock it keeps TARGET ID, the reticle readouts and the anchor warning, but drops the UNIT
-   DATA and ARMAMENT boxes and the COMMS popup (display, so its ACK leaves the tab order). */
-.declutter #hud .panel, .declutter #hud .dmgmap,
-.declutter #hud .foot, .declutter #hud .lane,
-.declutter #hud .hx-spec, .declutter #hud .hx-arms { opacity: 0; }
-.declutter #comms { display: none; }
-
-/* NIGHT VISION tints the scene only -- both layers sit at --z-fx, under the frame and the
-   HUD, so the instruments stay crisp. No filter on the sphere: a filter flattens
-   preserve-3d and would collapse the panorama. `color` recolours the scene green while
-   keeping its luminance; `screen` lifts the shadows and lays the scanlines. */
-.nv-tint, .nv-scan { position: fixed; inset: 0; z-index: var(--z-fx); pointer-events: none; display: none; }
-.nv-tint { background: rgb(70, 255, 130); mix-blend-mode: color; }
-.nv-scan {
-  mix-blend-mode: screen;
-  background: repeating-linear-gradient(to bottom, rgba(60, 190, 100, .22) 0 2px, rgba(60, 190, 100, .07) 2px 4px);
-}
-.nv .nv-tint, .nv .nv-scan { display: block; }
 
 /* ============ sub-page screen & panels ============ */
 /* No height or overflow of its own: body.page is exactly as tall as its content, and the
@@ -1153,7 +850,8 @@ kbd {
 .insignia img { width: min(100%, 520px); height: auto; }
 /* the cockpit's unit insignia: a coin turning in the top band's corner over the right column (hud.js
    place() sizes and puts it, in HUD units). Two faces, back one turned, so it reads both ways round. */
-#insignia { position: fixed; z-index: var(--z-hud); pointer-events: none; perspective: 420px; }
+#insignia { position: fixed; top: 20px; right: 24px; width: 81px; height: 64px; z-index: var(--z-hud); pointer-events: none; perspective: 420px; }
+@media (max-width: 699px) { #insignia { display: none; } }   /* the rim arc has the top of a phone */
 /* one turn per sweep of the cockpit radar (hud.js SWEEP_MS, 3400ms), here and behind the sub-pages */
 #insignia .insignia-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 3.4s linear infinite; }
 #insignia img { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; }

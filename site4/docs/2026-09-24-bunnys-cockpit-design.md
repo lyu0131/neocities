@@ -1,5 +1,7 @@
 # Site4 "BUNNyS": design spec
 
+> **Hub rebuild, 2026-10-03 (owner):** the hub is now a hairline HUD after the owner's reference clip and still (triangle reticle, rim arc, rulers, rail, lock readout; contacts as arrowheads in the panorama), with no boot, instrument panels, frame, canopy screens or fx on it. Sections below that describe those are history until the boot returns; `DESIGN.md` "Hub HUD" is current.
+
 Status: approved in brainstorming on 2026-09-24. The implementation plan is `docs/plan.md`.
 
 ## 1. Goal

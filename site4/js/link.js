@@ -1,8 +1,8 @@
 /* link.js: the handover between pages. Leaving a page, the five canopy screens shutter closed
    in the order they power on (left, centre, right, top, console) and LINK > <page> reads out on
    the closed glass; the next page starts on that same closed glass and opens it, so the page
-   load happens behind the shutters. The cockpit opens with its own screen power-on (hud.js
-   powerScreens), which is the same move.
+   load happens behind the shutters. The cockpit, which has no canopy screens of its own since
+   the hub rebuild, opens on the same glass as any page.
    Loaded in <head> without defer, so an arriving page is dark from its first paint. */
 (function () {
   'use strict';
