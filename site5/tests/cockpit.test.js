@@ -71,7 +71,16 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));
-  check('the seat edge moves with the head', await p.eval("/translate\\((?!0\\.0px)/.test(document.getElementById('seat').style.transform)"));
+  // looking round to the tail: the monitor's rear set is there (heading tape, AFT marker, ladders)
+  await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 75 * k, 450, 1); await p.mouse('mouseReleased', 100, 450);
+  await p.sleep(200);
+  check('the rear of the monitor has its own HUD', await p.eval('SITE5.parts.rear === true'));
+  // looking down (dragging the view up): the arm rails and grips are there, drawn in perspective
+  await p.goto(PAGE, 300); await ready(p);
+  await p.mouse('mousePressed', 700, 650, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700, 650 - 40 * k, 1); await p.mouse('mouseReleased', 700, 330);
+  await p.sleep(200);
+  check('looking down shows the controls', await p.eval('SITE5.parts.seat.grip > 4 && SITE5.parts.seat.rail > 4'), JSON.stringify(await p.eval('SITE5.parts.seat')));
+  check('the mix has no big outer ring', await p.eval('SITE5.parts.ring === false'));
   check('no JS errors', p.errors.length === 0, p.errors.join(' | '));
   check('frames hold up (avg under 25ms)', (await p.eval('SITE5.frameMs')) < 25, (await p.eval('SITE5.frameMs')).toFixed(1) + 'ms');
 
@@ -98,6 +107,10 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     await m.goto(PAGE, 300); await ready(m);
     check('phone: no h-overflow', await m.eval('document.documentElement.scrollWidth <= innerWidth'));
     check('phone: draws', await m.eval('!!SITE5.gl') && m.errors.length === 0, m.errors.join(' | '));
+    check('phone: the grip heads show at rest', await m.eval('SITE5.parts.seat.grip > 0'), JSON.stringify(await m.eval('SITE5.parts.seat')));
+    await m.mouse('mousePressed', 187, 650, 1); for (let k = 1; k <= 8; k++) await m.mouse('mouseMoved', 187, 650 - 40 * k, 1); await m.mouse('mouseReleased', 187, 330);
+    await m.sleep(200);
+    check('phone: looking down shows the rails and grips', await m.eval('SITE5.parts.seat.grip > 4 && SITE5.parts.seat.rail > 4'), JSON.stringify(await m.eval('SITE5.parts.seat')));
     m.close();
   }
 })();

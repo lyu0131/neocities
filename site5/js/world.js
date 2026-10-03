@@ -2,7 +2,7 @@
    Per pixel: a ray from the pilot's eye (off the ball's centre, swaying with the seat) meets the ball;
    that point p shows the outside world in its own direction from the centre (the ball is a display,
    not a window), turned by the suit's attitude. So the picture bends as a real spherical screen would,
-   and the bend changes as the seat moves. Then the ball's own panel seams: a geodesic of hexagons and
+   and the bend changes as the seat moves. Then the ball's own panel seams (thin light joints): a geodesic of hexagons and
    pentagons (the spherical Voronoi of a Fibonacci point set), drawn in ball coordinates.
    No textures, no pre-curved art. Renders below device resolution and steps down further if slow. */
 (function () {
@@ -75,10 +75,11 @@
     '  float d1 = -2., d2 = -2.; int id = 0;',
     '  for (int i = 0; i < 64; i++) { float dd = dot(p, uCells[i]); if (dd > d1) { d2 = d1; d1 = dd; id = i; } else if (dd > d2) d2 = dd; }',
     '  float e = d1 - d2, px = fwidth(e) + 1e-5;',
-    '  float seam = 1. - smoothstep(px * .7, px * 1.9, e), lip = (1. - smoothstep(px * 1.9, px * 4., e)) * (1. - seam);',
+    // a thin light joint, as in the seat shots, with the faintest shadow beside it
+    '  float seam = 1. - smoothstep(px * .45, px * 1.25, e), lip = (1. - smoothstep(px * 1.25, px * 2.6, e)) * (1. - seam);',
     '  col *= 1. + (h21(vec2(float(id), 3.)) - .5) * .05 * uSeam;',
-    '  col = mix(col, col * .3 + vec3(.008, .012, .02), seam * uSeam);',
-    '  col += vec3(.05, .065, .085) * lip * uSeam * .7;',
+    '  col = mix(col, vec3(.36, .44, .56), seam * uSeam * .42);',
+    '  col *= 1. - lip * uSeam * .18;',
     '  col = col * uTint + vec3(.9, .95, 1.) * uFlash;',
     '  col += (h21(gl_FragCoord.xy) - .5) / 255.;',      // dither against banding
     '  o = vec4(col, 1.);',
@@ -111,7 +112,7 @@
     cells.push(Math.cos(th) * rr, y, Math.sin(th) * rr);
   }
   gl.uniform3fv(U.uCells, cells);
-  var LOOKS = { mix: { seam: 0.6, tint: [0.95, 0.99, 1.06] }, xi: { seam: 0.95, tint: [0.92, 1.0, 1.03] }, penelope: { seam: 0.45, tint: [0.96, 0.92, 1.16] } };
+  var LOOKS = { mix: { seam: 0.75, tint: [0.95, 0.99, 1.06] }, xi: { seam: 0.95, tint: [0.92, 1.0, 1.03] }, penelope: { seam: 0.45, tint: [0.96, 0.92, 1.16] } };
   var L = LOOKS[S.look];
   gl.uniform1f(U.uSeam, L.seam); gl.uniform3fv(U.uTint, L.tint);
 

@@ -5,7 +5,7 @@ seat inside a spherical panoramic monitor, mixing the two cockpits of the owner'
 the clips, and why, is in `docs/reference.md`.
 
 ## Rules
-- Clean: no boxed panels, no console tablet. Only the ball, its HUD and the seat edge.
+- Clean: no boxed panels, no console tablet. Only the ball, its HUD and the arm rails with their grips.
 - Original drawing only: geometry and behaviour from the clips, never their names, logos or caption text (the look
   switcher's labels are the one place the two cockpits are named).
 - Plain static: no build, no dependencies, relative paths. JS is `'use strict'` IIFEs; the only global is `SITE5`.
@@ -33,19 +33,35 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
 One WebGL2 full-screen fragment shader: ray from the eye -> the ball -> world direction -> night sky (moon, stars, thin
 high cloud), a moonlit cloud sea on a plane below that scrolls as the suit flies, the opponent's speck and thruster
 glint, beams as great-circle arcs widening toward their near end. Then the ball's **panel seams**: the spherical
-Voronoi of 64 Fibonacci points, a geodesic of hexagons and pentagons, with a lip and a per-panel tone. Rendered at
+Voronoi of 64 Fibonacci points, a geodesic of hexagons and pentagons: thin light joints, as in the seat shots, with
+a faint shadow beside them and a per-panel tone. Rendered at
 0.7–0.75 of device resolution, stepping down by 0.1 (to 0.45) while frames average over 21ms.
 
 ## The HUD (`js/hud.js`)
 A 2D canvas of vectors authored on the ball and projected through the same geometry, every line subdivided every
-~1.2°. **Ball-fixed**: the triangle reticle (with the AUTO/MANUAL word), the outer ring with its **roll scale** (ticks turning
-with the bank against a fixed pink pointer), hex-cell ladders (±30°) with thin rulers (±36.5°) whose ticks **stream at
-airspeed**, the white **pitch tape** (−47°, scrolling with the suit's pitch, labelled every 10°) and **altitude tape**
-(+47°, a tick every 20 m, labelled every 100 m), each with a pink read-out at eye level; all of them run the ball's
-whole height and fade out toward ±82° rather than stopping; the waist rail (el −15°), the heading tape (el +27°), the chevrons. **World-fixed**: the pink horizon
-bars and the target marker (with its closing lock ring, and a dotted lead arc when it's off the nose).
-Looks (`?look=`): `mix` (default), `xi`, `penelope`; the table at the top of hud.js says which elements each carries.
-The seat edge (`#seat`, two grips) is fixed to the seat like the eye, so only the head turning moves it.
+~1.2°. The detail follows the clips' key frames: long flat-topped hex cells in staggered pairs, dash rulers with no
+spine, label plates with two lines of tiny unreadable "text", hex badges, arrow plates, dot grids.
+- **Ball-fixed, front**: the triangle reticle (with the AUTO/MANUAL word); a short **roll arc** over it (ticks turning with
+  the bank against a fixed pink pointer); the heading tape (el +28.5°); hex-cell ladders (±30°) with dash rulers that
+  **stream at airspeed** and a plate each; the white **pitch tape** (−47°, scrolling with pitch, a number every 10°) and
+  **altitude tape** (+47°, a dash every 20 m, a number every 100 m), each with a pink read-out at eye level and a plate
+  up the tape; the **plate cluster** under the sight (periwinkle/salmon chevrons, badges, arrow plates, tab plates, dot
+  grids); the waist rail (el −15°). Everything that runs up the ball fades out toward ±82° rather than stopping.
+- **Ball-fixed, rear** (the monitor is all the way round): a second ladder pair (±150°), the reciprocal heading tape
+  (salmon caret) and the AFT marker set at az 180.
+- **World-fixed**: pink horizon bars on a white tick rail, either side of the heading **and its reciprocal**; the target
+  marker with its closing lock ring (scaled with the triangle on narrow screens; labels always outside it) and a
+  dotted lead arc when it's off the nose.
+- No big outer ring in the mix (owner: it didn't fit). Looks (`?look=`): `mix` (default), `xi`, `penelope` (its own
+  11° ring sight); the table at the top of hud.js says which elements each carries.
+- `SITE5.parts` reports what drew (`rear`, `ring`, `seat`), and `SITE5.tapes` the live scales, for the tests.
+
+## The controls (`js/seat.js`)
+Two arm rails with control grips, fixed to the seat like the eye, built from chamfered prisms in the seat frame and
+drawn in perspective with simple facet shading over the HUD: a rail with a tick track, a pink line and a lamp; a grip
+on a stalk with a ribbed handle, a head block with three thumb buttons and a lamp, and a trigger. Only the head
+turning moves them: at rest the grip heads just show in the lower corners; looking down shows the rails. On a narrow
+(portrait) screen the pair is drawn closer together (`KX`), or the tight view would never take them in.
 
 ## Palette (sampled off the clips)
 Lines `#AFC0EC` (mix) / `#9CB3E8` / `#BAC4F4`, white ticks `#EEF3FA`, mode word `#FFA3DC`, horizon bars `#FF4F8B` over
@@ -54,5 +70,5 @@ clouds `#3D5266`. Type: Michroma (HUD words), B612 Mono fallback.
 
 ## Tests
 `node site5/tests/cockpit.test.js` (uses `site4/tests/cdp.js`): the ball draws, the HUD draws, AUTO turns the suit and
-sways the seat, keys take over and hand back, drag turns the head and the seat edge, frame time, every look, reduced
+sways the seat, keys take over and hand back, drag turns the head, the rear HUD shows, looking down shows the controls (desktop and phone), frame time, every look, reduced
 motion holds still, a 375px phone fits.
