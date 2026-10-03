@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ball cockpit, test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/cockpit.css">
+</head>
+<body>
+<main id="cockpit" aria-label="Panoramic cockpit, a test">
+  <h1 class="sr-only">Panoramic monitor cockpit test: a ball display inside the suit</h1>
+  <canvas id="world" aria-hidden="true"></canvas>
+  <canvas id="hud" aria-hidden="true"></canvas>
+  <!-- the seat edge: two grips at the lower corners, fixed to the seat -->
+  <div id="seat" aria-hidden="true">
+    <svg class="grip grip-l" viewBox="0 0 320 240">
+      <path class="rail" d="M0 240 L0 150 L120 128 L210 150 L262 240 Z"/>
+      <path class="block" d="M96 160 L118 96 Q122 84 136 84 L176 84 Q190 84 192 98 L198 170 Q198 184 184 186 L112 190 Q96 190 96 176 Z"/>
+      <path class="edge" d="M118 96 Q122 84 136 84 L176 84 Q190 84 192 98"/>
+      <rect class="pip" x="132" y="104" width="30" height="5" rx="2"/>
+      <circle class="btn" cx="146" cy="138" r="9"/><circle class="btn" cx="170" cy="150" r="6"/>
+    </svg>
+    <svg class="grip grip-r" viewBox="0 0 320 240">
+      <path class="rail" d="M0 240 L0 150 L120 128 L210 150 L262 240 Z"/>
+      <path class="block" d="M96 160 L118 96 Q122 84 136 84 L176 84 Q190 84 192 98 L198 170 Q198 184 184 186 L112 190 Q96 190 96 176 Z"/>
+      <path class="edge" d="M118 96 Q122 84 136 84 L176 84 Q190 84 192 98"/>
+      <rect class="pip amber" x="132" y="104" width="30" height="5" rx="2"/>
+      <circle class="btn" cx="146" cy="138" r="9"/><circle class="btn" cx="170" cy="150" r="6"/>
+    </svg>
+  </div>
+  <p id="hint" aria-hidden="true"><span class="fine">DRAG TO LOOK · ARROWS TO FLY</span><span class="touch">DRAG TO LOOK</span></p>
+  <nav id="looks" aria-label="Look">
+    <a href="?look=mix">MIX</a><a href="?look=xi">XI</a><a href="?look=penelope">PENELOPE</a>
+  </nav>
+  <p class="nogl-note">This browser can't draw the panoramic monitor (no WebGL2).</p>
+</main>
+<script src="js/ball.js" defer></script>
+<script src="js/world.js" defer></script>
+<script src="js/hud.js" defer></script>
+<script>
+  // mark the current look in the switcher
+  (function () {
+    var l = (/[?&]look=(mix|xi|penelope)\b/.exec(location.search) || [])[1] || 'mix';
+    var a = document.querySelector('#looks a[href="?look=' + l + '"]'); if (a) a.setAttribute('aria-current', 'page');
+  })();
+</script>
+</body>
+</html>

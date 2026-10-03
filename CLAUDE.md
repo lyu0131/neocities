@@ -9,6 +9,7 @@ This repo holds plain static websites for Neocities: HTML, CSS and vanilla JS, w
 | `site2-old/` | backup of site2 v1 (tidy grid) |
 | `site3/` | DOLOR/SIT: brutal CCTV, xerox and poster-wall style |
 | `site4/` | **BUNNYS**: mobile-suit cockpit HUD site, **in progress** |
+| `site5/` | test bed, never deployed: a ball cockpit (spherical panoramic monitor) mixing the two cockpits of the owner's reference clips |
 
 Each site has a `DESIGN.md` that works as the contract its pages, CSS and JS follow. Read it before editing a site.
 

@@ -1,0 +1,49 @@
+/* site5: a ball cockpit test. The picture is canvas#world (WebGL), the HUD canvas#hud (2D, vectors
+   projected off the ball); this file only frames them, the seat edge and two small text bits. */
+:root {
+  --night: #05080F;
+  --line: #AFC0EC;
+  --pink: #FFA3DC;
+  --seat: #080C13;
+  --seat-edge: #2A3443;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); }
+#cockpit { position: fixed; inset: 0; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+#cockpit:active { cursor: grabbing; }
+#world, #hud { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { pointer-events: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* the seat edge: grips at the lower corners, dark, moved only by the head turning (hud.js) */
+#seat { position: absolute; inset: 0; pointer-events: none; will-change: transform; }
+.grip { position: absolute; bottom: -2px; width: clamp(150px, 24vw, 340px); height: auto; overflow: visible; }
+.grip-l { left: -10px; }
+.grip-r { right: -10px; transform: scaleX(-1); }
+.grip .rail { fill: var(--seat); stroke: none; }
+.grip .block { fill: #0A0F17; stroke: none; }
+.grip .edge { fill: none; stroke: #4B5A6E; stroke-width: 1.5; }
+.grip .pip { fill: #3FC1D9; opacity: .85; }
+.grip .pip.amber { fill: #E0A93A; }
+.grip .btn { fill: #121A25; stroke: var(--seat-edge); stroke-width: 1.5; }
+
+#hint {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); margin: 0;
+  font: 10px/1 Michroma, 'B612 Mono', sans-serif; letter-spacing: .24em; color: var(--line);
+  opacity: 0; animation: hint 7s ease-out 1s both; white-space: nowrap; pointer-events: none;
+}
+#hint .touch { display: none; }
+@media (hover: none) { #hint .fine { display: none; } #hint .touch { display: inline; } }
+@keyframes hint { 0%, 100% { opacity: 0; } 12%, 70% { opacity: .7; } }
+
+#looks { position: absolute; top: 14px; left: 16px; display: flex; gap: 14px; font: 9px/1 Michroma, 'B612 Mono', sans-serif; letter-spacing: .2em; }
+#looks a { color: var(--line); opacity: .45; text-decoration: none; padding: 6px 0; }
+#looks a:hover, #looks a:focus-visible, #looks a[aria-current] { opacity: .95; }
+#looks a[aria-current] { color: var(--pink); }
+:focus-visible { outline: 1px solid var(--pink); outline-offset: 3px; }
+
+.nogl-note { display: none; }
+.nogl #world { background: radial-gradient(ellipse 120% 70% at 50% 45%, #1A2D3B, #05080F 70%); }
+.nogl .nogl-note { display: block; position: absolute; left: 16px; bottom: 16px; margin: 0; font: 12px 'B612 Mono', monospace; color: var(--line); }
+
+@media (prefers-reduced-motion: reduce) { #hint { animation: none; opacity: .7; } }
