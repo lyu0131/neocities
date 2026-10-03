@@ -1,5 +1,5 @@
 // Sub-pages: no overflow at every test width, one h1, return link, nav with aria-current,
-// hangar callouts light up their part. Screenshots go to tests/out/.
+// the hangar draws its model. Screenshots go to tests/out/.
 const fs = require('fs'), path = require('path');
 const { launch, check, SITE } = require('./cdp');
 const PAGES = ['pilot.html', 'missions.html', 'hangar.html'];
@@ -47,13 +47,14 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
   }
   if (fs.existsSync(path.join(SITE, 'hangar.html'))) {
     await p.goto('hangar.html', 900);
-    const n = await p.eval("document.querySelectorAll('button[data-zone]').length");
-    check('hangar has a callout per zone', n === 8, n + ' callouts');
+    // the part callouts are gone (owner, 2026-10-02): only the view buttons stay
+    const n = await p.eval("document.querySelectorAll('button[data-zone], [aria-label=Parts]').length");
+    check('hangar has no part callouts', n === 0, n + ' left');
+    check('hangar keeps its view buttons', await p.eval("document.querySelectorAll('button[data-view]').length === 3"));
     check('hangar shows the unit insignia', await p.eval("(() => { const i = document.querySelector('.insignia img'); return !!i && i.complete && i.naturalWidth > 0; })()"));
     // the owner's own mesh, drawn: the canvas has real pixels in it, not just the grid behind
     // (read inside a frame, straight after hangar.js has drawn: outside one the buffer is cleared)
     check('hangar draws the model', await p.eval("new Promise(r=>requestAnimationFrame(()=>{const c=document.getElementById('suit');const g=c&&c.getContext('webgl2');if(!g)return r(false);const px=new Uint8Array(4*64*64);g.readPixels((c.width>>1)-32,(c.height>>1)-32,64,64,g.RGBA,g.UNSIGNED_BYTE,px);let n=0;for(let i=3;i<px.length;i+=4)if(px[i]>0)n++;r(n>200)}))"));
-    check('hangar callout lights its zone', await p.eval("(()=>{const b=document.querySelector('button[data-zone=chest]');b.focus();return document.getElementById('suit').dataset.hot==='chest'})()"));
   }
   // Folded in from the retired a11y-audit.js: the four of its checks no other test covered.
   for (const pg of ['index.html', ...PAGES]) {

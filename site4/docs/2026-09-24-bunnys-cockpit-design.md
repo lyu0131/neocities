@@ -165,7 +165,7 @@ Sound is out of scope (autoplay is blocked, and the user didn't ask for it).
 - **pilot.html:** a pilot ID card: callsign `SYLAS LYU`, unit SL-01, role "Psychology and UX design, Purdue University". The intro paragraph and the LinkedIn link sit in a "COMMS" block.
 - **missions.html:** a flight-record timeline, then the five missions of section 9 under Active and Archive, each with its mission ID, dates, status tag, role, and Objective / Actions / Outcome. They reveal one by one as they scroll into view. No intro line under the title on any sub-page (the owner removed them).
 - **hangar.html:**
-  - the owner's own mesh in 3D on a blueprint grid (`js/hangar.js`, WebGL2; data `js/suitmesh.js` from `tools/gen_dmgmap.py`): turns on its own except under reduced motion, drag or arrow keys turn it, FRONT/SIDE/REAR swing to those views, and the 8 part callouts light the same zones as the cockpit's damage map (replaced the SL-01 three-view, 2026-09-30);
+  - the owner's own mesh in 3D on a blueprint grid (`js/hangar.js`, WebGL2; data `js/suitmesh.js` from `tools/gen_dmgmap.py`): turns on its own except under reduced motion, drag or arrow keys turn it, FRONT/SIDE/REAR swing to those views (replaced the SL-01 three-view, 2026-09-30; its 8 part callouts were removed at the owner's request, 2026-10-02);
   - a status row of true facts about the model (designer, callsign, triangle count, parts). The old fictional spec table is gone.
 
 ## 8. Graphics specs (AI-drawn SVG)
@@ -223,6 +223,6 @@ Sources: the owner's resume (supplied 2026-09-30) and what they wrote for site2'
   - with reduced motion: no boot animation, still interactive.
 - **Checks on sub-pages and budgets:**
   - the sub-page nav and return control work;
-  - the hangar callouts highlight their parts;
+  - the hangar draws the owner's model, with no part callouts;
   - an accessibility review agent reports no critical issues;
   - the performance budgets in section 2 are met (file sizes checked with a script).
