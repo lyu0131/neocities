@@ -114,6 +114,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   // the unit insignia turns in the top band's corner, above the right column, for good
   check('cockpit shows the unit insignia', await p.eval("(() => { const e = document.getElementById('insignia'); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 30 && r.left > innerWidth / 2 && r.top >= 0 && cs.visibility === 'visible' && +cs.opacity > 0.5; })()"));
   check('the insignia turns', /insignia-spin/.test(await p.eval("getComputedStyle(document.querySelector('#insignia .insignia-coin')).animationName")));
+  check('the insignia turns at the radar speed (SWEEP_MS 3400)', await p.eval("getComputedStyle(document.querySelector('#insignia .insignia-coin')).animationDuration") === '3.4s');
 
   // The boot is one continuous shot in four stages (boot.js): COCKPIT, UNIT CHECK, PILOT ID,
   // LAUNCH. Sample the live page every ~60ms across the whole boot instead of trusting a

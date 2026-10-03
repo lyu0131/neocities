@@ -26,6 +26,8 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
       const r = e.getBoundingClientRect(), cs = getComputedStyle(e), img = e.querySelector('img');
       return cs.position === 'fixed' && cs.pointerEvents === 'none' && r.height >= innerHeight * .6 && img.complete && img.naturalWidth > 0; })()`));
     check(`${pg} the emblem turns`, await p.eval("(() => { const c = document.querySelector('.bg-emblem .bg-coin'); return !!c && getComputedStyle(c).animationName === 'insignia-spin'; })()"));
+    // at the cockpit radar's sweep rate (hud.js SWEEP_MS, 3400ms a turn)
+    check(`${pg} the emblem turns at the radar's speed`, await p.eval("getComputedStyle(document.querySelector('.bg-emblem .bg-coin')).animationDuration") === '3.4s');
     check(`${pg} the emblem sits behind the content`, await p.eval("(() => { const h = document.querySelector('h1').getBoundingClientRect(); const top = document.elementFromPoint(h.left + h.width / 2, h.top + h.height / 2); return !!top && !top.closest('.bg-emblem'); })()"));
     check(`${pg} has none of the cockpit HUD`, await p.eval("!document.getElementById('hud') && !document.getElementById('frame')"));
     // J/K step one sector at a time, fast presses included, and K comes back from the very end

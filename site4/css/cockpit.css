@@ -770,7 +770,7 @@ body.page::before {
   height: min(80vh, 120vw, 980px); aspect-ratio: 592 / 471;
   transform: translate(-50%, -50%); perspective: 2400px; opacity: .22;
 }
-.bg-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 30s linear infinite; }
+.bg-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 3.4s linear infinite; }   /* the radar's sweep rate, like #insignia */
 .bg-coin img { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; }
 .bg-coin img + img { transform: rotateY(180deg); }
 @media (prefers-reduced-motion: reduce) { .bg-coin { animation: none; } }
@@ -1154,7 +1154,8 @@ kbd {
 /* the cockpit's unit insignia: a coin turning in the top band's corner over the right column (hud.js
    place() sizes and puts it, in HUD units). Two faces, back one turned, so it reads both ways round. */
 #insignia { position: fixed; z-index: var(--z-hud); pointer-events: none; perspective: 420px; }
-#insignia .insignia-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 9s linear infinite; }
+/* one turn per sweep of the cockpit radar (hud.js SWEEP_MS, 3400ms), here and behind the sub-pages */
+#insignia .insignia-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 3.4s linear infinite; }
 #insignia img { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; }
 #insignia img + img { transform: rotateY(180deg); }
 @keyframes insignia-spin { to { transform: rotateY(360deg); } }

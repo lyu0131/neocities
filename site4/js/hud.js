@@ -220,7 +220,7 @@
   var PAD = 16, R_HEAD = 44;
   // The scanning sweep: a rotating arm with a decaying phosphor trail, and blips that brighten as
   // the arm passes their bearing then fade back down.
-  var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;
+  var SWEEP_MS = 3400, SWEEP_RATE = 360 / SWEEP_MS, SWEEP_PARK = 0;   // the insignias turn at this rate too (CSS insignia-spin 3.4s)
   var SWEEP_TRAIL = 6, SWEEP_STEP = 10; // SWEEP_TRAIL * SWEEP_STEP deg of decay behind the arm
   var SWEEP_BEAM = 4, SWEEP_DECAY = 900; // deg either side that "lights" a blip; ms to fade
   var sweepGroup;
