@@ -41,14 +41,19 @@ a faint shadow beside them and a per-panel tone. Rendered at
 A 2D canvas of vectors authored on the ball and projected through the same geometry, every line subdivided every
 ~1.2°. The detail follows the clips' key frames: long flat-topped hex cells in staggered pairs, dash rulers with no
 spine, label plates with two lines of tiny unreadable "text", hex badges, arrow plates, dot grids.
+- **Circles, not meridians.** The side ladders and tapes are arcs of circles centred on the boresight (`arcPt(sd,
+  theta, phi)`: theta out from the nose, phi round it), as in the Xi's FPV frames. Seen from near the ball's centre a
+  circle round the nose projects as a true circle; a line of constant azimuth is a great circle and projects straight,
+  which is why the first ladders looked like two straight lines. `S.arcSample` lets the test check the roundness.
 - **Ball-fixed, front**: the triangle reticle (with the AUTO/MANUAL word); a short **roll arc** over it (ticks turning with
-  the bank against a fixed pink pointer); the heading tape (el +28.5°); hex-cell ladders (±30°) with dash rulers that
-  **stream at airspeed** and a plate each; the white **pitch tape** (−47°, scrolling with pitch, a number every 10°) and
-  **altitude tape** (+47°, a dash every 20 m, a number every 100 m), each with a pink read-out at eye level and a plate
-  up the tape; the **plate cluster** under the sight (periwinkle/salmon chevrons, badges, arrow plates, tab plates, dot
-  grids); the waist rail (el −15°). Everything that runs up the ball fades out toward ±82° rather than stopping.
-- **Ball-fixed, rear** (the monitor is all the way round): a second ladder pair (±150°), the reciprocal heading tape
-  (salmon caret) and the AFT marker set at az 180.
+  the bank against a fixed pink pointer); the heading tape (el +28.5°); hex-cell ladders (cells 36° out, the dash ruler
+  just inside at 31°, as in the seat shots) whose ruler **streams at airspeed**, fading out round toward the top and
+  bottom (40–66° round) so they read as ( ) brackets, with a plate each; the white **pitch tape** (left) and **altitude
+  tape** (right) 47° out, scrolling round their arcs (1.6° of arc per degree of pitch, 1.8° per 20 m) and running on off
+  the top and bottom of the screen, each with a pink read-out at eye level; the **plate cluster** under the sight
+  (periwinkle/salmon chevrons, badges, arrow plates, tab plates, dot grids); the waist rail (el −15°).
+- **Ball-fixed, rear** (the monitor is all the way round): the same ladder pair as circles round the tail, the reciprocal
+  heading tape (salmon caret) and the AFT marker set at az 180.
 - **World-fixed**: pink horizon bars on a white tick rail, either side of the heading **and its reciprocal**; the target
   marker with its closing lock ring (scaled with the triangle on narrow screens; labels always outside it) and a
   dotted lead arc when it's off the nose.

@@ -68,6 +68,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('the roll scale turns with the bank', t2 && Math.abs(t2.roll) > 8, t2 && String(t2.roll));
   await p.sleep(4600);
 
+  // the side ladders and tapes are circular arcs centred on the sight, as in the FPV frames: points on
+  // the ruler sit at one distance from where the nose projects (a meridian would not)
+  const circ = await p.eval(`(() => { const c = SITE5.project([0, 0, 1]), pts = SITE5.arcSample || [];
+    const r = pts.map(q => { const s = SITE5.project(q); return s ? Math.hypot(s[0] - c[0], s[1] - c[1]) : NaN; }).filter(v => v === v);
+    return JSON.stringify({ n: r.length, min: Math.min(...r), max: Math.max(...r) }); })()`).then(JSON.parse);
+  check('the side ladders are circular arcs round the sight', circ.n >= 5 && (circ.max - circ.min) / circ.max < 0.08, JSON.stringify(circ));
+
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));

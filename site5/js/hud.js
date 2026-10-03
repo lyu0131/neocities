@@ -82,11 +82,27 @@
   }
   var F = basis([0, 0, 1]);   // the nose
 
-  // Everything that runs up the ball fades out toward its top and bottom, so it closes in like the
-  // sphere's own meridians instead of stopping dead.
-  var EL_MAX = 82, TAPE = 47;
   function smooth(e0, e1, x) { var t = m.clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
-  function fade(el) { return 1 - smooth(46, EL_MAX, Math.abs(el)); }
+
+  // ---- circles round the nose (or the tail) ----
+  // The side ladders and tapes are arcs of circles centred on the boresight, as in the FPV frames: seen
+  // from near the ball's centre a circle round the nose projects as a true circle, where a line of
+  // constant azimuth (a great circle) would project straight. theta: degrees out from the axis; phi:
+  // degrees round it, from the horizontal on side sd (+1 right, -1 left), up positive. aft: round the tail.
+  var CELL = 36, RULER = 31, TAPE = 47, PHI_MAX = 80;
+  function arcPt(sd, theta, phi, aft) {
+    var a = aft ? -1 : 1, st = Math.sin(theta * D);
+    return [st * sd * Math.cos(phi * D) * a, st * Math.sin(phi * D), Math.cos(theta * D) * a];
+  }
+  // the tangent basis there: R outward along the radius (screen-right on the right side), U round the arc (up)
+  function arcBasis(sd, theta, phi, aft) {
+    var a = aft ? -1 : 1, ct = Math.cos(theta * D), st = Math.sin(theta * D), cp = Math.cos(phi * D), sp = Math.sin(phi * D);
+    return { c: arcPt(sd, theta, phi, aft), R: [ct * cp * a, sd * ct * sp, -sd * st * a], U: [-sd * sp * a, cp, 0] };
+  }
+  // the ladders fade out round toward the top and bottom, so they read as ( ) brackets and never reach
+  // the heading tape or the plate cluster; the tapes run on off the screen
+  function fadeL(phi) { return 1 - smooth(40, 66, Math.abs(phi)); }
+  S.arcSample = [-40, -20, 0, 20, 40].map(function (ph) { return arcPt(1, RULER, ph); });
 
   // ---- shapes, in tangent units around a ball point B (u right, v up) ----
   // a long flat-topped hexagon with pointed ends (the ladder cell and the label plate)
@@ -148,67 +164,67 @@
     }
     stroke(at ? C.salmon : C.pink, 0.9, 1.4); path([dir(at - 0.8, 27.6), dir(at, 28.4), dir(at + 0.8, 27.6)]);
   }
-  // A hex ladder: two staggered columns of long cells up the ball at azimuth az, a dash ruler beside
-  // it (outward, sd) streaming at airspeed, and a label plate low down.
-  function ladder(az, sd, stream) {
-    for (var el = -72, i = 0; el <= 74; el += 2.7, i++) {
-      var al = fade(el);
+  // A hex ladder: two staggered columns of long cells round a circle CELL degrees out, a dash ruler
+  // just inside it (as in the seat shots) streaming at airspeed, and a label plate.
+  function ladder(sd, aft, stream) {
+    for (var ph = -PHI_MAX, i = 0; ph <= PHI_MAX; ph += 5, i++) {
+      var al = fadeL(ph);
       if (al < 0.05) continue;
-      var B = basis(dir(az, el)), cells = longHex(B, (i % 2) * sd * 0.032, 0, 0.034, 0.0185, 0.012);
+      var cells = longHex(arcBasis(sd, CELL, ph, aft), (i % 2) * sd * 0.032, 0, 0.034, 0.0185, 0.012);
       if (fill(cells, C.cell, al)) { stroke(C.cellEdge, 0.2 * al, 1); path(cells, true); }
     }
-    var rx = az + sd * 5.4;
-    for (var e = -EL_MAX - 1, n = 0; e <= EL_MAX; e += 1, n++) {
-      var te = e - stream, a2 = fade(te), long = n % 5 === 0;
-      if (a2 < 0.04 || Math.abs(te) > EL_MAX) continue;
+    var STEP = 1.7;
+    for (var e = -PHI_MAX - STEP, n = 0; e <= PHI_MAX; e += STEP, n++) {
+      var te = e - stream * STEP, a2 = fadeL(te), long = n % 5 === 0;
+      if (a2 < 0.04) continue;
       stroke(C.tick, (long ? 0.7 : 0.42) * a2, long ? 1.8 : 1.1);
-      seg(dir(rx, te), dir(rx + sd * (long ? 1.6 : 0.9), te));
+      seg(arcPt(sd, RULER, te, aft), arcPt(sd, RULER + (long ? 1.6 : 0.9), te, aft));
     }
-    plate(basis(dir(az + sd * 6.4, 9)), 0, 0, 0.036, 0.0135, 0.9);
+    plate(arcBasis(sd, RULER - 3.6, 12, aft), 0, 0, 0.036, 0.0135, 0.9);
   }
   function ladders(p) {
     var stream = (p.dist * 0.003) % 1;
     tapes.stream = stream.toFixed(3);
-    ladder(-30, -1, stream); ladder(30, 1, stream);
-    // the rear of the monitor: the same pair behind the seat
-    ladder(150, -1, stream); ladder(-150, 1, stream);
-    parts.rear = !!(project(dir(180, 10)) || project(dir(150, 0)) || project(dir(-150, 0)));
+    ladder(-1, false, stream); ladder(1, false, stream);
+    // the rear of the monitor: the same pair round the tail
+    ladder(-1, true, stream); ladder(1, true, stream);
+    parts.rear = !!(project(dir(180, 10)) || project(arcPt(1, CELL, 0, true)) || project(arcPt(-1, CELL, 0, true)));
   }
-  // The tapes, as the dash ladders of the clip (no spine): left the pitch tape (a dash every 2.5
-  // degrees of the suit's pitch, a long bright one at every 10 with its number), right the altitude
-  // tape (a dash every 20 m, 1.5 degrees apart, a number every 100 m). Each has a pink read-out.
+  // The tapes, round a circle TAPE degrees out, as the dash ladders of the clip (no spine): left the
+  // pitch tape (a dash every 2.5 degrees of the suit's pitch, a long bright one at every 10 with its
+  // number), right the altitude tape (a dash every 20 m, a number every 100 m). Each has a pink
+  // read-out at eye level; both run on off the top and bottom of the screen.
+  var PH = 1.6, PA = 1.8;   // degrees round the tape per degree of pitch, per 20 m
   function tapesDraw(p) {
     var labels = [];
-    var dash = function (az, sd, el, long, mid) {
-      var a = fade(el);
-      if (a < 0.04 || Math.abs(el) > EL_MAX) return;
-      stroke(C.tick, (long ? 0.85 : mid ? 0.6 : 0.4) * a, long ? 2.2 : 1.2);
-      seg(dir(az + sd * (long ? -0.6 : 0), el), dir(az + sd * (long ? 2.8 : mid ? 1.7 : 1.1), el));
+    ctx.textBaseline = 'middle';
+    var dash = function (sd, ph, long, mid) {
+      if (Math.abs(ph) > PHI_MAX) return;
+      stroke(C.tick, long ? 0.85 : mid ? 0.6 : 0.4, long ? 2.2 : 1.2);
+      seg(arcPt(sd, TAPE - (long ? 0.6 : 0), ph), arcPt(sd, TAPE + (long ? 2.8 : mid ? 1.7 : 1.1), ph));
     };
-    for (var k = Math.ceil((p.pitch - EL_MAX) / 2.5) * 2.5; k <= p.pitch + EL_MAX; k += 2.5) {
-      var el = k - p.pitch, ten = Math.abs(k % 10) < 0.01;
-      dash(-TAPE, -1, el, ten, Math.abs(k % 5) < 0.01);
+    for (var k = Math.ceil((p.pitch - PHI_MAX / PH) / 2.5) * 2.5; k <= p.pitch + PHI_MAX / PH; k += 2.5) {
+      var ph = (k - p.pitch) * PH, ten = Math.abs(k % 10) < 0.01;
+      dash(-1, ph, ten, Math.abs(k % 5) < 0.01);
       if (ten && Math.abs(k) <= 90) {
         var v = Math.round(k);
-        if (Math.abs(el) > 2.5 && fade(el) > 0.05) text(dir(-TAPE + 1.3, el - 0.5), (v > 0 ? '+' : '') + v, C.tick, 0.7 * fade(el), 9, 'left');
-        if (Math.abs(el) < 40) labels.push(v);
+        if (Math.abs(ph) > 3.5) text(arcPt(-1, TAPE - 1.3, ph), (v > 0 ? '+' : '') + v, C.tick, 0.7, 9, 'left');   // the read-out takes eye level
+        if (Math.abs(ph) < 40) labels.push(v);
       }
     }
     tapes.pitchLabels = labels;
-    var STEP = 20, DEG = 1.5;
-    for (var h = Math.ceil((p.alt - EL_MAX / DEG * STEP) / STEP) * STEP; h <= p.alt + EL_MAX / DEG * STEP; h += STEP) {
-      var e2 = (h - p.alt) / STEP * DEG, hund = Math.abs(h % 100) < 0.01;
-      dash(TAPE, 1, e2, hund, Math.abs(h % 50) < 0.01);
-      if (hund && Math.abs(e2) > 2.5 && fade(e2) > 0.05) text(dir(TAPE - 1.3, e2 - 0.5), String(Math.round(h)), C.tick, 0.7 * fade(e2), 9, 'right');
+    var STEP = 20;
+    for (var h = Math.ceil((p.alt - PHI_MAX / PA * STEP) / STEP) * STEP; h <= p.alt + PHI_MAX / PA * STEP; h += STEP) {
+      var pa = (h - p.alt) / STEP * PA, hund = Math.abs(h % 100) < 0.01;
+      dash(1, pa, hund, Math.abs(h % 50) < 0.01);
+      if (hund && Math.abs(pa) > 3.5) text(arcPt(1, TAPE - 1.3, pa), String(Math.round(h)), C.tick, 0.7, 9, 'right');
     }
     tapes.alt = Math.round(p.alt);
-    [[-TAPE, -1, (p.pitch >= 0 ? '+' : '') + p.pitch.toFixed(1), 'left'], [TAPE, 1, String(Math.round(p.alt)), 'right']].forEach(function (r) {
-      stroke(C.pink, 0.95, 1.6); path([dir(r[0] - r[1] * 1.6, 0.9), dir(r[0] - r[1] * 0.3, 0), dir(r[0] - r[1] * 1.6, -0.9)]);
-      ctx.letterSpacing = '1px'; text(dir(r[0] - r[1] * 2, -0.5), r[2], C.pink, 0.95, 10, r[3]); ctx.letterSpacing = '0px';
+    [[-1, (p.pitch >= 0 ? '+' : '') + p.pitch.toFixed(1), 'left'], [1, String(Math.round(p.alt)), 'right']].forEach(function (r) {
+      stroke(C.pink, 0.95, 1.6); path([arcPt(r[0], TAPE - 1.6, 1.3), arcPt(r[0], TAPE - 0.3, 0), arcPt(r[0], TAPE - 1.6, -1.3)]);
+      ctx.letterSpacing = '1px'; text(arcPt(r[0], TAPE - 2, 0), r[1], C.pink, 0.95, 10, r[2]); ctx.letterSpacing = '0px';
     });
-    // a label plate at the foot of each tape
-    plate(basis(dir(-TAPE + 6.6, 26)), 0, 0, 0.04, 0.0145, 0.85);
-    plate(basis(dir(TAPE - 6.6, 26)), 0, 0, 0.04, 0.0145, 0.85);
+    ctx.textBaseline = 'alphabetic';
   }
   function rollArc(p) {
     // over the sight: a short arc whose ticks turn with the bank against a fixed pink pointer
