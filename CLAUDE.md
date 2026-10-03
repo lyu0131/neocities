@@ -25,6 +25,6 @@ Read `site4/docs/2026-09-24-bunnys-cockpit-design.md` (the approved spec), then 
   STL, used for the cockpit damage map and the hangar. It carries the BUNNyS callsign. Written
   `RX-124 TR-6 [WOUNDWORT]` in full, `RX-124 TR-6` where a label would
   overflow. `hangar.html` shows the real mesh in 3D (`js/hangar.js`, data from `tools/gen_dmgmap.py`).
-- **Exception they chose:** site4's hostile contact readout named a real unit and quoted its specs, text they wrote themselves and confirmed after the trademark position was raised. It lived only in `HX_DATA` in the old `site4/js/hud.js`, which the 2026-10-03 hub rebuild removed with every instrument panel. Do not re-raise it; if it returns, keep it in the HUD and out of the artwork.
+- **Exception they chose:** site4's hostile contact readout names a real unit and quotes its specs. They wrote that text themselves and confirmed it after the trademark position was raised. It is confined to `HX_DATA` in `site4/js/hud.js`. Do not re-raise it, and do not let it spread into the artwork.
 - When designing, use the `frontend-design` and `ui-ux-pro-max` skills if they're installed.
 - Respect `prefers-reduced-motion`. Check every page at 375px (no horizontal scroll) and at desktop sizes with headless-Chrome screenshots before calling work done.

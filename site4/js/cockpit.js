@@ -164,8 +164,6 @@
     }
     img.push('linear-gradient(' + rgba(capRGB(t.lat + half), 1) + ',' + rgba(capRGB(t.lat - half), 1) + ')');
     size.push('100% 100%'); pos.push('0 0');
-    // the same dimming layer the image tiles carry (CSS .pano-slice), so caps and image meet seamlessly
-    img.unshift('linear-gradient(var(--pano-dim), var(--pano-dim))'); size.unshift('100% 100%'); pos.unshift('0 0');
     t.el.style.backgroundImage = img.join(',');
     t.el.style.backgroundSize = size.join(',');
     t.el.style.backgroundPosition = pos.join(',');
@@ -220,7 +218,7 @@
     if (lockedId) {
       var t = document.getElementById(lockedId);
       if (t) t.classList.add('is-locked');
-      // Must carry everything the lock says: svg#hud is aria-hidden, so this live region is the
+      // Must carry everything the dossier shows: svg#hud is aria-hidden, so this live region is the
       // only route to that text for assistive tech.
       lockStatus.textContent = 'LOCK: ' + (d.label || '') + ' — ' + (d.readout || '')
         + (d.info ? ' — ' + d.info : '');
@@ -229,13 +227,13 @@
     }
   });
   // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings
-  // up its lock readout.
+  // up its dossier.
   var boreTarget = null;
   // a contact picked with 1-4: held through the swing, so Enter mid-turn opens what was picked and
   // not whatever the reticle is crossing; any manual turn lets it go
   var keyTarget = null;
   function dropKeyLock() { if (keyTarget) { keyTarget = null; refreshLock(); } }
-  // what the lock readout names and Enter opens, highest priority first
+  // what the dossier shows and Enter opens, highest priority first
   function currentTarget() { return focusTarget || keyTarget || hoverTarget || boreTarget; }
   // Every target sits on the horizon, so a contact's elevation offset from the boresight is simply
   // -pitch.
@@ -376,19 +374,29 @@
       return;
     }
     if (e.key === 'Home') { dropKeyLock(); targetYaw = 0; targetPitch = 0; markInput(); e.preventDefault(); }
-    // Enter fires whatever is locked -- boresight, hover, focus or a number key -- as the HUD's
-    // lock readout says. A focused control keeps its own Enter.
+    // Enter fires whatever is locked -- boresight, hover or focus -- as the dossier's "PRESS ENTER
+    // OR CLICK TO OPEN" says. A focused control keeps its own Enter, except a SLEW button whose
+    // contact is already locked: Enter once turns onto it, Enter again opens it.
     if (e.key === 'Enter' && !e.repeat) {
       var t = currentTarget();
       var ctl = e.target.closest && e.target.closest('button, a, input, textarea, select');
-      if (ctl) return;
+      if (ctl && !(t && ctl.dataset.slew === t.id)) return;
       if (t && t.dataset.href) { e.preventDefault(); fire(t); }
       return;
     }
     if (e.repeat) return;
-    // 1-4: swing onto that contact and lock it; Enter opens it
+    // 1-4: what the matching SLEW button does -- swing onto that contact and lock it; Enter opens it
     var n = '1234'.indexOf(e.key);
-    if (n >= 0) { e.preventDefault(); slewTo(document.getElementById(BUNNYS.contacts[n].id)); }
+    if (n >= 0) {
+      var sb = document.querySelector('#slew [data-slew="' + BUNNYS.contacts[n].id + '"]');
+      if (sb) { e.preventDefault(); sb.click(); }
+      return;
+    }
+    // HUD MODE by key -- X declutter, N night vision, R run diag, C comms -- and Esc acknowledges comms
+    var mode = { x: 'declutter', n: 'nv', r: 'diag', c: 'comms' }[e.key.toLowerCase()];
+    var mb = mode && document.querySelector('#hudmode [data-mode="' + mode + '"]');
+    if (mb) { e.preventDefault(); mb.click(); return; }
+    if (e.key === 'Escape') { var ack = document.querySelector('#comms:not([hidden]) .comms-ack'); if (ack) ack.click(); }
   });
   // index.html?face=t-unknown (a sub-page's 4 + Enter) arrives facing that contact. A query, not a
   // #fragment: a fragment sends the browser scrolling toward the element, inside the overflow:hidden,
@@ -398,14 +406,17 @@
     if (c && c.classList.contains('target')) turnTo(parseFloat(c.dataset.yaw) || 0);
   });
 
-  // turn the view onto a contact without dragging for it, and lock it (the number keys)
-  function slewTo(t) {
-    if (!t || !state.booted) return;
-    targetYaw = wrap360(parseFloat(t.dataset.yaw) || 0);
-    targetPitch = 0;
-    markInput();
-    keyTarget = t; refreshLock();
-  }
+  // slew panel: turn the view onto a contact without dragging for it
+  Array.prototype.forEach.call(document.querySelectorAll('#slew button[data-slew]'), function (b) {
+    b.addEventListener('click', function () {
+      var t = document.getElementById(b.dataset.slew);
+      if (!t || !state.booted) return;
+      targetYaw = wrap360(parseFloat(t.dataset.yaw) || 0);
+      targetPitch = 0;
+      markInput();
+      keyTarget = t; refreshLock();   // a slew locks like its number key does
+    });
+  });
 
   // state.booted goes true before boot-done fires, so a keypress can land in between and already be
   // accepted; only re-sync when the user has not steered.
@@ -428,9 +439,6 @@
       var hidden = off > 80;
       t.style.visibility = hidden ? 'hidden' : '';
       t.style.pointerEvents = hidden ? 'none' : '';
-      var d = shortestDelta(yaw, dy);
-      t.classList.toggle('is-left', d < -2);
-      t.classList.toggle('is-right', d > 2);
     });
   }
 
@@ -509,11 +517,4 @@
     emitView(state.yaw, state.pitch, velYaw, 0);
   }
   requestAnimationFrame(frame);
-
-  // without a boot (boot.js not loaded) the cockpit is live at once; every script's boot-done
-  // listener is in by now (this is the last deferred script)
-  if (!document.getElementById('boot')) {
-    state.booted = true;
-    BUNNYS.emit('boot-done', {});
-  }
 })();
