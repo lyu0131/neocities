@@ -13,6 +13,14 @@
   var screen = document.querySelector('.screen');
   if (!screen) return;
 
+  // the unit's emblem, giant and turning slowly behind the panels: the cockpit insignia's coin
+  // (two faces, so it never reads mirrored), over the dimmed panorama and under everything else
+  var bg = el('div', 'bg-emblem'), coin = el('div', 'bg-coin');
+  bg.setAttribute('aria-hidden', 'true');
+  for (var f = 0; f < 2; f++) { var face = el('img'); face.src = 'img/emblem-hud.webp'; face.alt = ''; coin.appendChild(face); }
+  bg.appendChild(coin);
+  document.body.insertBefore(bg, document.body.firstChild);
+
   // the cockpit's contacts (bunnys.js), each with its bearing on the scope; the pages among them
   // are Q/E's order; link.js has already named the page we're on
   // (copies, so the scope's DOM nodes don't land on the shared table)

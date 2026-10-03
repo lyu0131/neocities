@@ -29,6 +29,9 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
     (owner, 2026-10-01). boot.js `decode()`s it before the clock starts.
   - the closed shutter glass above LINK (link.js, preloaded at DOMContentLoaded);
   - the hangar's `UNIT INSIGNIA` panel (`.insignia`, full colour);
+  - the sub-pages' background (`.bg-emblem`, added by pagehud.js on pilot, missions and hangar): giant (80vh), HUD
+    green at .22 opacity, fixed over the dimmed panorama and under `.screen`, turning like the cockpit's coin (30s a
+    turn, two faces); still under reduced motion;
   - the cockpit's `#insignia`: a coin turning (9s a turn, two faces) in the top band's corner over the right
     column. hud.js `place()` puts it in HUD units (`zoom: var(--ui)`, like `.slew`): right edge flush with the
     column's, centred between the screen top and the band's edge (at least 8 clear of each), and stands it down where it would crowd the heading tape or the columns are down

@@ -476,6 +476,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     const orders = [];
     for (let i = 0; i < 4; i++) {
       await b.goto('index.html', 300);
+      for (let k = 0; k < 50 && !(await b.eval("document.querySelectorAll('#screens .screen[data-at]').length === 5")); k++) await b.sleep(100);
       orders.push(await b.eval("[...document.querySelectorAll('#screens .screen')].sort((x, y) => x.dataset.at - y.dataset.at).map(g => g.dataset.id).join('')"));
     }
     check('the centre screen always comes on first', orders.every(o => o[0] === 'C'), orders.join(','));

@@ -21,6 +21,12 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
     // the sub-page HUD (js/pagehud.js): one ladder rung per panel, and it follows the scroll
     check(`${pg} HUD has a rung per panel`, await p.eval("document.querySelectorAll('.phud-ladder li').length === document.querySelectorAll('.screen .panel').length"));
     check(`${pg} background bearing matches its contact`, await p.eval("(() => { const c = BUNNYS.contacts.find(c => c.page === document.documentElement.dataset.page); return +getComputedStyle(document.body).getPropertyValue('--brg') === BUNNYS.wrap360(c.yaw); })()"));
+    // a giant emblem turns in the background, behind the panels and never in the way
+    check(`${pg} giant emblem in the background`, await p.eval(`(() => { const e = document.querySelector('.bg-emblem'); if (!e) return false;
+      const r = e.getBoundingClientRect(), cs = getComputedStyle(e), img = e.querySelector('img');
+      return cs.position === 'fixed' && cs.pointerEvents === 'none' && r.height >= innerHeight * .6 && img.complete && img.naturalWidth > 0; })()`));
+    check(`${pg} the emblem turns`, await p.eval("(() => { const c = document.querySelector('.bg-emblem .bg-coin'); return !!c && getComputedStyle(c).animationName === 'insignia-spin'; })()"));
+    check(`${pg} the emblem sits behind the content`, await p.eval("(() => { const h = document.querySelector('h1').getBoundingClientRect(); const top = document.elementFromPoint(h.left + h.width / 2, h.top + h.height / 2); return !!top && !top.closest('.bg-emblem'); })()"));
     check(`${pg} has none of the cockpit HUD`, await p.eval("!document.getElementById('hud') && !document.getElementById('frame')"));
     // J/K step one sector at a time, fast presses included, and K comes back from the very end
     const rung = () => p.eval("[...document.querySelectorAll('.phud-ladder a')].findIndex(a => a.classList.contains('is-on')) + 1");

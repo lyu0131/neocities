@@ -763,6 +763,17 @@ body.page::before {
 @media (hover: hover) { body.page::before { animation: pano-drift 70s ease-in-out infinite alternate; } }
 @keyframes pano-drift { from { transform: translateX(-2.5vw); } to { transform: translateX(2.5vw); } }
 @media (prefers-reduced-motion: reduce) { body.page::before { animation: none; } }
+/* the unit's emblem, giant, turning slowly behind the panels (pagehud.js adds it): over the
+   panorama (same z, later in the DOM), under .screen; faint, so the panels stay the read */
+.bg-emblem {
+  position: fixed; left: 50%; top: 50%; z-index: 0; pointer-events: none;
+  height: min(80vh, 120vw, 980px); aspect-ratio: 592 / 471;
+  transform: translate(-50%, -50%); perspective: 2400px; opacity: .22;
+}
+.bg-coin { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: insignia-spin 30s linear infinite; }
+.bg-coin img { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; }
+.bg-coin img + img { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .bg-coin { animation: none; } }
 
 .strip {
   /* above .screen (z 6), or the page scrolls up over the nav */
