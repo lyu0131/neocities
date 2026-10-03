@@ -50,6 +50,24 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // the triangle is smaller: its face under a third of the screen wide
   check('the triangle is smaller', await p.eval('SITE5.triWidth') < 1440 * 0.33, String(await p.eval('SITE5.triWidth')));
 
+  // the side scales are live: the pitch tape and the altitude tape scroll as you climb, the roll scale
+  // turns as you bank, the ladder rulers stream with airspeed (SITE5.tapes: what each drew this frame)
+  const tapes = () => p.eval('JSON.stringify(SITE5.tapes)').then(JSON.parse);
+  const t0 = await tapes();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  await p.sleep(1000);
+  const t1 = await tapes();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  check('the pitch tape scrolls when climbing', t0 && t1 && t1.pitchLabels.join() !== t0.pitchLabels.join(), t0 && t1 && t0.pitchLabels.join() + ' -> ' + t1.pitchLabels.join());
+  check('the altitude reads higher after a climb', t1 && t1.alt > t0.alt + 5, t0 && t1 && t0.alt + ' -> ' + t1.alt);
+  check('the ladder rulers stream', t1 && t1.stream !== t0.stream);
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  await p.sleep(1000);
+  const t2 = await tapes();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  check('the roll scale turns with the bank', t2 && Math.abs(t2.roll) > 8, t2 && String(t2.roll));
+  await p.sleep(4600);
+
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));

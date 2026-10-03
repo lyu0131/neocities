@@ -71,6 +71,7 @@
   var gaze = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 } }, gazeAt = [0, 0];   // the mouse, -1..1
   var keys = {}, lastKey = -1e9;
   var shake = 0, flash = 0, beams = [], pos = [0, 0], lockT = 0, locked = false;
+  var spd = { x: 420, v: 0 }, alt = 1800, dist = 0;   // airspeed km/h, altitude m, distance flown m
   var EYE0 = [0, 0.05, -0.1];                 // the eye sits a little above and behind the ball's centre
   var suitQ = euler(0, 3, 0);
 
@@ -144,6 +145,9 @@
     suitQ = euler(yaw.x, pitch.x, bank.x);
     // flying forward: the cloud sea moves under us
     pos[0] += Math.sin(yaw.x * D) * 0.35 * dt; pos[1] += Math.cos(yaw.x * D) * 0.35 * dt;
+    // airspeed bleeds in a climb and builds in a dive; altitude and distance follow from it
+    spring(spd, 420 - pitch.x * 2.6 + Math.abs(yaw.v) * 0.4, 1.4, 0.9, dt);
+    alt += Math.sin(pitch.x * D) * spd.x / 3.6 * dt; dist += spd.x / 3.6 * dt;
 
     // the seat, hung in the ball: thrown outward in a turn, pressed down in a pull, lagging the roll
     if (!reduce) {
@@ -175,7 +179,7 @@
     });
     S.pose = {
       suitQ: suitQ, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
-      heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, bank: bank.x, beams: bs, flash: flash, pos: pos,
+      heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, bank: bank.x, spd: spd.x, alt: alt, dist: dist, beams: bs, flash: flash, pos: pos,
       locked: locked, lockT: lockT, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
     };
   }

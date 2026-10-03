@@ -38,8 +38,11 @@ Voronoi of 64 Fibonacci points, a geodesic of hexagons and pentagons, with a lip
 
 ## The HUD (`js/hud.js`)
 A 2D canvas of vectors authored on the ball and projected through the same geometry, every line subdivided every
-~1.2°. **Ball-fixed**: the triangle reticle (with the AUTO/MANUAL word), the outer ring, hex-cell ladders (±33°), white
-rulers (±56°), the waist rail (el −15°), the heading tape (el +27°), the chevrons. **World-fixed**: the pink horizon
+~1.2°. **Ball-fixed**: the triangle reticle (with the AUTO/MANUAL word), the outer ring with its **roll scale** (ticks turning
+with the bank against a fixed pink pointer), hex-cell ladders (±30°) with thin rulers (±36.5°) whose ticks **stream at
+airspeed**, the white **pitch tape** (−47°, scrolling with the suit's pitch, labelled every 10°) and **altitude tape**
+(+47°, a tick every 20 m, labelled every 100 m), each with a pink read-out at eye level; all of them run the ball's
+whole height and fade out toward ±82° rather than stopping; the waist rail (el −15°), the heading tape (el +27°), the chevrons. **World-fixed**: the pink horizon
 bars and the target marker (with its closing lock ring, and a dotted lead arc when it's off the nose).
 Looks (`?look=`): `mix` (default), `xi`, `penelope`; the table at the top of hud.js says which elements each carries.
 The seat edge (`#seat`, two grips) is fixed to the seat like the eye, so only the head turning moves it.

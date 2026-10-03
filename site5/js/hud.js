@@ -88,33 +88,93 @@
     }
     stroke(C.pink, 0.9, 1.4); path([dir(-0.8, 26.1), dir(0, 26.9), dir(0.8, 26.1)]);
   }
-  function hexLadders() {
+  // The side scales run the ball's whole height and fade out toward its top and bottom, so they close
+  // in on each other the way the ball's own meridians do instead of stopping dead.
+  var EL_MAX = 82, TAPE = 47;   // the scales fade out toward 82 degrees up and down; the white tapes sit 47 out
+  function fade(el) { return 1 - smooth(46, EL_MAX, Math.abs(el)); }
+  function smooth(e0, e1, x) { var t = m.clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
+  // a meridian line at azimuth az, drawn in short runs so its alpha can fade by elevation
+  function meridian(az, color, alpha, width) {
+    for (var e = -EL_MAX; e < EL_MAX; e += 4) {
+      var mid = e + 2, a = alpha * fade(mid);
+      if (a < 0.02) continue;
+      stroke(color, a, width); seg(dir(az, e), dir(az, e + 4));
+    }
+  }
+  // a tick on the meridian at az, pointing outward (sd) by len degrees
+  function tick(az, sd, el, len, color, alpha, width) {
+    var a = alpha * fade(el);
+    if (a < 0.02 || Math.abs(el) > EL_MAX) return;
+    stroke(color, a, width); seg(dir(az, el), dir(az + sd * len, el));
+  }
+  function label(az, el, s, color, alpha, size, align) {
+    var a = alpha * fade(el);
+    if (a > 0.05 && Math.abs(el) < EL_MAX) text(dir(az, el), s, color, a, size, align);
+  }
+  function hexLadders(p) {
+    // the hex-cell columns, and a thin ruler beside each whose ticks stream past at airspeed
+    var stream = (p.dist * 0.006) % 2;
+    tapes.stream = stream.toFixed(3);
     [-1, 1].forEach(function (sd) {
-      for (var el = -24, i = 0; el <= 40; el += 4.4, i++) {
-        var B = basis(dir(sd * (33 + (i % 2) * 2.2), el)), r = 0.028, pts = [];
+      for (var el = -70, i = 0; el <= 74; el += 4.4, i++) {
+        var al = fade(el);
+        if (al < 0.05) continue;
+        var B = basis(dir(sd * (30 + (i % 2) * 2.2), el)), r = 0.028, pts = [];
         for (var a = 0; a < 360; a += 60) pts.push(tp(B, Math.cos(a * D) * r * 1.3, Math.sin(a * D) * r));
         var q = pts.map(project);
         if (q.every(Boolean)) {
-          ctx.globalAlpha = 1; ctx.fillStyle = C.hex; ctx.beginPath();
+          ctx.globalAlpha = al; ctx.fillStyle = C.hex; ctx.beginPath();
           q.forEach(function (s, j) { if (j) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); }); ctx.closePath(); ctx.fill();
         }
-        stroke(LOOK.line, 0.24, 1); path(pts, true);
+        stroke(LOOK.line, 0.24 * al, 1); path(pts, true);
       }
-      var rx = sd * 39.5, col = [];
-      for (var e = -28; e <= 44; e += 2) col.push(dir(rx, e));
-      stroke(LOOK.line, 0.4, 1); path(col);
-      for (e = -28; e <= 44; e += 2) { stroke(LOOK.line, 0.45, 1); seg(dir(rx, e), dir(rx + sd * (e % 10 === 0 ? 1.8 : 0.8), e)); }
+      var rx = sd * 36.5;
+      meridian(rx, LOOK.line, 0.4, 1);
+      for (var e = -EL_MAX - 2, n = 0; e <= EL_MAX; e += 2, n++) {
+        var te = e - stream;
+        tick(rx, sd, te, (n % 5 === 0) ? 1.8 : 0.8, LOOK.line, 0.45, 1);
+      }
     });
   }
-  function rulers() {
-    // tall dashed white rulers down both sides
-    [-1, 1].forEach(function (sd) {
-      for (var el = -38, i = 0; el <= 38; el += 1.5, i++) {
-        var big = i % 5 === 0;
-        stroke(C.tick, big ? 0.75 : 0.45, big ? 2 : 1.2);
-        seg(dir(sd * 56, el), dir(sd * (56 + (big ? 2.6 : 1.4)), el));
+  function rulers(p) {
+    // left: the pitch tape -- ticks every 2.5 degrees of the suit's pitch, scrolling as it climbs or dives;
+    // right: the altitude tape -- a tick every 20 m, 1.5 degrees apart, labelled every 100 m
+    var labels = [];
+    for (var k = Math.ceil((p.pitch - EL_MAX) / 2.5) * 2.5; k <= p.pitch + EL_MAX; k += 2.5) {
+      var el = k - p.pitch, ten = Math.abs(k % 10) < 0.01;
+      tick(-TAPE, -1, el, ten ? 2.6 : (Math.abs(k % 5) < 0.01 ? 1.8 : 1.1), C.tick, ten ? 0.8 : 0.45, ten ? 2 : 1.2);
+      if (ten && Math.abs(k) <= 90) {
+        var v = Math.round(k);
+        if (Math.abs(el) > 2.5) label(-TAPE + 1.2, el - 0.5, (v > 0 ? '+' : '') + v, C.tick, 0.7, 9, 'left');   // the read-out takes eye level
+        if (Math.abs(el) < 40) labels.push(v);
       }
+    }
+    meridian(-TAPE, C.tick, 0.3, 1);
+    tapes.pitchLabels = labels;
+    var STEP = 20, DEG = 1.5;
+    for (var h = Math.ceil((p.alt - EL_MAX / DEG * STEP) / STEP) * STEP; h <= p.alt + EL_MAX / DEG * STEP; h += STEP) {
+      var e2 = (h - p.alt) / STEP * DEG, hund = Math.abs(h % 100) < 0.01;
+      tick(TAPE, 1, e2, hund ? 2.6 : 1.3, C.tick, hund ? 0.8 : 0.45, hund ? 2 : 1.2);
+      if (hund && Math.abs(e2) > 2.5) label(TAPE - 1.2, e2 - 0.5, String(Math.round(h)), C.tick, 0.7, 9, 'right');
+    }
+    meridian(TAPE, C.tick, 0.3, 1);
+    tapes.alt = Math.round(p.alt);
+    // the read-outs at eye level, each with a pink caret on its tape
+    [[-TAPE, -1, (p.pitch >= 0 ? '+' : '') + p.pitch.toFixed(1), 'left'], [TAPE, 1, String(Math.round(p.alt)), 'right']].forEach(function (r) {
+      stroke(C.pink, 0.95, 1.6); path([dir(r[0] - r[1] * 1.6, 0.9), dir(r[0] - r[1] * 0.3, 0), dir(r[0] - r[1] * 1.6, -0.9)]);
+      ctx.letterSpacing = '1px'; text(dir(r[0] - r[1] * 2, -0.5), r[2], C.pink, 0.95, 10, r[3]); ctx.letterSpacing = '0px';
     });
+  }
+  function rollScale(p) {
+    // ticks on the bottom of the outer ring, turning with the bank against a fixed pink pointer
+    var r = LOOK.ring + 0.6;
+    for (var a = -60; a <= 60; a += 10) {
+      var at = 270 + a + p.bank, big = a % 30 === 0;
+      stroke(LOOK.line, big ? 0.75 : 0.45, big ? 1.8 : 1.1);
+      seg(ring(F.c, r, at, at)[0], ring(F.c, r + (big ? 2 : 1.1), at, at)[0]);
+    }
+    stroke(C.pink, 0.95, 1.6); path([ring(F.c, r - 1.6, 266, 266)[0], ring(F.c, r - 0.2, 270, 270)[0], ring(F.c, r - 1.6, 274, 274)[0]]);
+    tapes.roll = Math.round(p.bank);
   }
   function triangle(p) {
     // the inverted-triangle reticle, in old screen units (y down) mapped onto the tangent plane at the nose
@@ -210,6 +270,7 @@
     }
   }
 
+  var tapes = S.tapes = {};
   S.project = function (p) { return E ? project(p) : null; };
   S.renderers.push(function (p, w, h) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -219,10 +280,10 @@
     ctx.clearRect(0, 0, W, H);
     ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
     waistRail();
-    if (LOOK.hexes) hexLadders();
-    if (LOOK.rulers) rulers();
+    if (LOOK.hexes) hexLadders(p);
+    if (LOOK.rulers) rulers(p);
     headingTape(p);
-    if (LOOK.ring) circleReticle(p);
+    if (LOOK.ring) { circleReticle(p); rollScale(p); }
     if (LOOK.tri) triangle(p);
     if (LOOK.chev) chevrons();
     if (LOOK.bars) horizonBars(p);
