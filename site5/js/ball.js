@@ -4,6 +4,10 @@
    Frames are x right, y up, z forward; angles in degrees unless named *Rad.
    The suit flies a looping scripted dogfight on its own (AUTO). Arrows/WASD take it (MANUAL) and it
    hands back 4s after the last key; dragging turns the pilot's head, which drifts back when let go.
+   The HUD is painted on the ball, so it only moves on screen when the eye moves against the ball. The
+   pilot's head therefore leads every move -- looks up into a climb, into a turn -- on a spring that lags
+   a beat and overshoots (as in the FPV clip, where the whole HUD drops as the pilot looks up), and the
+   mouse steers the gaze a few degrees.
    world.js and hud.js register in SITE5.renderers and draw from the pose. The only global is SITE5. */
 (function () {
   'use strict';
@@ -63,6 +67,8 @@
   var seat = [{ x: 0, v: 0 }, { x: 0, v: 0 }, { x: 0, v: 0 }];   // offset in the ball, in ball radii
   var seatRoll = { x: 0, v: 0 }, seatPitch = { x: 0, v: 0 };
   var head = { yaw: 0, pitch: 0 }, lastDrag = -1e9, dragging = false;
+  var lead = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 } };   // the head looking into the move
+  var gaze = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 } }, gazeAt = [0, 0];   // the mouse, -1..1
   var keys = {}, lastKey = -1e9;
   var shake = 0, flash = 0, beams = [], pos = [0, 0], lockT = 0, locked = false;
   var EYE0 = [0, 0.05, -0.1];                 // the eye sits a little above and behind the ball's centre
@@ -110,6 +116,7 @@
     cockpit.setPointerCapture && cockpit.setPointerCapture(e.pointerId);
   });
   cockpit.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'mouse') gazeAt = [e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1];
     if (!dragging || !e.isPrimary) return;
     head.yaw = clamp(head.yaw - (e.clientX - lx) * 0.16, -150, 150);
     head.pitch = clamp(head.pitch + (e.clientY - ly) * 0.13, -70, 70);
@@ -146,6 +153,12 @@
     }
     // the head drifts back to the nose once let go
     if (!dragging && now - lastDrag > 3000) { var k = Math.min(1, dt * 1.6); head.yaw -= head.yaw * k; head.pitch -= head.pitch * k; }
+    // it leads the move (a third of the turn rate, a little under half the climb rate), and follows the mouse
+    if (!reduce) {
+      spring(lead.yaw, clamp(yaw.v * 0.3, -24, 24), 4.2, 0.5, dt); spring(lead.pitch, clamp(pitch.v * 0.42, -20, 20), 4.2, 0.5, dt);
+      spring(gaze.yaw, dragging ? gaze.yaw.x : gazeAt[0] * 9, 3, 0.8, dt); spring(gaze.pitch, dragging ? gaze.pitch.x : -gazeAt[1] * 6, 3, 0.8, dt);
+    }
+    var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: head.pitch + lead.pitch.x + gaze.pitch.x };
 
     // lock: the opponent held within 7 degrees of the nose for half a second
     var od = dir(o[0], o[1]), off = Math.acos(clamp(dot(od, qrot(suitQ, [0, 0, 1])), -1, 1)) / D;
@@ -161,9 +174,9 @@
       return { a: b.a, b: b.b, i: u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 1.5) };
     });
     S.pose = {
-      suitQ: suitQ, eye: eye, eyeQ: qmul(seatQ, euler(head.yaw, head.pitch, 0)), opp: od,
+      suitQ: suitQ, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
       heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, bank: bank.x, beams: bs, flash: flash, pos: pos,
-      locked: locked, lockT: lockT, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: head, look: look, t: T
+      locked: locked, lockT: lockT, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
     };
   }
 

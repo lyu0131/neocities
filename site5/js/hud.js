@@ -12,7 +12,7 @@
   var canvas = document.getElementById('hud'), ctx = canvas.getContext('2d');
   var seatEl = document.getElementById('seat');
   var LOOK = {
-    mix:      { tri: 1, ring: 26, hexes: 1, rulers: 1, bars: 1, chev: 1, line: '#AFC0EC' },
+    mix:      { tri: 1, ring: 20, hexes: 1, rulers: 1, bars: 1, chev: 1, line: '#AFC0EC' },
     xi:       { tri: 1, ring: 0,  hexes: 1, rulers: 0, bars: 0, chev: 0, line: '#9CB3E8' },
     penelope: { tri: 0, ring: 17, hexes: 0, rulers: 1, bars: 1, chev: 1, line: '#BAC4F4' }
   }[S.look];
@@ -118,11 +118,12 @@
   }
   function triangle(p) {
     // the inverted-triangle reticle, in old screen units (y down) mapped onto the tangent plane at the nose
-    var u = Math.min(0.4, tx * 0.62) / 237;
+    var u = Math.min(0.28, tx * 0.46) / 237;
     var L = function (x, y) { return tp(F, x * u, -y * u); };
     var lw = f / 605;
     var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt);
     var face = [L(-hw, Tt), L(hw, Tt), L(0, A)].map(project);
+    if (face[0] && face[1]) S.triWidth = Math.round(face[1][0] - face[0][0]);
     if (face.every(Boolean)) {
       ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(170, 186, 245, .07)'; ctx.beginPath();
       face.forEach(function (s, j) { if (j) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); }); ctx.closePath(); ctx.fill();
@@ -144,7 +145,7 @@
     stroke(LOOK.line, 0.8, 2 * lw); seg(L(0, -40), L(0, -14)); seg(L(0, 18), L(0, 52));
     stroke(LOOK.line, 0.9, 1.5 * lw); seg(L(-7, -3), L(7, -3)); seg(L(-7, 3), L(7, 3));
     ctx.letterSpacing = lw < 0.8 ? '2px' : '4px';
-    text(L(hw - 24, Tt + 30), p.mode, C.pink, 0.95, Math.max(9, Math.round(13 * lw)), 'right');
+    text(L(hw - 24, Tt + 20 + 12 / lw), p.mode, C.pink, 0.95, Math.max(9, Math.round(13 * lw)), 'right');
     ctx.letterSpacing = '0px';
   }
   function circleReticle(p) {
@@ -163,7 +164,7 @@
     }
   }
   function chevrons() {
-    var y0 = LOOK.tri ? -27 : -20;
+    var y0 = LOOK.tri ? -21 : -20;
     stroke(LOOK.line, 0.8, 2); path([dir(-1.4, y0 + 0.7), dir(0, y0 - 0.5), dir(1.4, y0 + 0.7)]);
     stroke(C.salmon, 0.9, 2); path([dir(-1.4, y0 - 3), dir(0, y0 - 1.8), dir(1.4, y0 - 3)]);
   }
@@ -209,6 +210,7 @@
     }
   }
 
+  S.project = function (p) { return E ? project(p) : null; };
   S.renderers.push(function (p, w, h) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }

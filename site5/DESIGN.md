@@ -21,7 +21,11 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
 - **AUTO**: a 32s looping dogfight. The opponent follows `KEYS` (az/el, Catmull-Rom); the suit chases it on a spring so it
   drifts inside the reticle; `EVENTS` fire shots, jinks, a dive (9.5–12.8s), a near miss and a roll.
 - **MANUAL**: arrows/WASD fly it (55°/s turn, 40°/s climb); AUTO resumes 4s after the last key.
-- **Head**: drag (pointer events, so mouse and finger) turns it; it drifts back 3s after letting go.
+- **Head**: drag (pointer events, so mouse and finger) turns it; it drifts back 3s after letting go. On top of that it
+  **leads every move** (0.3 x the turn rate, up to 24°; 0.42 x the climb rate, up to 20°) on a slightly bouncy spring,
+  and the **mouse steers the gaze** (up to 9° across, 6° up and down). The HUD is painted on the ball, so this is what
+  moves it on screen: climb and the whole HUD drops, as in the FPV clip when the pilot looks up. Off under reduced
+  motion. `SITE5.project(ballPoint)` gives a ball point's screen position (tests use it).
 - Lock: the opponent within 7° of the nose for 0.5s (released past 11°).
 - `SITE5.pose` is the one per-frame snapshot both renderers read; `SITE5.renderers` are called in order.
 

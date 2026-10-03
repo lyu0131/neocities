@@ -31,6 +31,25 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(4600);
   check('it hands back to AUTO', (await pose(p, 's.mode')) === 'AUTO');
 
+  // going up, the pilot looks up into the climb: the HUD (on the ball) drops down the screen, as in the FPV clip
+  const noseY = () => p.eval('(SITE5.project([0, 0, 1]) || [0, NaN])[1]');
+  await p.sleep(400);
+  const y0 = await noseY();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  await p.sleep(900);
+  const y1 = await noseY();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
+  check('climbing shifts the HUD down the screen', y1 - y0 > 40, `${y0.toFixed(0)} -> ${y1.toFixed(0)}`);
+  await p.sleep(4600);
+  // the mouse steers the gaze a little: the HUD slides away from where you look
+  await p.mouse('mouseMoved', 720, 450); await p.sleep(900);
+  const g0 = await p.eval('SITE5.project([0, 0, 1])[0]');
+  await p.mouse('mouseMoved', 1400, 450); await p.sleep(1200);
+  const g1 = await p.eval('SITE5.project([0, 0, 1])[0]');
+  check('looking right with the mouse slides the HUD left', g0 - g1 > 25, `${g0.toFixed(0)} -> ${g1.toFixed(0)}`);
+  // the triangle is smaller: its face under a third of the screen wide
+  check('the triangle is smaller', await p.eval('SITE5.triWidth') < 1440 * 0.33, String(await p.eval('SITE5.triWidth')));
+
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));
