@@ -15,7 +15,8 @@
        cluster under it (centred on el -26);
      - world-fixed: the W contact marks.
    Every element is drawn at SZ (0.75) of its measured size, in place: the owner found it too cluttered.
-   The triangle sight (or the Y, ?look=penelope) only comes up during a lock. */
+   The triangle sight (or the Y, ?look=penelope) is always up on the nose, at eye level; the rail and the
+   cluster sit lower than the frame has them so it stands clear (owner, 2026-10-05). Coffin cells glow in turn. */
 (function () {
   'use strict';
   var S = window.SITE5, m = S.m, D = m.D, qrot = m.qrot, norm = m.norm, dir = m.dir;
@@ -23,7 +24,7 @@
   var Y_SIGHT = S.look === 'penelope';
   var C = {
     line: '#AFC0EC', tick: '#EEF3FA', pink: '#FFA3DC', bar: '#FF4F8B', barIn: '#FFC6E8', salmon: '#EBA89C',
-    cell: 'rgba(52, 66, 82, .5)', cellEdge: '#8DA0BC', plate: 'rgba(120, 140, 200, .10)'
+    cell: 'rgba(52, 66, 82, .5)', cellEdge: '#8DA0BC', glow: 'rgb(150, 182, 255)', glowEdge: '#CFE0FF', plate: 'rgba(120, 140, 200, .10)'
   };
   var FONT = "Michroma, 'B612 Mono', sans-serif";
   S.hudCtx = ctx;
@@ -31,7 +32,7 @@
   var tapes = S.tapes = {};
 
   // the layout, in ball degrees (see the header)
-  var RAIL = -18, GAP = 30, RING_AZ = [90, -90, 180], RING_R = 17, DOT_R = 26, RULER = 42;
+  var RAIL = -22, GAP = 30, RING_AZ = [90, -90, 180], RING_R = 17, DOT_R = 26, RULER = 42;
   // the size of every element (cells, plates, ticks, marks), its position unchanged: 0.75 (owner, 2026-10-05)
   var SZ = 0.75;
 
@@ -104,7 +105,29 @@
     var P = function (u, v) { return tp(B, s * u, v); };
     return [P(a, -b * 0.35), P(a, b * 0.35), P(a * 0.2, b), P(-a, b * 0.72), P(-a, -b * 0.72), P(a * 0.2, -b)];
   }
-  function cell(pts, al) { if (fill(pts, C.cell, al)) { stroke(C.cellEdge, 0.22 * al, 1); path(pts, true); return true; } return false; }
+  // a coffin cell; g (0..1) lights it: a brighter face, a lit edge and a soft halo stroke
+  function cell(pts, al, g) {
+    if (!fill(pts, C.cell, al)) return false;
+    if (g > 0.02) {
+      fill(pts, C.glow, al * g * 0.5);
+      stroke(C.glowEdge, al * g * 0.18, 5); path(pts, true);
+      stroke(C.glowEdge, al * (0.22 + 0.7 * g), 1 + g * 0.6); path(pts, true);
+    } else { stroke(C.cellEdge, 0.22 * al, 1); path(pts, true); }
+    return true;
+  }
+  // The chase: a few lit heads run along a row of n cells (speed cells a second), each leaving a fading trail,
+  // so the glow moves on from one cell to the next. Off under reduced motion (the clock holds still there).
+  var TRAIL = 5;
+  // which cell of the left column is brightest (the test watches it move)
+  function noteLit(i, g) { if (g > (parts._litG || 0)) { parts._litG = g; parts.litCells = i; } }
+  function chase(i, n, t, speed, heads) {
+    var g = 0;
+    for (var h = 0; h < heads; h++) {
+      var head = (t * speed + h * n / heads) % n, d = ((head - i) % n + n) % n;
+      if (d < TRAIL) g = Math.max(g, Math.pow(1 - d / TRAIL, 2));
+    }
+    return g;
+  }
   function longHex(B, u, v, a, b, k) {
     return [tp(B, u - a, v), tp(B, u - a + k, v + b), tp(B, u + a - k, v + b), tp(B, u + a, v), tp(B, u + a - k, v - b), tp(B, u - a + k, v - b)];
   }
@@ -176,11 +199,11 @@
     parts.rail = true; parts.caps = caps;
   }
   // A ring of coffin cells round the rail at az, pointing in, with its crosshair and dotted ring.
-  function sideRing(az) {
+  function sideRing(az, p) {
     var c = dir(az, RAIL), n = Math.round(34 / SZ), drawn = 0;
     for (var k = 0; k < n; k++) {
       var a = k * 360 / n, q = ring(c, RING_R, a, a)[0];
-      if (cell(coffin(radialBasis(c, q), -1, Z(2.3), Z(1.45)), 1)) drawn++;
+      if (cell(coffin(radialBasis(c, q), -1, Z(2.3), Z(1.45)), 1, chase(k, n, p.t, 14, 2))) drawn++;
     }
     var dots_ = ring(c, DOT_R, 0, 360, 3);
     ctx.fillStyle = C.tick;
@@ -210,9 +233,11 @@
         seg(q, arcPt2(sd, RULER_R - (long ? 3 : 1.8) * SZ, ph));
       }
       var cw = 2.5 * SZ, cr = RULER_R - 3.6 * SZ - cw;
-      for (var ph2 = -180, i = 0; ph2 < 180; ph2 += 4.6 * SZ, i++) {
-        var q2 = arcPt2(sd, cr - (i % 2) * 2.4 * SZ, ph2);
-        cell(coffin(radialBasis(c, q2), 1, Z(2.5), Z(1.55)), 0.9);
+      var nc = Math.floor(360 / (4.6 * SZ));
+      for (var i = 0; i < nc; i++) {
+        var ph2 = -180 + i * 4.6 * SZ, q2 = arcPt2(sd, cr - (i % 2) * 2.4 * SZ, ph2);
+        var gl = chase(i, nc, p.t, 18, 4); if (sd < 0) noteLit(i, gl);
+        cell(coffin(radialBasis(c, q2), 1, Z(2.5), Z(1.55)), 0.9, gl);
       }
       plate(radialBasis(c, arcPt2(sd, RULER_R + 2 * SZ, 11)), 0, 0, Z(2.8), Z(1.25), 0.9);
     });
@@ -234,10 +259,11 @@
     stroke(C.salmon, 0.7, 1); dashText(Bn, 0, Z(0.2), Z(1.4), 2, Z(0.9));
     stroke(C.line, 0.7, 1.1); path([tp(Bn, -Z(0.9), -Z(1.6)), tp(Bn, 0, -Z(3)), tp(Bn, Z(0.9), -Z(1.6))]);
   }
-  // the plate cluster under the nose, the whole group scaled by SZ about its centre (0, -26): Q(az, el) is where
-  // a point the front frame has at (az, el) goes
+  // the plate cluster under the nose, the whole group scaled by SZ about its centre (0, CLUSTER): Q(az, el) is where
+  // a point the front frame has at (az, el -- centred on -26 there) goes
+  var CLUSTER = -30;
   function cluster() {
-    var B = basis(dir(0, -26));
+    var B = basis(dir(0, CLUSTER));
     var Q = function (az, el) { return tp(B, Z(az), Z(el + 26)); };
     stroke(C.line, 0.85, 1.8); path([Q(-1.4, -23.2), Q(0, -24.4), Q(1.4, -23.2)]);
     stroke(C.line, 0.55, 1); dashText(B, 0, Z(0.4), Z(4.6), 2, Z(0.9));
@@ -272,12 +298,10 @@
     wMark(po, Z(4.2), lock ? C.bar : C.line, lock ? 'LOCK' : 'UNKNOWN', lock ? C.bar : C.salmon);
     parts.markers = n + 1;
   }
-  // the triangle sight (or the Y), only while locking
+  // the triangle sight (or the Y), always up on the nose; it brightens while a lock builds
   function lockSight(p) {
-    var a = smooth(0, 0.5, p.lockT);
-    parts.lockSight = a > 0.5;
-    if (a <= 0) return;
-    GA = a;
+    GA = 0.72 + 0.28 * smooth(0, 0.5, p.lockT);
+    parts.sight = true;
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
         var c = Math.cos(an * D), sn = Math.sin(an * D);
@@ -302,7 +326,7 @@
   }
 
   S.project = function (p) { return E ? project(p) : null; };
-  S.anchors = { capL: dir(-GAP, RAIL), rulerL: dir(-RULER, -7.5), cluster: dir(0, -26), heading: dir(0, 22.2) };
+  S.anchors = { capL: dir(-GAP, RAIL), rulerL: dir(-RULER, -7.5), cluster: dir(0, CLUSTER), heading: dir(0, 22.2), nose: [0, 0, 1], apex: dir(0, -8) };
   S.renderers.push(function (p, w, h) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
@@ -310,9 +334,9 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
-    parts.ringCells = 0;
+    parts.ringCells = 0; parts._litG = 0;
     rulers(p);
-    RING_AZ.forEach(sideRing);
+    RING_AZ.forEach(function (az) { sideRing(az, p); });
     rail();
     centre(p);
     cluster();

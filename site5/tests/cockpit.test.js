@@ -61,12 +61,11 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
   check('the heading ticks scroll with the heading', pt.hdgBefore !== (await p.eval('SITE5.tapes.heading')), String(await p.eval('SITE5.tapes.heading')));
   await p.sleep(4600);
-  // the triangle sight only comes up on a lock
-  let sightOff = await p.eval('SITE5.pose.lockT === 0 ? SITE5.parts.lockSight === false : null');
-  let sightOn = false;
-  for (let i = 0; i < 80 && !sightOn; i++) { await p.sleep(100); sightOn = await p.eval('SITE5.pose.locked && SITE5.parts.lockSight === true'); if (sightOff === null) sightOff = await p.eval('SITE5.pose.lockT === 0 ? SITE5.parts.lockSight === false : null'); }
-  check('the triangle sight comes up on a lock', sightOn);
-  check('and is gone without one', sightOff === true, String(sightOff));
+  // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
+  check('the triangle sight is up', await p.eval('SITE5.parts.sight === true'));
+  const lit = () => p.eval('SITE5.parts.litCells');
+  const l0 = await lit(); await p.sleep(400);
+  check('the coffin glow moves from cell to cell', (await lit()) !== l0 && (await lit()) !== undefined, l0 + ' -> ' + (await lit()));
 
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
@@ -95,13 +94,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     const h0 = await pose(r, 's.heading'), e0 = await pose(r, 'JSON.stringify(s.eye)');
     await r.sleep(2000);
     check('reduced motion: the suit holds still', Math.abs((await pose(r, 's.heading')) - h0) < 0.01 && (await pose(r, 'JSON.stringify(s.eye)')) === e0);
-    // where the owner's front frame puts them (% of a 16:9 screen), within 2.5%
-    // the reference positions, scaled from the fitted 78-deg view to the current (wider) one: screen offsets go as 1/tan
+    // the triangle sits in front of the eyes (near the screen's centre), the rail and the cluster below it, and
+    // the rulers still where the owner's front frame has them (scaled to the current view width)
+    const sc = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));
+    check('the triangle is in front of the eyes', Math.abs(sc.nose[0] - 50) < 1 && Math.abs(sc.nose[1] - 50) < 10, JSON.stringify(sc.nose));
+    check('the rail and the cluster sit below the triangle', sc.capL[1] > sc.apex[1] + 4 && sc.cluster[1] > sc.apex[1] + 8, JSON.stringify({ apex: sc.apex, cap: sc.capL, cluster: sc.cluster }));
     const k = await r.eval('SITE5.camRef / SITE5.cam.tx');
-    const want = Object.fromEntries(Object.entries({ capL: [27, 64.5], rulerL: [13.5, 50], cluster: [50, 71.5], heading: [50, 3] }).map(([n, v]) => [n, [50 + (v[0] - 50) * k, 50 + (v[1] - 50) * k]]));
-    const got = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));
-    const off = Object.keys(want).map(k => got[k] ? Math.hypot(got[k][0] - want[k][0], got[k][1] - want[k][1]) : 99);
-    check('the HUD sits where the reference frame has it', off.every(d => d < 2.5), Object.keys(want).map((k, i) => k + ' ' + off[i].toFixed(1)).join(', '));
+    check('the rulers sit where the reference frame has them', Math.abs(sc.rulerL[0] - (50 - 36.5 * k)) < 2.5, sc.rulerL[0].toFixed(1) + ' vs ' + (50 - 36.5 * k).toFixed(1));
     // turn the head to the right side: the coffin ring there projects as a circle round its centre
     await r.mouse('mousePressed', 1200, 400, 1); for (let k = 1; k <= 14; k++) await r.mouse('mouseMoved', 1200 - 40 * k, 400, 1);
     await r.sleep(150);

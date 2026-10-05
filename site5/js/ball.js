@@ -173,8 +173,8 @@
       spring(lead.yaw, clamp(yaw.v * 0.3, -24, 24), 4.2, 0.5, dt); spring(lead.pitch, clamp(pitch.v * 0.42, -20, 20), 4.2, 0.5, dt);
       spring(gaze.yaw, dragging ? gaze.yaw.x : gazeAt[0] * 9, 3, 0.8, dt); spring(gaze.pitch, dragging ? gaze.pitch.x : -gazeAt[1] * 6, 3, 0.8, dt);
     }
-    // the pilot's resting gaze is 7 deg below the nose, as the owner's reference frames are shot
-    var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: -7 + head.pitch + lead.pitch.x + gaze.pitch.x };
+    // the pilot's resting gaze is just under the nose, so the triangle sight is in front of the eyes
+    var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: -4 + head.pitch + lead.pitch.x + gaze.pitch.x };
 
     // lock: the opponent held within 7 degrees of the nose for half a second
     var od = dir(o[0], o[1]), off = Math.acos(clamp(dot(od, qrot(suitQ, [0, 0, 1])), -1, 1)) / D;

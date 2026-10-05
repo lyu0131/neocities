@@ -42,7 +42,9 @@ subdivided every ~1.2 deg. **The layout is measured, not composed** (owner, 2026
 but you don't position them correctly"): every front position was read off the owner's front frame (ref, 1:26:32)
 and turned into ball angles; the side rings come from the side frame (29:50). A test checks the anchors land
 within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced-motion) pose.
-- **The pink rail**: a parallel at el -18 right round the ball (pink core over a lighter line, white tick rails),
+- **Lowered under the triangle** (owner, 2026-10-05): the rail and the cluster sit 4 deg lower than the frame has
+  them, and the view rests 4 deg under the nose, so the triangle sight is in front of the eyes.
+- **The pink rail**: a parallel at el -22 right round the ball (pink core over a lighter line, white tick rails),
   open in front between az +-30 where diamond caps close it, salmon chevrons at +-26 pointing in.
 - **Side rings** at az +-90 and 180, centred on the rail: 34 coffin cells (radius 17) pointing in, a 3.4 deg
   crosshair circle with radial ticks, a dotted ring (26), two dot grids.
@@ -54,17 +56,21 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
 - **The centre**: heading ticks at el 22 that scroll with the heading (one a degree, a long one every 5) under a
   fixed caret, and the nose designator at el -10 (salmon bars, dash text, a small V). The pitch ladder, the
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
-- **The cluster** under the nose, scaled by `SZ` about its centre (el -26), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
+- **The cluster** under the nose, scaled by `SZ` about its centre (el -30), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS; the locked one pink with LOCK).
-- **The triangle sight** (or the Y, `?look=penelope`) only comes up during a lock. No look switcher on screen.
+- **The triangle sight** (or the Y, `?look=penelope`) is always up on the nose, with the AUTO/MANUAL word; it
+  brightens while a lock builds. No look switcher on screen.
+- **The glow**: lit runs move along the coffin cells, each cell lighting up (a brighter face, a lit edge, a soft
+  halo) and fading as the run moves on -- four runs climbing each ruler column (18 cells a second), two running
+  round each side ring (14). Driven by the flight clock, so it holds still under reduced motion.
 - `SITE5.parts` (`rail`, `caps`, `ringCells`, `markers`, `lockSight`, `rear`, `seat`), `SITE5.tapes`
   (`stream`: the rulers' pitch phase, `heading`), `SITE5.anchors`, `SITE5.ringSample` and `SITE5.seek(t)` are there for the tests.
 
 ## The eye and the camera
 The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every
 great circle would look straight; from behind it, everything on the ball curves the way the inside of a dome does.
-The view rests 7 deg below the nose. The eye distance, a 78-deg width and that tilt were fitted together so the
+The view rests 4 deg below the nose (it was 7, as the frame is shot). The eye distance, a 78-deg width and that tilt were fitted together so the
 measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, so it runs at 87 deg across
 (64 tall on a portrait screen) and the layout test scales the frame's positions to match.
 
