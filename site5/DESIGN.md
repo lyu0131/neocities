@@ -62,6 +62,9 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS; the locked one pink with LOCK).
 - **The triangle sight** (or the Y, `?look=penelope`) is always up on the nose, with the AUTO/MANUAL word; it
   brightens while a lock builds. No look switcher on screen.
+- **Cells**: flat translucent slate with a very faint gradient (lighter at the wide end, darker toward the point) and
+  a soft luminous border (a faint wide halo under a fine edge). The ruler columns are spaced evenly the whole way
+  round (an even count, so the stagger meets itself where the circle closes).
 - **The glow**: lit runs move along the coffin cells, each cell lighting up (a brighter face, a lit edge, a soft
   halo) and fading as the run moves on -- four runs climbing each ruler column (18 cells a second), two running
   round each side ring (14). Driven by the flight clock, so it holds still under reduced motion.
@@ -75,9 +78,14 @@ The view rests on the nose (it was 7 deg below, as the frame is shot). The eye d
 measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, so it runs at 87 deg across
 (64 tall on a portrait screen) and the layout test scales the frame's positions to match.
 
+Line weight follows depth: with the eye behind the centre, nearer parts of the monitor draw a little heavier
+(`depthScale`: the square root of the distance ratio, held to 0.85..1.35). Long lines (the rail, rings, ruler
+circles) are stroked a few segments at a time with round joins, so the weight changes smoothly with no seam.
+
 ## The panels (`js/world.js`)
 92 near-equal panels: the Voronoi of a 3-frequency subdivided icosahedron (12 of them pentagons, the rest
-hexagons), turned so a hexagon sits square on the nose and the pattern mirrors left to right. No per-panel tone.
+hexagons), turned so a hexagon sits square on the nose and the pattern mirrors left to right. No per-panel tone. The seams ease off to 45% within ~20 deg of the nose,
+so the aiming area reads clean.
 
 ## The controls (`js/seat.js`)
 After the ref frames (#28, #29, #31): two armrest consoles with a raised head where the grip mounts and a strut

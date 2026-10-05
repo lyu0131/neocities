@@ -87,8 +87,10 @@
     '  float e = d1 - d2, px = fwidth(e) + 1e-5;',
     // a thin light joint, as in the seat shots, with the faintest shadow beside it
     '  float seam = 1. - smoothstep(px * .45, px * 1.25, e), lip = (1. - smoothstep(px * 1.25, px * 2.6, e)) * (1. - seam);',
-    '  col = mix(col, vec3(.36, .44, .56), seam * uSeam * .42);',
-    '  col *= 1. - lip * uSeam * .18;',
+    // the seams ease off within ~20 deg of the nose (to 45%), so the aiming area reads clean
+    '  float clear = .45 + .55 * smoothstep(.985, .94, p.z);',
+    '  col = mix(col, vec3(.36, .44, .56), seam * uSeam * .42 * clear);',
+    '  col *= 1. - lip * uSeam * .18 * clear;',
     '  col = col * uTint + vec3(.9, .95, 1.) * uFlash;',
     '  col += (h21(gl_FragCoord.xy) - .5) / 255.;',      // dither against banding
     '  o = vec4(col, 1.);',

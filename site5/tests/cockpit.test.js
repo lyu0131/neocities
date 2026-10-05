@@ -63,6 +63,14 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   check('the triangle sight is up', await p.eval('SITE5.parts.sight === true'));
+  // one sphere: line weight follows depth (nearer parts of the monitor a touch heavier), and changes smoothly --
+  // round the rail, no step between neighbouring points is more than a few percent
+  const dep = JSON.parse(await p.eval(`(() => { const d = (az, el) => [Math.cos(el * Math.PI / 180) * Math.sin(az * Math.PI / 180), Math.sin(el * Math.PI / 180), Math.cos(el * Math.PI / 180) * Math.cos(az * Math.PI / 180)];
+    const r = []; for (let a = 0; a <= 360; a += 3) r.push(SITE5.depthScale(d(a, -22)));
+    let jump = 0; for (let i = 1; i < r.length; i++) jump = Math.max(jump, Math.abs(r[i] - r[i - 1]));
+    return JSON.stringify({ front: r[0], rear: r[60], jump }); })()`));
+  check('lines weigh more on the near side of the sphere', dep.rear > dep.front + 0.1, JSON.stringify(dep));
+  check('and the weight changes smoothly round the rail', dep.jump < 0.03, dep.jump.toFixed(3));
   const lit = () => p.eval('SITE5.parts.litCells');
   const l0 = await lit(); await p.sleep(400);
   check('the coffin glow moves from cell to cell', (await lit()) !== l0 && (await lit()) !== undefined, l0 + ' -> ' + (await lit()));

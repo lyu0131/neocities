@@ -24,7 +24,7 @@
   var Y_SIGHT = S.look === 'penelope';
   var C = {
     line: '#AFC0EC', tick: '#EEF3FA', pink: '#FFA3DC', bar: '#FF4F8B', barIn: '#FFC6E8', salmon: '#EBA89C',
-    cell: 'rgba(52, 66, 82, .5)', cellEdge: '#8DA0BC', glow: 'rgb(150, 182, 255)', glowEdge: '#CFE0FF', plate: 'rgba(120, 140, 200, .10)'
+    cellEdge: '#8DA0BC', glow: 'rgb(150, 182, 255)', glowEdge: '#CFE0FF', plate: 'rgba(120, 140, 200, .10)'
   };
   var FONT = "Michroma, 'B612 Mono', sans-serif";
   S.hudCtx = ctx;
@@ -56,18 +56,40 @@
     return { c: q, R: R, U: cross(q, R) };
   }
   function tp(B, u, v) { return norm([B.c[0] + B.R[0] * u + B.U[0] * v, B.c[1] + B.R[1] * u + B.U[1] * v, B.c[2] + B.R[2] * u + B.U[2] * v]); }
-  function stroke(color, alpha, width) { ctx.strokeStyle = color; ctx.globalAlpha = alpha * GA; ctx.lineWidth = Math.max(0.8, width); }
+  var LW = 1;   // the current stroke's width, before depth
+  function stroke(color, alpha, width) { ctx.strokeStyle = color; ctx.globalAlpha = alpha * GA; LW = Math.max(0.8, width); ctx.lineWidth = LW; }
+  // How much heavier a line on the sphere at p draws than one straight ahead: with the eye behind the centre,
+  // nearer parts of the monitor are closer, so they draw a little heavier (gently: the square root of the
+  // distance ratio, held to 0.85..1.35). Continuous over the sphere, so a line never jumps in weight.
+  var D0 = 1.4;
+  function depthScale(p) {
+    var dx = p[0] - E[0], dy = p[1] - E[1], dz = p[2] - E[2];
+    return m.clamp(Math.sqrt(D0 / Math.sqrt(dx * dx + dy * dy + dz * dz)), 0.85, 1.35);
+  }
+  S.depthScale = function (p) { return E ? depthScale(p) : 1; };
   // a polyline through ball points, subdivided every ~1.2 degrees so it follows the sphere
+  // Short paths (a tick, a cell) take one width from their middle; long ones (the rail, the rings, the ruler
+  // circles) are stroked a few segments at a time, each at its own depth, so the weight changes smoothly
+  // round the sphere. Round joins keep the pieces seamless.
   function path(pts, closed) {
+    var n = pts.length, segs = closed ? n : n - 1, long = segs > 6;
+    var mid = pts[Math.floor(n / 2)];
     ctx.beginPath();
-    var pen = false, n = pts.length;
-    for (var i = 0; i < (closed ? n : n - 1); i++) {
+    if (!long) ctx.lineWidth = LW * depthScale(mid);
+    var pen = false, last = null;
+    for (var i = 0; i < segs; i++) {
       var a = pts[i], b = pts[(i + 1) % n];
+      if (long) {
+        if (pen) ctx.stroke();
+        ctx.beginPath(); ctx.lineWidth = LW * depthScale(norm([a[0] + b[0], a[1] + b[1], a[2] + b[2]]));
+        if (last) { ctx.moveTo(last[0], last[1]); pen = true; } else pen = false;
+      }
       var ang = Math.acos(m.clamp(m.dot(a, b), -1, 1)), k = Math.max(1, Math.ceil(ang / (1.2 * D)));
-      for (var j = i === 0 ? 0 : 1; j <= k; j++) {
+      for (var j = (i === 0 || long) ? 0 : 1; j <= k; j++) {
         var t = j / k, s = project(norm([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]));
-        if (!s) { pen = false; continue; }
+        if (!s) { pen = false; last = null; continue; }
         if (pen) ctx.lineTo(s[0], s[1]); else { ctx.moveTo(s[0], s[1]); pen = true; }
+        last = s;
       }
     }
     ctx.stroke();
@@ -106,13 +128,23 @@
     return [P(a, -b * 0.35), P(a, b * 0.35), P(a * 0.2, b), P(-a, b * 0.72), P(-a, -b * 0.72), P(a * 0.2, -b)];
   }
   // a coffin cell; g (0..1) lights it: a brighter face, a lit edge and a soft halo stroke
+  // A coffin cell: a flat translucent slate face with a very faint gradient, lighter at the wide end, darker
+  // toward the point (pts[0..1] are the point, pts[3..4] the wide end), and a soft luminous border: a faint wide
+  // halo under a fine edge. g (0..1) lights it as the glow runs past.
   function cell(pts, al, g) {
-    if (!fill(pts, C.cell, al)) return false;
-    if (g > 0.02) {
-      fill(pts, C.glow, al * g * 0.5);
-      stroke(C.glowEdge, al * g * 0.18, 5); path(pts, true);
-      stroke(C.glowEdge, al * (0.22 + 0.7 * g), 1 + g * 0.6); path(pts, true);
-    } else { stroke(C.cellEdge, 0.22 * al, 1); path(pts, true); }
+    var q = pts.map(project);
+    if (!q.every(Boolean)) return false;
+    var tipX = (q[0][0] + q[1][0]) / 2, tipY = (q[0][1] + q[1][1]) / 2, wideX = (q[3][0] + q[4][0]) / 2, wideY = (q[3][1] + q[4][1]) / 2;
+    var gr = ctx.createLinearGradient(wideX, wideY, tipX, tipY);
+    gr.addColorStop(0, 'rgba(66, 82, 102, .56)'); gr.addColorStop(1, 'rgba(42, 54, 70, .46)');
+    ctx.globalAlpha = al * GA; ctx.fillStyle = gr; ctx.beginPath();
+    q.forEach(function (s, j) { if (j) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
+    ctx.closePath(); ctx.fill();
+    if (g > 0.02) fill(pts, C.glow, al * g * 0.5);
+    var w = depthScale(pts[0]);
+    ctx.strokeStyle = g > 0.02 ? C.glowEdge : C.cellEdge;
+    ctx.globalAlpha = al * GA * (0.07 + 0.16 * g); ctx.lineWidth = (3.2 + 2 * g) * w; ctx.stroke();
+    ctx.globalAlpha = al * GA * (0.3 + 0.62 * g); ctx.lineWidth = (0.9 + 0.6 * g) * w; ctx.stroke();
     return true;
   }
   // The chase: a few lit heads run along a row of n cells (speed cells a second), each leaving a fading trail,
@@ -233,9 +265,9 @@
         seg(q, arcPt2(sd, RULER_R - (long ? 3 : 1.8) * SZ, ph));
       }
       var cw = 2.5 * SZ, cr = RULER_R - 3.6 * SZ - cw;
-      var nc = Math.floor(360 / (4.6 * SZ));
+      var nc = 2 * Math.round(360 / (4.6 * SZ) / 2), sp = 360 / nc;   // an even count: the stagger meets itself
       for (var i = 0; i < nc; i++) {
-        var ph2 = -180 + i * 4.6 * SZ, q2 = arcPt2(sd, cr - (i % 2) * 2.4 * SZ, ph2);
+        var ph2 = -180 + i * sp, q2 = arcPt2(sd, cr - (i % 2) * 2.4 * SZ, ph2);
         var gl = chase(i, nc, p.t, 18, 4); if (sd < 0) noteLit(i, gl);
         cell(coffin(radialBasis(c, q2), 1, Z(2.5), Z(1.55)), 0.9, gl);
       }
@@ -333,7 +365,7 @@
     W = w; H = h; E = p.eye; EQi = m.qconj(p.eyeQ); SQi = m.qconj(p.suitQ); tx = S.cam.tx; ty = S.cam.ty; f = W / 2 / tx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+    ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
     parts.ringCells = 0; parts._litG = 0;
     rulers(p);
     RING_AZ.forEach(function (az) { sideRing(az, p); });
