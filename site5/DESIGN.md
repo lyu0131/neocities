@@ -46,19 +46,20 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   open in front between az +-30 where diamond caps close it, salmon chevrons at +-26 pointing in.
 - **Side rings** at az +-90 and 180, centred on the rail: 34 coffin cells (radius 17) pointing in, a 3.4 deg
   crosshair circle with radial ticks, a dotted ring (26), two dot grids.
-- **The tall rulers**: arcs of circles round a point off each side (az +-90, el -10, radius 48), so they bow
-  toward the middle as in the frame and curve wherever you look; dashes streaming at airspeed; a coffin column
-  round the same centre just outside (42.5 / 40), points toward the nose; a plate on each at eye level.
-- **The centre**: heading ticks at el 22 with a caret, a vertical line el 13 -> -8, the nose designator at
-  el -10 (salmon bars, dash text, a small V), the slashes and frame dashes where the frame has them.
-- **The cluster** under the nose (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
+- **Element size**: everything is drawn at `SZ` = 0.75 of its measured size, in place (owner: too cluttered).
+- **The tall rulers**: full circles round a point off each side (az +-90, el -10, radius 48), through the measured
+  ruler path, so they bow toward the middle and curve wherever you look; their dashes slide round with the
+  suit's pitch (1.6 deg of arc per degree, a long one every fifth); a coffin column round the same centre just
+  outside, the whole way round, points toward the nose; a plate on each at eye level.
+- **The centre**: heading ticks at el 22 that scroll with the heading (one a degree, a long one every 5) under a
+  fixed caret, and the nose designator at el -10 (salmon bars, dash text, a small V). The pitch ladder, the
+  centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
+- **The cluster** under the nose, scaled by `SZ` about its centre (el -26), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
-- **World-fixed**: the pitch ladder (a rung pair every 2.5 deg near the current pitch, the '=' zero line, the long
-  hatch rows out to +-40; it banks with the suit) and the contacts as doubled W marks (UNKNOWN, MS; the locked
-  one pink with LOCK), a dotted lead arc toward the opponent when it's off the nose.
+- **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS; the locked one pink with LOCK).
 - **The triangle sight** (or the Y, `?look=penelope`) only comes up during a lock. No look switcher on screen.
-- `SITE5.parts` (`rail`, `caps`, `ringCells`, `rungs`, `hatch`, `ladderRoll`, `markers`, `lockSight`, `rear`, `seat`),
-  `SITE5.tapes.stream`, `SITE5.anchors`, `SITE5.ringSample` and `SITE5.seek(t)` are there for the tests.
+- `SITE5.parts` (`rail`, `caps`, `ringCells`, `markers`, `lockSight`, `rear`, `seat`), `SITE5.tapes`
+  (`stream`: the rulers' pitch phase, `heading`), `SITE5.anchors`, `SITE5.ringSample` and `SITE5.seek(t)` are there for the tests.
 
 ## The eye and the camera
 The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every

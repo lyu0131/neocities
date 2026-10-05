@@ -52,14 +52,14 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   const parts = () => p.eval('JSON.stringify(SITE5.parts)').then(JSON.parse);
   let pt = await parts();
   check('the pink rail is drawn with its two diamond caps', pt.rail === true && pt.caps === 2, JSON.stringify({ rail: pt.rail, caps: pt.caps }));
-  check('a pitch ladder is drawn (rungs and the hatch rows)', pt.rungs >= 3 && pt.hatch >= 20, JSON.stringify({ rungs: pt.rungs, hatch: pt.hatch }));
   check('three contacts in the world', (await pose(p, 's.contacts.length')) === 3);
   const st0 = await p.eval('SITE5.tapes.stream'); await p.sleep(500);
-  check('the ruler dashes stream at airspeed', (await p.eval('SITE5.tapes.stream')) !== st0);
+  check('the ruler dashes move with the pitch', (await p.eval('SITE5.tapes.stream')) !== st0);
+  const hdg0 = await p.eval('SITE5.tapes.heading');
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-  await p.sleep(900); pt = await parts();
+  await p.sleep(900); pt = await parts(); pt.hdgBefore = hdg0;
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-  check('the pitch ladder banks with the suit', Math.abs(pt.ladderRoll) > 6, String(pt.ladderRoll));
+  check('the heading ticks scroll with the heading', pt.hdgBefore !== (await p.eval('SITE5.tapes.heading')), String(await p.eval('SITE5.tapes.heading')));
   await p.sleep(4600);
   // the triangle sight only comes up on a lock
   let sightOff = await p.eval('SITE5.pose.lockT === 0 ? SITE5.parts.lockSight === false : null');

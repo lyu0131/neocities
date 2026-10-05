@@ -9,11 +9,12 @@
        diamond caps close it (chevrons at +-26 pointing in);
      - at az +-90 and 180 a ring of coffin cells (radius 17) centred on the rail, a small crosshair (3.4)
        at its centre, a dotted ring (26) round it, dot grids;
-     - the tall rulers: meridians at az +-42 (dashes streaming at airspeed), a coffin column outside
-       (+-47.5), a plate on each (+-40, el 0.5);
-     - the centre: heading ticks at el 22, a vertical line el 13 -> -8, the nose designator at el -10,
-       slashes and frame dashes where the frame has them; the plate cluster under it (el -24 .. -34);
-     - world-fixed: the pitch ladder (rungs, the '=' zero line, the long hatch rows) and W contact marks.
+     - the tall rulers: full circles round a point off each side, through the measured ruler path, their
+       dashes sliding round with the pitch; a coffin column just outside; a plate on each;
+     - the centre: heading ticks at el 22 scrolling with the heading, the nose designator at el -10; the plate
+       cluster under it (centred on el -26);
+     - world-fixed: the W contact marks.
+   Every element is drawn at SZ (0.75) of its measured size, in place: the owner found it too cluttered.
    The triangle sight (or the Y, ?look=penelope) only comes up during a lock. */
 (function () {
   'use strict';
@@ -31,6 +32,8 @@
 
   // the layout, in ball degrees (see the header)
   var RAIL = -18, GAP = 30, RING_AZ = [90, -90, 180], RING_R = 17, DOT_R = 26, RULER = 42;
+  // the size of every element (cells, plates, ticks, marks), its position unchanged: 0.75 (owner, 2026-10-05)
+  var SZ = 0.75;
 
   // ---- projection and drawing on the ball ----
   var W = 0, H = 0, E, EQi, SQi, tx, ty, f, GA = 1;   // GA: a fade applied to everything drawn
@@ -145,158 +148,114 @@
     }
   }
   function T(deg) { return Math.tan(deg * D); }
+  function Z(deg) { return Math.tan(deg * SZ * D); }   // a size, scaled
 
   // ---- ball-fixed ----
   // The pink rail at the waist, right round the ball, with its tick rails; open in front, where diamond
   // caps close it and salmon chevrons point in at the cluster.
   function rail() {
-    var run = function (e) { var pts = []; for (var az = GAP + 1.4; az <= 360 - GAP - 1.4 + 0.01; az += 3) pts.push(dir(az, e)); return pts; };
-    stroke(C.tick, 0.4, 1); path(run(RAIL + 1.2)); path(run(RAIL - 1.6));
-    stroke(C.bar, 0.9, 1.8); path(run(RAIL)); stroke(C.barIn, 0.6, 1.1); path(run(RAIL - 0.7));
+    var u = 1.2 * SZ, dn = 1.6 * SZ;
+    var run = function (e) { var pts = []; for (var az = GAP + 1.4 * SZ; az <= 360 - GAP - 1.4 * SZ + 0.01; az += 3) pts.push(dir(az, e)); return pts; };
+    stroke(C.tick, 0.4, 1); path(run(RAIL + u)); path(run(RAIL - dn));
+    stroke(C.bar, 0.9, 1.6); path(run(RAIL)); stroke(C.barIn, 0.6, 1); path(run(RAIL - 0.7 * SZ));
     for (var az = GAP + 4; az <= 360 - GAP - 4; az += 4.5) {
       var big = Math.round((az - GAP - 4) / 4.5) % 3 === 0;
-      stroke(C.tick, big ? 0.6 : 0.35, 1); seg(dir(az, RAIL + 1.2), dir(az, RAIL + (big ? 2.8 : 1.9))); seg(dir(az, RAIL - 1.6), dir(az, RAIL - (big ? 2.9 : 2.2)));
+      stroke(C.tick, big ? 0.6 : 0.35, 1); seg(dir(az, RAIL + u), dir(az, RAIL + u + (big ? 1.6 : 0.7) * SZ)); seg(dir(az, RAIL - dn), dir(az, RAIL - dn - (big ? 1.3 : 0.6) * SZ));
     }
     var caps = 0;
     [-1, 1].forEach(function (sd) {
-      var B = basis(dir(sd * GAP, RAIL)), w = T(2.6), h = T(3.4);
+      var B = basis(dir(sd * GAP, RAIL)), w = Z(2.6), h = Z(3.4);
       var dia = [tp(B, -w, 0), tp(B, 0, h), tp(B, w, 0), tp(B, 0, -h)];
       if (fill(dia, C.plate, 1)) caps++;
-      stroke(C.line, 0.85, 1.4); path(dia, true);
+      stroke(C.line, 0.85, 1.3); path(dia, true);
       stroke(C.line, 0.5, 1); path([tp(B, -w * 0.62, 0), tp(B, 0, h * 0.62), tp(B, w * 0.62, 0), tp(B, 0, -h * 0.62)], true);
-      stroke(C.line, 0.9, 1.4); path([tp(B, -sd * w * 0.2, h * 0.3), tp(B, sd * w * 0.25, 0), tp(B, -sd * w * 0.2, -h * 0.3)]);
-      // the bracket ticks over and under the cap
-      stroke(C.line, 0.6, 1.2); seg(tp(B, -w * 0.5, h * 1.2), tp(B, w * 0.1, h * 1.45)); seg(tp(B, -w * 0.1, -h * 1.45), tp(B, w * 0.5, -h * 1.2));
-      var Bc = basis(dir(sd * (GAP - 4), RAIL - 0.5));
-      stroke(C.salmon, 0.9, 2.2); path([tp(Bc, sd * T(0.9), T(1.5)), tp(Bc, -sd * T(0.6), 0), tp(Bc, sd * T(0.9), -T(1.5))]);
+      stroke(C.line, 0.9, 1.3); path([tp(B, -sd * w * 0.2, h * 0.3), tp(B, sd * w * 0.25, 0), tp(B, -sd * w * 0.2, -h * 0.3)]);
+      var Bc = basis(dir(sd * (GAP - 4 * SZ), RAIL - 0.5 * SZ));
+      stroke(C.salmon, 0.9, 2); path([tp(Bc, sd * Z(0.9), Z(1.5)), tp(Bc, -sd * Z(0.6), 0), tp(Bc, sd * Z(0.9), -Z(1.5))]);
     });
     parts.rail = true; parts.caps = caps;
   }
   // A ring of coffin cells round the rail at az, pointing in, with its crosshair and dotted ring.
   function sideRing(az) {
-    var c = dir(az, RAIL), n = 34, drawn = 0;
+    var c = dir(az, RAIL), n = Math.round(34 / SZ), drawn = 0;
     for (var k = 0; k < n; k++) {
       var a = k * 360 / n, q = ring(c, RING_R, a, a)[0];
-      if (cell(coffin(radialBasis(c, q), -1, T(2.3), T(1.45)), 1)) drawn++;
+      if (cell(coffin(radialBasis(c, q), -1, Z(2.3), Z(1.45)), 1)) drawn++;
     }
     var dots_ = ring(c, DOT_R, 0, 360, 3);
     ctx.fillStyle = C.tick;
-    dots_.forEach(function (d) { var s = project(d); if (s) { ctx.globalAlpha = 0.55 * GA; ctx.beginPath(); ctx.arc(s[0], s[1], 1.4, 0, 7); ctx.fill(); } });
-    stroke(C.line, 0.55, 1.2); path(ring(c, 3.4, 0, 360), true);
-    [45, 135, 225, 315].forEach(function (a) { stroke(C.line, 0.6, 1.2); seg(ring(c, 3.4, a, a)[0], ring(c, 5, a, a)[0]); seg(ring(c, 8, a, a)[0], ring(c, 10, a, a)[0]); });
+    dots_.forEach(function (d) { var s = project(d); if (s) { ctx.globalAlpha = 0.55 * GA; ctx.beginPath(); ctx.arc(s[0], s[1], 1.4 * SZ, 0, 7); ctx.fill(); } });
+    stroke(C.line, 0.55, 1.1); path(ring(c, 3.4 * SZ, 0, 360), true);
+    [45, 135, 225, 315].forEach(function (a) { stroke(C.line, 0.6, 1.1); seg(ring(c, 3.4 * SZ, a, a)[0], ring(c, 5 * SZ, a, a)[0]); seg(ring(c, 8, a, a)[0], ring(c, 8 + 2 * SZ, a, a)[0]); });
     var B = basis(c);
-    dots(B, -T(8), -T(5), 3, 2, T(0.45)); dots(B, T(9), T(1.8), 3, 2, T(0.45));
+    dots(B, -T(8), -T(5), 3, 2, Z(0.45)); dots(B, T(9), T(1.8), 3, 2, Z(0.45));
     parts.ringCells = (parts.ringCells || 0) + drawn;
     if (az === 90) S.ringSample = [0, 60, 120, 180, 240, 300].map(function (a) { return ring(c, RING_R, a, a)[0]; }).concat([c]);
   }
-  // The tall rulers are arcs of circles round a point off to each side (az +-90, el -10), radius 48 -- the
-  // ruler's measured path in the front frame (it bows toward the middle), and unlike a meridian a circle
-  // like this curves on screen however you look at it. The coffin column runs round the same centre just
-  // outside it (radius 42.5 / 40), its points toward the nose; a plate sits on each ruler at eye level.
-  var SIDE_C = [dir(-90, -10), dir(90, -10)], RULER_R = 48;
+  // The tall rulers are circles round a point off to each side (az +-90, el -10), radius 48: the ruler's
+  // measured path in the front frame (it bows toward the middle), and unlike a meridian a circle like this
+  // curves on screen however you look at it. They run the whole way round, as does the coffin column just
+  // outside them, and their dashes slide round with the suit's pitch (1.6 deg of arc per degree), a long one
+  // every fifth: climb and they run down past you, dive and they run up.
+  var SIDE_C = [dir(-90, -10), dir(90, -10)], RULER_R = 48, STEP = 1.6;
   function arcPt2(sd, r, phi) { var c = SIDE_C[sd < 0 ? 0 : 1]; return ring(c, r, sd < 0 ? phi : 180 - phi, sd < 0 ? phi : 180 - phi)[0]; }
   function rulers(p) {
-    var stream = (p.dist * 0.003) % 1;
-    tapes.stream = stream.toFixed(3);
+    var base = p.pitch * STEP;
+    tapes.stream = base.toFixed(3);
     [-1, 1].forEach(function (sd) {
       var c = SIDE_C[sd < 0 ? 0 : 1];
-      for (var e = -84, n = 0; e <= 84; e += 1.6, n++) {
-        var ph = e - stream * 1.6, q = arcPt2(sd, RULER_R, ph), al = fade(Math.asin(q[1]) / D), long = n % 5 === 0;
-        if (al < 0.04) continue;
-        stroke(C.tick, (long ? 0.75 : 0.45) * al, long ? 2 : 1.3);
-        seg(q, arcPt2(sd, RULER_R - (long ? 3 : 1.8), ph));
+      for (var k = Math.ceil((base - 180) / STEP); k * STEP - base < 180; k++) {
+        var ph = k * STEP - base, long = ((k % 5) + 5) % 5 === 0, q = arcPt2(sd, RULER_R, ph);
+        stroke(C.tick, long ? 0.75 : 0.45, long ? 1.8 : 1.2);
+        seg(q, arcPt2(sd, RULER_R - (long ? 3 : 1.8) * SZ, ph));
       }
-      for (var ph2 = -84, i = 0; ph2 <= 84; ph2 += 4.6, i++) {
-        var q2 = arcPt2(sd, 42.5 - (i % 2) * 2.4, ph2), al2 = fade(Math.asin(q2[1]) / D);
-        if (al2 < 0.05) continue;
-        cell(coffin(radialBasis(c, q2), 1, T(2.5), T(1.55)), al2 * 0.9);
+      var cw = 2.5 * SZ, cr = RULER_R - 3.6 * SZ - cw;
+      for (var ph2 = -180, i = 0; ph2 < 180; ph2 += 4.6 * SZ, i++) {
+        var q2 = arcPt2(sd, cr - (i % 2) * 2.4 * SZ, ph2);
+        cell(coffin(radialBasis(c, q2), 1, Z(2.5), Z(1.55)), 0.9);
       }
-      var qp = arcPt2(sd, RULER_R + 2, 11);
-      plate(radialBasis(c, qp), 0, 0, T(2.8), T(1.25), 0.9);
+      plate(radialBasis(c, arcPt2(sd, RULER_R + 2 * SZ, 11)), 0, 0, Z(2.8), Z(1.25), 0.9);
     });
     if (!S.rulerSample) S.rulerSample = [-40, -20, 0, 20, 40].map(function (ph) { return arcPt2(1, RULER_R, ph); });
   }
-  // the centre, all from the front frame
-  function centre() {
-    // heading ticks over the nose, with the caret
-    for (var a = -5; a <= 5.01; a += 0.5) { var big = Math.abs(a % 2.5) < 0.01; stroke(C.line, big ? 0.7 : 0.45, 1); seg(dir(a, 22.2), dir(a, big ? 23.5 : 22.9)); }
-    stroke(C.line, 0.8, 1.3); seg(dir(0, 23), dir(0, 25)); path([dir(-0.6, 20.8), dir(0, 21.5), dir(0.6, 20.8)]);
-    // the vertical reference and the nose designator under it
-    stroke(C.line, 0.55, 1.2); seg(dir(0, 12.9), dir(0, -8));
-    stroke(C.salmon, 0.85, 1.6); seg(dir(-2.6, -10), dir(-1.7, -10)); seg(dir(1.7, -10), dir(2.6, -10));
-    stroke(C.salmon, 0.7, 1); dashText(basis(dir(0, -10)), 0, 0.004, T(1.4), 1, 0); dashText(basis(dir(0, -10.9)), 0, 0, T(1.2), 1, 0);
-    stroke(C.line, 0.7, 1.2); path([dir(-0.9, -11.6), dir(0, -13), dir(0.9, -11.6)]);
-    [-1, 1].forEach(function (sd) {
-      // the slashes
-      stroke(C.line, 0.6, 1.6);
-      seg(dir(sd * 21.9, 20.5), dir(sd * 19.8, 19.7));
-      seg(dir(sd * 20.9, -6.1), dir(sd * 18.4, -4.4));
-      seg(dir(sd * 21.3, -12.2), dir(sd * 18.4, -14.6));
-      // the frame dashes
-      stroke(C.line, 0.55, 1.4);
-      seg(dir(sd * 33.1, -8.2), dir(sd * 31.1, -8.3));
-      seg(dir(sd * 35, -26.8), dir(sd * 33, -27.2));
-      seg(dir(sd * 35.1, -35.3), dir(sd * 33.5, -35.7));
-      seg(dir(sd * 12.9, 20.9), dir(sd * 9.9, 21.1));
-      stroke(C.line, 0.5, 1.2); seg(dir(sd * 20.3, -20.2), dir(sd * 20.3, -21.8));
-    });
+  // the centre: the heading ticks over the nose scroll with the heading under a fixed caret (a tick every
+  // degree, a long one every 5), and the nose designator under the nose
+  function centre(p) {
+    var h = p.heading, HT = 22.2, span = 5;
+    for (var k = Math.ceil(h - span); k <= h + span; k++) {
+      var rel = k - h, big = ((k % 5) + 5) % 5 === 0;
+      stroke(C.line, (big ? 0.75 : 0.45) * (1 - smooth(span - 1.2, span, Math.abs(rel))), 1);
+      seg(dir(rel, HT), dir(rel, HT + (big ? 1.3 : 0.7) * SZ));
+    }
+    tapes.heading = Math.round(h * 10) / 10;
+    stroke(C.line, 0.85, 1.3); path([dir(-0.6 * SZ, HT - 1.4 * SZ), dir(0, HT - 0.7 * SZ), dir(0.6 * SZ, HT - 1.4 * SZ)]);
+    var Bn = basis(dir(0, -10));
+    stroke(C.salmon, 0.85, 1.4); seg(tp(Bn, -Z(2.6), 0), tp(Bn, -Z(1.7), 0)); seg(tp(Bn, Z(1.7), 0), tp(Bn, Z(2.6), 0));
+    stroke(C.salmon, 0.7, 1); dashText(Bn, 0, Z(0.2), Z(1.4), 2, Z(0.9));
+    stroke(C.line, 0.7, 1.1); path([tp(Bn, -Z(0.9), -Z(1.6)), tp(Bn, 0, -Z(3)), tp(Bn, Z(0.9), -Z(1.6))]);
   }
-  // the plate cluster under the nose
+  // the plate cluster under the nose, the whole group scaled by SZ about its centre (0, -26): Q(az, el) is where
+  // a point the front frame has at (az, el) goes
   function cluster() {
     var B = basis(dir(0, -26));
-    stroke(C.line, 0.85, 2); path([dir(-1.4, -23.2), dir(0, -24.4), dir(1.4, -23.2)]);
-    stroke(C.line, 0.55, 1); dashText(basis(dir(0, -25.6)), 0, 0, T(4.6), 2, T(0.9));
-    stroke(C.line, 0.85, 2); path([dir(-1.4, -29), dir(0, -28), dir(1.4, -29)]);
-    stroke(C.salmon, 0.85, 2); path([dir(-1.6, -31.6), dir(0, -30.4), dir(1.6, -31.6)]);
-    var tri = [dir(-2.6, -35.6), dir(2.6, -35.6), dir(0, -32.8)];
-    fill(tri, C.plate, 1); stroke(C.salmon, 0.75, 1.4); path(tri, true);
-    stroke(C.salmon, 0.5, 1); path([dir(-1.6, -35.1), dir(1.6, -35.1), dir(0, -33.5)], true);
+    var Q = function (az, el) { return tp(B, Z(az), Z(el + 26)); };
+    stroke(C.line, 0.85, 1.8); path([Q(-1.4, -23.2), Q(0, -24.4), Q(1.4, -23.2)]);
+    stroke(C.line, 0.55, 1); dashText(B, 0, Z(0.4), Z(4.6), 2, Z(0.9));
+    stroke(C.line, 0.85, 1.8); path([Q(-1.4, -29), Q(0, -28), Q(1.4, -29)]);
+    stroke(C.salmon, 0.85, 1.8); path([Q(-1.6, -31.6), Q(0, -30.4), Q(1.6, -31.6)]);
+    var tri = [Q(-2.6, -35.6), Q(2.6, -35.6), Q(0, -32.8)];
+    fill(tri, C.plate, 1); stroke(C.salmon, 0.75, 1.3); path(tri, true);
+    stroke(C.salmon, 0.5, 1); path([Q(-1.6, -35.1), Q(1.6, -35.1), Q(0, -33.5)], true);
     [-1, 1].forEach(function (sd) {
-      badge(B, sd * T(10.1), 0, T(2.3));
-      arrowPlate(B, sd * T(18), T(0.7), T(3.1), sd);
-      tabPlate(basis(dir(sd * 8, -22.6)), 0, 0, T(1.3), sd);
-      tabPlate(basis(dir(sd * 8, -29)), 0, 0, T(1.3), sd);
-      dots(basis(dir(sd * 24.3, -27.3)), 0, 0, 3, 2, T(0.55));
+      badge(B, sd * Z(10.1), 0, Z(2.3));
+      arrowPlate(B, sd * Z(18), Z(0.7), Z(3.1), sd);
+      tabPlate(B, sd * Z(8), Z(3.4), Z(1.3), sd);
+      tabPlate(B, sd * Z(8), -Z(3), Z(1.3), sd);
+      dots(B, sd * Z(24.3), -Z(1.3), 3, 2, Z(0.55));
     });
   }
 
   // ---- world-fixed ----
-  function worldBasis(az, el) {
-    var a = az * D, e = el * D;
-    return { c: toBall(dir(az, el)), R: toBall([Math.cos(a), 0, -Math.sin(a)]), U: toBall([-Math.sin(e) * Math.sin(a), Math.cos(e), -Math.sin(e) * Math.cos(a)]) };
-  }
-  // The pitch ladder: a rung pair every 2.5 deg of the world's pitch (az 9 -> 14.4 either side), only near
-  // the current pitch; at 0 deg the '=' line and the long hatch rows out to +-40. It banks with the suit.
-  function pitchLadder(p) {
-    var rungs = 0, hatch = 0;
-    for (var k = Math.ceil((p.pitch - 12) / 2.5) * 2.5; k <= p.pitch + 12; k += 2.5) {
-      if (Math.abs(k) < 0.01 || Math.abs(k) > 85) continue;
-      var al = 1 - smooth(7, 12, Math.abs(k - p.pitch));
-      if (al < 0.05) continue;
-      var B = worldBasis(p.heading, k);
-      [-1, 1].forEach(function (sd) {
-        stroke(C.line, 0.55 * al, 1.3);
-        if (k > 0) seg(tp(B, sd * T(9), 0), tp(B, sd * T(14.4), 0));
-        else { seg(tp(B, sd * T(9), 0), tp(B, sd * T(11.2), 0)); seg(tp(B, sd * T(12.4), 0), tp(B, sd * T(14.4), 0)); }
-      });
-      rungs++;
-    }
-    var Z = worldBasis(p.heading, 0);
-    stroke(C.line, 0.7, 1.3);
-    [-1, 1].forEach(function (sd) { seg(tp(Z, sd * T(3.2), 0), tp(Z, sd * T(9), 0)); });
-    stroke(C.line, 0.85, 1.4); seg(tp(Z, -T(0.9), T(0.3)), tp(Z, T(0.9), T(0.3))); seg(tp(Z, -T(0.9), -T(0.3)), tp(Z, T(0.9), -T(0.3)));
-    var ends = {};
-    [-1, 1].forEach(function (sd) {
-      for (var a = 16.5; a <= 40; a += 1.6) {
-        var Bh = worldBasis(p.heading + sd * a, -1.8);
-        stroke(C.line, 0.55 * (1 - smooth(30, 40, a)), 1.5); seg(tp(Bh, -sd * T(0.75), T(0.9)), tp(Bh, sd * T(0.75), -T(0.9)));
-        hatch++;
-      }
-      ends[sd] = project(toBall(dir(p.heading + sd * 25, -1.8)));
-    });
-    parts.ladderRoll = ends[1] && ends[-1] ? Math.round(Math.atan2(ends[1][1] - ends[-1][1], ends[1][0] - ends[-1][0]) / D) : 0;
-    parts.rungs = rungs; parts.hatch = hatch;
-  }
   // a contact: a doubled W, as in the front frame, with its label low on the right
   function wMark(po, r, color, label, labelColor) {
     var B = basis(po);
@@ -308,21 +267,10 @@
   }
   function contacts(p) {
     var n = 0;
-    p.contacts.slice(1).forEach(function (c) { var po = toBall(c.d); if (project(po)) { wMark(po, T(3.2), C.line, 'MS'); n++; } });
+    p.contacts.slice(1).forEach(function (c) { var po = toBall(c.d); if (project(po)) { wMark(po, Z(3.2), C.line, 'MS'); n++; } });
     var po = toBall(p.opp), lock = p.locked;
-    wMark(po, T(4.2), lock ? C.bar : C.line, lock ? 'LOCK' : 'UNKNOWN', lock ? C.bar : C.salmon);
+    wMark(po, Z(4.2), lock ? C.bar : C.line, lock ? 'LOCK' : 'UNKNOWN', lock ? C.bar : C.salmon);
     parts.markers = n + 1;
-    // off the nose: a dotted arc leads from the centre toward it
-    var off = Math.acos(m.clamp(po[2], -1, 1)) / D;
-    if (off > 10) {
-      var ax = norm([po[0], po[1], 0]), end = Math.min(off - 5, 46);
-      ctx.fillStyle = C.line;
-      for (var g = 8; g <= end; g += 1.7) {
-        var s = project(norm([ax[0] * Math.sin(g * D), ax[1] * Math.sin(g * D), Math.cos(g * D)]));
-        if (!s) continue;
-        ctx.globalAlpha = 0.6 * (1 - (g - 8) / 50); ctx.beginPath(); ctx.arc(s[0], s[1], 1.5, 0, 7); ctx.fill();
-      }
-    }
   }
   // the triangle sight (or the Y), only while locking
   function lockSight(p) {
@@ -333,11 +281,11 @@
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
         var c = Math.cos(an * D), sn = Math.sin(an * D);
-        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045, sn * r + c * o * 0.0045); }; stroke(C.line, 0.8, 2.2); seg(pt(0.03), pt(0.085)); });
+        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045 * SZ, sn * r + c * o * 0.0045 * SZ); }; stroke(C.line, 0.8, 2); seg(pt(0.03 * SZ), pt(0.085 * SZ)); });
       });
       ctx.letterSpacing = '4px'; text(tp(F, 0.1, 0.1), p.mode, C.pink, 0.95, 12, 'left'); ctx.letterSpacing = '0px';
     } else {
-      var u = Math.min(0.22, tx * 0.4) / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = f / 605 * 0.8;
+      var u = Math.min(0.22, tx * 0.4) * SZ / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = f / 605 * 0.8 * SZ;
       var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt), face = [L(-hw, Tt), L(hw, Tt), L(0, A)];
       fill(face, 'rgb(170, 186, 245)', 0.07); stroke(C.line, 0.32, lw); path(face, true);
       [-1, 1].forEach(function (sd) {
@@ -366,9 +314,8 @@
     rulers(p);
     RING_AZ.forEach(sideRing);
     rail();
-    centre();
+    centre(p);
     cluster();
-    pitchLadder(p);
     contacts(p);
     lockSight(p);
     parts.rear = !!(project(dir(180, RAIL)) || project(dir(150, RAIL)) || project(dir(-150, RAIL)));
