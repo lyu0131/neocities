@@ -376,37 +376,47 @@
     }
     parts.markers = n; parts.target = tgt;
   }
-  // the triangle sight (or the Y), on the nose, only while locked on
+  // How the sight comes up (owner's pick of the demos, "4 + 1"): while a lock builds, only the corner brackets,
+  // dim and jittering a little; when it completes, the whole sight snaps on, blinks twice (on/off every 60ms) and
+  // holds. When the lock breaks it goes at once. No fades: a display changing state, not an effect.
+  var LOCK_AT = 0.5;   // lockT at which the lock completes (ball.js LOCK_TIME)
   function lockSight(p) {
-    // only while locked on: it fades in over 0.15s as the lock completes (lockT passes 0.5s) and goes when it breaks
-    var a = p.locked ? smooth(0.5, 0.65, p.lockT) : 0, g = 1;
-    parts.sight = a > 0;
-    if (a <= 0) return;
-    GA = a;
+    var acq = p.lockId && !p.locked && p.lockT > 0, since = p.lockT - LOCK_AT;
+    var on = p.locked && !((since >= 0.06 && since < 0.12) || (since >= 0.18 && since < 0.24));
+    parts.sight = p.locked; parts.sightStage = p.locked ? (on ? 'on' : 'blink') : acq ? 'acquire' : 'off';
+    if (!acq && !p.locked) return;
+    if (p.locked && !on) return;   // the blink's off beats
     tier(1);
+    var jit = acq && !S.reduce ? function () { return (Math.random() - 0.5) * 0.0028; } : function () { return 0; };
+    if (acq) { GA = 0.45 + 0.15 * Math.sin(p.t * 90); HALO = null; }
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
-        var c = Math.cos(an * D), sn = Math.sin(an * D);
-        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045 * SZ * 0.55, sn * r + c * o * 0.0045 * SZ * 0.55); }; stroke(C.line, 0.8, 1.8); seg(pt(0.03 * SZ * 0.55), pt(0.085 * SZ * 0.55)); });
+        if (acq && an === 270) return;   // acquiring: the two upper prongs only, as brackets
+        var c = Math.cos(an * D), sn = Math.sin(an * D), jx = jit(), jy = jit();
+        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045 * SZ * 0.55 + jx, sn * r + c * o * 0.0045 * SZ * 0.55 + jy); }; stroke(C.line, 0.8, 1.8); seg(pt(0.03 * SZ * 0.55), pt(0.085 * SZ * 0.55)); });
       });
-      ctx.letterSpacing = '2px'; text(tp(F, 0.055, 0.055), p.mode, C.pink, 0.95, 9, 'left'); ctx.letterSpacing = '0px';
+      if (!acq) { ctx.letterSpacing = '2px'; text(tp(F, 0.055, 0.055), p.mode, C.pink, 0.95, 9, 'left'); ctx.letterSpacing = '0px'; }
     } else {
-      // TRI: the sight at about half its old size (owner); it closes in by up to 8% as the lock builds
-      var TRI = 0.55, u = Math.min(0.22, tx * 0.4) * SZ * TRI * (1 - 0.08 * g) / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = Math.max(0.6, f / 605 * 0.8 * SZ * TRI * 1.35);
+      // TRI: the sight at about half its old size (owner)
+      var TRI = 0.55, u = Math.min(0.22, tx * 0.4) * SZ * TRI / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = Math.max(0.6, f / 605 * 0.8 * SZ * TRI * 1.35);
       var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt), face = [L(-hw, Tt), L(hw, Tt), L(0, A)];
-      fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true); tier(1);
+      if (!acq) { fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true); tier(1); }
       [-1, 1].forEach(function (sd) {
         var ux = -sd * hw / len, uy = (A - Tt) / len, nx = sd * (A - Tt) / len, ny = hw / len;
         var at = function (t, off) { return L(sd * hw + ux * len * t + nx * off, Tt + uy * len * t + ny * off); };
-        stroke(C.line, 0.7, 7 * lw); seg(at(-0.04, 30), at(0.3, 30)); seg(at(0.72, 30), at(1.03, 30));
-        var ix = sd * hw * 0.62, iy = Tt + 62;
-        stroke(C.line, 0.64, 4.6 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)]);
+        if (!acq) { stroke(C.line, 0.7, 7 * lw); seg(at(-0.04, 30), at(0.3, 30)); seg(at(0.72, 30), at(1.03, 30)); }
+        var ix = sd * hw * 0.62, iy = Tt + 62, jx = jit(), jy = jit();
+        var J = function (q) { return norm([q[0] + jx, q[1] + jy, q[2]]); };
+        stroke(C.line, 0.64, 4.6 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)].map(J));
       });
-      stroke(p.locked ? C.bar : C.line, p.locked ? 0.9 : 0.64, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
-      ctx.letterSpacing = '2px'; text(L(hw + 6, Tt - 14), p.mode, C.pink, 0.95, 9, 'right'); ctx.letterSpacing = '0px';
+      if (!acq) {
+        stroke(C.bar, 0.9, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
+        ctx.letterSpacing = '2px'; text(L(hw + 6, Tt - 14), p.mode, C.pink, 0.95, 9, 'right'); ctx.letterSpacing = '0px';
+      }
     }
     GA = 1;
   }
+
 
   S.project = function (p) { return E ? project(p) : null; };
   S.anchors = { capL: dir(-GAP, RAIL), rulerL: dir(-RULER, -7.5), cluster: dir(0, CLUSTER), heading: dir(0, 22.2), nose: [0, 0, 1], apex: dir(0, -4.5) };

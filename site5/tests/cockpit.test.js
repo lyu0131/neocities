@@ -71,6 +71,10 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     if (st.l && st.t > 0.7 && st.s) sOn = true;
   }
   check('the triangle sight shows when locked on', sOn);
+  // and it comes up in stages: dim brackets while acquiring, then on lock it snaps on and blinks before holding
+  const stages = new Set();
+  for (let i = 0; i < 400 && !(stages.has('acquire') && stages.has('blink') && stages.has('on')); i++) { stages.add(await p.eval('SITE5.parts.sightStage')); await p.sleep(15); }
+  check('the sight goes acquire -> blink -> on', ['acquire', 'blink', 'on'].every(k => stages.has(k)), [...stages].join(','));
   check('and is hidden without a lock', sOff === true, String(sOff));
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
