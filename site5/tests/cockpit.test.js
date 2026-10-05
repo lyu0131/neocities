@@ -181,6 +181,8 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     await m.goto(PAGE, 300); await ready(m);
     check('phone: no h-overflow', await m.eval('document.documentElement.scrollWidth <= innerWidth'));
     check('phone: draws', await m.eval('!!SITE5.gl') && m.errors.length === 0, m.errors.join(' | '));
+    const ed = await m.eval('JSON.stringify(SITE5.parts.cluster.edges)');
+    check('phone: the whole cluster fits across the screen', JSON.parse(ed)[0] >= 4 && JSON.parse(ed)[1] <= 371, ed);
     check('phone: the grip heads show at rest', await m.eval('SITE5.parts.seat.grip > 0'), JSON.stringify(await m.eval('SITE5.parts.seat')));
     await m.mouse('mousePressed', 187, 650, 1); for (let k = 1; k <= 8; k++) await m.mouse('mouseMoved', 187, 650 - 40 * k, 1); await m.mouse('mouseReleased', 187, 330);
     await m.sleep(200);

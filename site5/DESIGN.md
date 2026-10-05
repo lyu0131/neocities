@@ -61,7 +61,8 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   fixed caret, and the nose designator at el -10 (salmon bars, dash text, a small V). The pitch ladder, the
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
 - **The cluster** under the nose, scaled by `SZ` about its centre (el -27), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
-  badges at +-10, arrow plates at +-18 pointing out, turn tabs above and below each badge, cell grids at +-24.
+  sized up by what each holds (owner, 2026-10-05): the badges (radar, thrust vector) 3.5 at +-11.8, the bar plates 4
+  at +-20.5, the turn tabs 1.9 above and below each badge, the cell grids at +-28, the centre stack about 25% up.
   Every shape reads the flight (the owner's picks of the cluster demos): the upper dash row scrolls with the turn
   and the lower is a scrolling trace that spikes with each manoeuvre; the left badge is the radar (heading-up, a
   sweep arm at site4's 3.4s with a fading trail, the view wedge, a blip per contact lit as the arm passes, the
