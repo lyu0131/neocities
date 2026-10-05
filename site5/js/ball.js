@@ -79,7 +79,16 @@
   function opp() { var o = oppAt(lt); return dir(o[0], o[1]); }
   function fire(a, b, dur) { beams.push({ a: a, b: b, t0: T, dur: dur }); if (beams.length > 2) beams.shift(); }
   function kick(x, y, z) { seat[0].v += x; seat[1].v += y; seat[2].v += z; }
+  // an incoming threat (the screenshots' chevron-trailed object): launched from well off to one side,
+  // it closes on the nose over THREAT_DUR seconds, easing in, and passes just wide
+  var threat = null, THREAT_DUR = 3.1;
+  function nose() { var v = qrot(suitQ, [0, 0, 1]); return [Math.atan2(v[0], v[2]) / D, Math.asin(clamp(v[1], -1, 1)) / D]; }
+  function threatAt(u) {
+    var e = u * u, a = threat.a0, b = threat.a1;
+    return dir(a[0] + wrap(b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e);
+  }
   var EVENTS = [
+    [16.5, function () { var n = nose(); threat = { t0: T, a0: [n[0] - 105, n[1] + 6], a1: [n[0] + 5, n[1] + 1.5] }; }],
     [6.0, function () { fire(opp(), ballToWorld([0.22, -0.03, 1]), 0.75); }],              // a shot from the enemy, just right of us
     [6.35, function () { yaw.v += 80; kick(-0.5, 0, 0); }],                                   // jink
     [15.1, function () { var o = opp(); fire(ballToWorld([-0.6, -0.55, 0.55]), norm([o[0] + 0.01, o[1], o[2]]), 0.55); kick(0, 0, -0.35); }],
@@ -177,12 +186,25 @@
       var u = (T - b.t0) / b.dur;
       return { a: b.a, b: b.b, i: u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 1.5) };
     });
+    // the opponent's two escorts, loosely in company with it
+    var contacts = [{ id: 'opp', d: od },
+      { id: 'ms1', d: dir(o[0] + 9 + 4 * Math.sin(T * 0.33), o[1] - 5 + 2 * Math.cos(T * 0.43)) },
+      { id: 'ms2', d: dir(o[0] - 13 + 3 * Math.cos(T * 0.37), o[1] + 4 + 2 * Math.sin(T * 0.31)) }];
+    var th = null;
+    if (threat) {
+      var tu = (T - threat.t0) / THREAT_DUR;
+      if (tu >= 1) { threat = null; if (!reduce) { flash = Math.max(flash, 0.3); shake = Math.max(shake, 0.6); } }
+      else th = { d: threatAt(tu), trail: [1, 2, 3, 4, 5].map(function (k) { return threatAt(Math.max(0, tu - k * 0.035)); }) };
+    }
     S.pose = {
-      suitQ: suitQ, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
+      suitQ: suitQ, contacts: contacts, threat: th, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
       heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, bank: bank.x, spd: spd.x, alt: alt, dist: dist, beams: bs, flash: flash, pos: pos,
       locked: locked, lockT: lockT, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
     };
   }
+
+  // jump the scripted flight's clock (tests; the events between are skipped)
+  S.seek = function (t) { T = t; lt = t % LOOP; prevLt = lt - 0.001; if (t >= 16.5 && t < 16.5 + THREAT_DUR) { var n = nose(); threat = { t0: 16.5, a0: [n[0] - 105, n[1] + 6], a1: [n[0] + 5, n[1] + 1.5] }; } };
 
   // the camera: about 100 degrees across on a landscape screen, 70 tall on a portrait one
   function camera(W, H) {

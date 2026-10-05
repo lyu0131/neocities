@@ -57,9 +57,21 @@ spine, label plates with two lines of tiny unreadable "text", hex badges, arrow 
 - **World-fixed**: pink horizon bars on a white tick rail, either side of the heading **and its reciprocal**; the target
   marker with its closing lock ring (scaled with the triangle on narrow screens; labels always outside it) and a
   dotted lead arc when it's off the nose.
-- No big outer ring in the mix (owner: it didn't fit). Looks (`?look=`): `mix` (default), `xi`, `penelope` (its own
-  11° ring sight); the table at the top of hud.js says which elements each carries.
-- `SITE5.parts` reports what drew (`rear`, `ring`, `seat`), and `SITE5.tapes` the live scales, for the tests.
+- **From the owner's screenshot set (`/ref`, git-ignored, 2026-10-05)**:
+  - a **pitch ladder**, world-fixed: a rung pair every 5° (solid above the horizon, broken below, an end tick toward
+    it) only near the current pitch, and long **hatch rows** at 0°; it banks and slides with the suit;
+  - a **ring of loose radial dashes** 26.5° out, open at the top and bottom (not a solid line: the solid ring didn't fit);
+  - **vertebra cells** in the ladders (wedges, narrower toward the sight, with an occasional wing cell pointing in);
+  - the horizon bars end, toward the sight, in a **diamond plate** with a salmon chevron;
+  - small **triangle rows** either side of the sight, a third salmon caret and a triangle plate in the cluster;
+  - contact markers with **tabs** at their top corners; two escorts (`MS`) fly with the opponent; locking grows a
+    **Y brace** of double bars out of the opponent's marker, pink once locked;
+  - an **incoming threat** (16.5 s into the loop, 3.1 s): a hot point with a trail of **stacked chevrons**, and while
+    it (or the opponent) is out of view a pink **feathered arrow** at the screen edge pointing toward it.
+- Looks (`?look=`): `mix` (default), `xi`, `penelope` (its own **Y reticle**: three double bars round an '=' centre);
+  the table at the top of hud.js says which elements each carries.
+- `SITE5.parts` reports what drew (`rear`, `seat`, `rungs`, `hatch`, `ladderRoll`, `ringDashes`, `caps`, `brace`, `trail`,
+  `edgeArrow`, `yReticle`), `SITE5.tapes` the live scales, and `SITE5.seek(t)` jumps the flight clock, for the tests.
 
 ## The controls (`js/seat.js`)
 Two arm rails with control grips, fixed to the seat like the eye, built from chamfered prisms in the seat frame and

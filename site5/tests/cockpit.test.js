@@ -75,6 +75,30 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     return JSON.stringify({ n: r.length, min: Math.min(...r), max: Math.max(...r) }); })()`).then(JSON.parse);
   check('the side ladders are circular arcs round the sight', circ.n >= 5 && (circ.max - circ.min) / circ.max < 0.08, JSON.stringify(circ));
 
+  // the screenshot set (ref/): pitch ladder with the 0-deg hatch rows, the radial dash ring, bar end
+  // caps, three contacts, the lock's Y brace, an incoming threat with its chevron trail and edge arrow
+  const parts = () => p.eval('JSON.stringify(SITE5.parts)').then(JSON.parse);
+  let pt = await parts();
+  check('a pitch ladder is drawn (rungs and the 0-deg hatch rows)', pt.rungs >= 4 && pt.hatch >= 10, JSON.stringify({ rungs: pt.rungs, hatch: pt.hatch }));
+  check('a ring of radial dashes round the sight', pt.ringDashes >= 16, String(pt.ringDashes));
+  check('the horizon bars end in diamond caps', pt.caps >= 2, String(pt.caps));
+  check('three contacts in the world', (await pose(p, 's.contacts.length')) === 3);
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  await p.sleep(900); pt = await parts();
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
+  check('the pitch ladder banks with the suit', Math.abs(pt.ladderRoll) > 6, String(pt.ladderRoll));
+  await p.sleep(4600);
+  let braced = false;
+  for (let i = 0; i < 60 && !braced; i++) { await p.sleep(100); braced = await p.eval('SITE5.pose.locked && SITE5.parts.brace === true'); }
+  check('a lock throws the Y brace round the target', braced);
+  // early in its run the threat is behind the pilot (an edge arrow); late, in view with its trail
+  await p.eval('SITE5.seek(16.8)'); await p.sleep(250);
+  check('a threat out of view gets an arrow at the screen edge', await p.eval('!!SITE5.pose.threat && SITE5.parts.edgeArrow > 0'));
+  let trail = 0;
+  await p.eval('SITE5.seek(18.6)');
+  for (let i = 0; i < 12 && trail < 3; i++) { await p.sleep(60); trail = await p.eval('SITE5.parts.trail'); }
+  check('an incoming threat in view leaves a chevron trail', trail >= 3, String(trail));
+
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));
@@ -94,6 +118,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   for (const look of ['xi', 'penelope']) {
     await p.goto(`${PAGE}?look=${look}`, 300); await ready(p);
     check(`?look=${look} loads and draws`, (await p.eval('SITE5.look')) === look && await p.eval('!!SITE5.gl'));
+    if (look === 'penelope') check('penelope wears the Y reticle (no ring)', await p.eval('SITE5.parts.yReticle === true && SITE5.parts.ring === false'));
   }
   check('looks: no JS errors', p.errors.length === 0, p.errors.join(' | '));
   p.close();

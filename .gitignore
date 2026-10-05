@@ -18,3 +18,6 @@ site4/img/ref/
 # test screenshots and SDD scratch
 site4/tests/out/
 .superpowers/
+
+# owner reference screenshots (large, local only)
+/ref/

@@ -18,6 +18,7 @@
     'precision highp float;',
     'uniform vec2 uRes, uTan, uPos; uniform vec3 uEye, uOpp, uTint; uniform mat3 uEyeM, uSuitM;',
     'uniform float uTime, uFlash, uSeam; uniform vec3 uBA[2], uBB[2]; uniform float uBI[2];',
+    'uniform vec3 uDots[3]; uniform float uDotK[3];',
     'uniform vec3 uCells[64];',
     'out vec4 o;',
     'const vec3 MOON = normalize(vec3(-.45, .30, .84));',
@@ -61,6 +62,13 @@
     '  float r = acos(clamp(dot(w, uOpp), -1., 1.));',
     '  col = mix(col, vec3(.02, .03, .05), smoothstep(.0065, .0035, r));',
     '  col += vec3(1., .55, .22) * exp(-r * r / 3.e-6) * (.7 + .3 * sin(uTime * 37.));',
+    // the escorts (k 1: a smaller speck and glint) and the incoming threat (k 2: a hot white-pink point)
+    '  for (int i = 0; i < 3; i++) {',
+    '    if (uDotK[i] <= 0.) continue;',
+    '    float rd = acos(clamp(dot(w, uDots[i]), -1., 1.));',
+    '    if (uDotK[i] < 1.5) { col = mix(col, vec3(.02, .03, .05), smoothstep(.0045, .0022, rd)); col += vec3(1., .6, .25) * exp(-rd * rd / 1.6e-6) * .8; }',
+    '    else col += vec3(1., .82, .95) * (exp(-rd * rd / 1.2e-6) * 1.6 + exp(-rd * rd / 2.e-5) * .35);',
+    '  }',
     // beams: a great-circle arc from A to B, widening toward B (it passes close)
     '  for (int i = 0; i < 2; i++) {',
     '    if (uBI[i] <= 0.) continue;',
@@ -98,7 +106,7 @@
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(prog)); document.documentElement.classList.add('nogl'); return; }
   gl.useProgram(prog);
   var U = {};
-  ['uRes', 'uTan', 'uPos', 'uEye', 'uOpp', 'uTint', 'uEyeM', 'uSuitM', 'uTime', 'uFlash', 'uSeam', 'uBA', 'uBB', 'uBI', 'uCells']
+  ['uDots', 'uDotK', 'uRes', 'uTan', 'uPos', 'uEye', 'uOpp', 'uTint', 'uEyeM', 'uSuitM', 'uTime', 'uFlash', 'uSeam', 'uBA', 'uBB', 'uBI', 'uCells']
     .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -135,6 +143,10 @@
     gl.uniformMatrix3fv(U.uSuitM, false, mat(pose.suitQ));
     gl.uniform1f(U.uTime, pose.t);
     gl.uniform1f(U.uFlash, pose.flash);
+    var dv = [], dk = [];
+    [pose.contacts[1], pose.contacts[2]].forEach(function (c) { dv.push.apply(dv, c.d); dk.push(1); });
+    dv.push.apply(dv, pose.threat ? pose.threat.d : [0, 1, 0]); dk.push(pose.threat ? 2 : 0);
+    gl.uniform3fv(U.uDots, dv); gl.uniform1fv(U.uDotK, dk);
     var ba = [], bb = [], bi = [];
     for (var k = 0; k < 2; k++) {
       var b = pose.beams[k];
