@@ -56,8 +56,31 @@
     return { c: q, R: R, U: cross(q, R) };
   }
   function tp(B, u, v) { return norm([B.c[0] + B.R[0] * u + B.U[0] * v, B.c[1] + B.R[1] * u + B.U[1] * v, B.c[2] + B.R[2] * u + B.U[2] * v]); }
+  // The hierarchy, by brightness, opacity and weight only (the colours stay): what reads first is brightest and
+  // the only thing with a halo. A halo is a second, wider, faint stroke laid under the sharp core -- never a blur,
+  // so it can't run neighbouring shapes together.
+  //   1  the triangle sight and the active target         full, a restrained halo
+  //   2  the pink rail's core                             near full, a fainter, tighter halo
+  //   3  rulers, rings, coffin cells, heading, escorts    crisp, no halo, a little dimmer
+  //   4  plates, badges, tabs, dash text, dot grids       crisp, finest, dimmer still
+  // halo.w: how many core widths it spans, halo.max: but never more than this many px past the core (so a heavy
+  // bar gets a tight rim, not a band)
+  var TIERS = { 1: { a: 1, w: 1, halo: { w: 3, k: 0.16, max: 4 } }, 2: { a: 0.95, w: 1, halo: { w: 2.4, k: 0.1, max: 3 } },
+                3: { a: 0.82, w: 0.9, halo: null }, 4: { a: 0.7, w: 0.85, halo: null } };
+  var TA = 1, TW = 1, HALO = null, HALO_TIER = 0;
+  function tier(n) { var t = TIERS[n]; TA = t.a; TW = t.w; HALO = t.halo; HALO_TIER = n; }
   var LW = 1;   // the current stroke's width, before depth
-  function stroke(color, alpha, width) { ctx.strokeStyle = color; ctx.globalAlpha = alpha * GA; LW = Math.max(0.8, width); ctx.lineWidth = LW; }
+  function stroke(color, alpha, width) { ctx.strokeStyle = color; ctx.globalAlpha = alpha * GA * TA; LW = Math.max(0.8, width * TW); ctx.lineWidth = LW; }
+  // stroke the current path: the halo under it first, if this tier has one
+  function strokeNow() {
+    if (HALO) {
+      var lw = ctx.lineWidth, ga = ctx.globalAlpha;
+      ctx.lineWidth = lw + Math.min(lw * (HALO.w - 1), HALO.max); ctx.globalAlpha = ga * HALO.k; ctx.stroke();
+      ctx.lineWidth = lw; ctx.globalAlpha = ga;
+      parts.halo[HALO_TIER] = (parts.halo[HALO_TIER] || 0) + 1;
+    }
+    ctx.stroke();
+  }
   // How much heavier a line on the sphere at p draws than one straight ahead: with the eye behind the centre,
   // nearer parts of the monitor are closer, so they draw a little heavier (gently: the square root of the
   // distance ratio, held to 0.85..1.35). Continuous over the sphere, so a line never jumps in weight.
@@ -80,7 +103,7 @@
     for (var i = 0; i < segs; i++) {
       var a = pts[i], b = pts[(i + 1) % n];
       if (long) {
-        if (pen) ctx.stroke();
+        if (pen) strokeNow();
         ctx.beginPath(); ctx.lineWidth = LW * depthScale(norm([a[0] + b[0], a[1] + b[1], a[2] + b[2]]));
         if (last) { ctx.moveTo(last[0], last[1]); pen = true; } else pen = false;
       }
@@ -92,20 +115,20 @@
         last = s;
       }
     }
-    ctx.stroke();
+    strokeNow();
   }
   function seg(a, b) { path([a, b]); }
   function fill(pts, color, alpha) {
     var q = pts.map(project);
     if (!q.every(Boolean)) return false;
-    ctx.globalAlpha = alpha * GA; ctx.fillStyle = color; ctx.beginPath();
+    ctx.globalAlpha = alpha * GA * TA; ctx.fillStyle = color; ctx.beginPath();
     q.forEach(function (s, j) { if (j) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
     ctx.closePath(); ctx.fill();
     return true;
   }
   function text(p, s, color, alpha, size, align) {
     var q = project(p); if (!q) return;
-    ctx.globalAlpha = alpha * GA; ctx.fillStyle = color; ctx.font = size + 'px ' + FONT; ctx.textAlign = align || 'left';
+    ctx.globalAlpha = alpha * GA * TA; ctx.fillStyle = color; ctx.font = size + 'px ' + FONT; ctx.textAlign = align || 'left';
     ctx.fillText(s, q[0], q[1]);
   }
   // points on a small circle of radius r degrees round c, from..to degrees round it
@@ -137,14 +160,14 @@
     var tipX = (q[0][0] + q[1][0]) / 2, tipY = (q[0][1] + q[1][1]) / 2, wideX = (q[3][0] + q[4][0]) / 2, wideY = (q[3][1] + q[4][1]) / 2;
     var gr = ctx.createLinearGradient(wideX, wideY, tipX, tipY);
     gr.addColorStop(0, 'rgba(66, 82, 102, .56)'); gr.addColorStop(1, 'rgba(42, 54, 70, .46)');
-    ctx.globalAlpha = al * GA; ctx.fillStyle = gr; ctx.beginPath();
+    ctx.globalAlpha = al * GA * TA; ctx.fillStyle = gr; ctx.beginPath();
     q.forEach(function (s, j) { if (j) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
     ctx.closePath(); ctx.fill();
     if (g > 0.02) fill(pts, C.glow, al * g * 0.5);
     var w = depthScale(pts[0]);
     ctx.strokeStyle = g > 0.02 ? C.glowEdge : C.cellEdge;
-    ctx.globalAlpha = al * GA * (0.07 + 0.16 * g); ctx.lineWidth = (3.2 + 2 * g) * w; ctx.stroke();
-    ctx.globalAlpha = al * GA * (0.3 + 0.62 * g); ctx.lineWidth = (0.9 + 0.6 * g) * w; ctx.stroke();
+    ctx.globalAlpha = al * GA * TA * (0.035 + 0.1 * g); ctx.lineWidth = (2.8 + 1.4 * g) * w; ctx.stroke();
+    ctx.globalAlpha = al * GA * TA * (0.3 + 0.6 * g); ctx.lineWidth = (0.85 + 0.45 * g) * w; ctx.stroke();
     return true;
   }
   // The chase: a few lit heads run along a row of n cells (speed cells a second), each leaving a fading trail,
@@ -211,8 +234,12 @@
   function rail() {
     var u = 1.2 * SZ, dn = 1.6 * SZ;
     var run = function (e) { var pts = []; for (var az = GAP + 1.4 * SZ; az <= 360 - GAP - 1.4 * SZ + 0.01; az += 3) pts.push(dir(az, e)); return pts; };
+    tier(3);
     stroke(C.tick, 0.4, 1); path(run(RAIL + u)); path(run(RAIL - dn));
-    stroke(C.bar, 0.9, 1.6); path(run(RAIL)); stroke(C.barIn, 0.6, 1); path(run(RAIL - 0.7 * SZ));
+    stroke(C.barIn, 0.6, 1); path(run(RAIL - 0.7 * SZ));
+    tier(2);
+    stroke(C.bar, 0.92, 1.6); path(run(RAIL));
+    tier(3);
     for (var az = GAP + 4; az <= 360 - GAP - 4; az += 4.5) {
       var big = Math.round((az - GAP - 4) / 4.5) % 3 === 0;
       stroke(C.tick, big ? 0.6 : 0.35, 1); seg(dir(az, RAIL + u), dir(az, RAIL + u + (big ? 1.6 : 0.7) * SZ)); seg(dir(az, RAIL - dn), dir(az, RAIL - dn - (big ? 1.3 : 0.6) * SZ));
@@ -232,6 +259,7 @@
   }
   // A ring of coffin cells round the rail at az, pointing in, with its crosshair and dotted ring.
   function sideRing(az, p) {
+    tier(3);
     var c = dir(az, RAIL), n = Math.round(34 / SZ), drawn = 0;
     for (var k = 0; k < n; k++) {
       var a = k * 360 / n, q = ring(c, RING_R, a, a)[0];
@@ -239,7 +267,7 @@
     }
     var dots_ = ring(c, DOT_R, 0, 360, 3);
     ctx.fillStyle = C.tick;
-    dots_.forEach(function (d) { var s = project(d); if (s) { ctx.globalAlpha = 0.55 * GA; ctx.beginPath(); ctx.arc(s[0], s[1], 1.4 * SZ, 0, 7); ctx.fill(); } });
+    dots_.forEach(function (d) { var s = project(d); if (s) { ctx.globalAlpha = 0.55 * GA * TA; ctx.beginPath(); ctx.arc(s[0], s[1], 1.4 * SZ, 0, 7); ctx.fill(); } });
     stroke(C.line, 0.55, 1.1); path(ring(c, 3.4 * SZ, 0, 360), true);
     [45, 135, 225, 315].forEach(function (a) { stroke(C.line, 0.6, 1.1); seg(ring(c, 3.4 * SZ, a, a)[0], ring(c, 5 * SZ, a, a)[0]); seg(ring(c, 8, a, a)[0], ring(c, 8 + 2 * SZ, a, a)[0]); });
     var B = basis(c);
@@ -256,6 +284,7 @@
   function arcPt2(sd, r, phi) { var c = SIDE_C[sd < 0 ? 0 : 1]; return ring(c, r, sd < 0 ? phi : 180 - phi, sd < 0 ? phi : 180 - phi)[0]; }
   function rulers(p) {
     var base = p.pitch * STEP;
+    tier(3);
     tapes.stream = base.toFixed(3);
     [-1, 1].forEach(function (sd) {
       var c = SIDE_C[sd < 0 ? 0 : 1];
@@ -271,13 +300,14 @@
         var gl = chase(i, nc, p.t, 18, 4); if (sd < 0) noteLit(i, gl);
         cell(coffin(radialBasis(c, q2), 1, Z(2.5), Z(1.55)), 0.9, gl);
       }
-      plate(radialBasis(c, arcPt2(sd, RULER_R + 2 * SZ, 11)), 0, 0, Z(2.8), Z(1.25), 0.9);
+      tier(4); plate(radialBasis(c, arcPt2(sd, RULER_R + 2 * SZ, 11)), 0, 0, Z(2.8), Z(1.25), 0.9); tier(3);
     });
     if (!S.rulerSample) S.rulerSample = [-40, -20, 0, 20, 40].map(function (ph) { return arcPt2(1, RULER_R, ph); });
   }
   // the centre: the heading ticks over the nose scroll with the heading under a fixed caret (a tick every
   // degree, a long one every 5), and the nose designator under the nose
   function centre(p) {
+    tier(3);
     var h = p.heading, HT = 22.2, span = 5;
     for (var k = Math.ceil(h - span); k <= h + span; k++) {
       var rel = k - h, big = ((k % 5) + 5) % 5 === 0;
@@ -295,6 +325,7 @@
   // a point the front frame has at (az, el -- centred on -26 there) goes
   var CLUSTER = -27;
   function cluster() {
+    tier(4);
     var B = basis(dir(0, CLUSTER));
     var Q = function (az, el) { return tp(B, Z(az), Z(el + 26)); };
     stroke(C.line, 0.85, 1.8); path([Q(-1.4, -23.2), Q(0, -24.4), Q(1.4, -23.2)]);
@@ -325,14 +356,17 @@
   }
   function contacts(p) {
     var n = 0;
+    tier(3);
     p.contacts.slice(1).forEach(function (c) { var po = toBall(c.d); if (project(po)) { wMark(po, Z(3.2), C.line, 'MS'); n++; } });
     var po = toBall(p.opp), lock = p.locked;
+    tier(1);
     wMark(po, Z(4.2), lock ? C.bar : C.line, lock ? 'LOCK' : 'UNKNOWN', lock ? C.bar : C.salmon);
     parts.markers = n + 1;
   }
   // the triangle sight (or the Y), always up on the nose; it brightens while a lock builds
   function lockSight(p) {
     GA = 0.72 + 0.28 * smooth(0, 0.5, p.lockT);
+    tier(1);
     parts.sight = true;
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
@@ -343,15 +377,15 @@
     } else {
       var u = Math.min(0.22, tx * 0.4) * SZ / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = f / 605 * 0.8 * SZ;
       var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt), face = [L(-hw, Tt), L(hw, Tt), L(0, A)];
-      fill(face, 'rgb(170, 186, 245)', 0.07); stroke(C.line, 0.32, lw); path(face, true);
+      fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true); tier(1);
       [-1, 1].forEach(function (sd) {
         var ux = -sd * hw / len, uy = (A - Tt) / len, nx = sd * (A - Tt) / len, ny = hw / len;
         var at = function (t, off) { return L(sd * hw + ux * len * t + nx * off, Tt + uy * len * t + ny * off); };
-        stroke(C.line, 0.62, 6 * lw); seg(at(-0.04, 30), at(0.3, 30)); seg(at(0.72, 30), at(1.03, 30));
+        stroke(C.line, 0.7, 7 * lw); seg(at(-0.04, 30), at(0.3, 30)); seg(at(0.72, 30), at(1.03, 30));
         var ix = sd * hw * 0.62, iy = Tt + 62;
-        stroke(C.line, 0.56, 4 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)]);
+        stroke(C.line, 0.64, 4.6 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)]);
       });
-      stroke(C.line, 0.56, 4 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
+      stroke(C.line, 0.64, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
       ctx.letterSpacing = '3px'; text(L(hw - 24, Tt + 20 + 12 / lw), p.mode, C.pink, 0.95, Math.max(9, Math.round(12 * lw)), 'right'); ctx.letterSpacing = '0px';
     }
     GA = 1;
@@ -366,7 +400,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
-    parts.ringCells = 0; parts._litG = 0;
+    parts.ringCells = 0; parts._litG = 0; parts.halo = {};
     rulers(p);
     RING_AZ.forEach(function (az) { sideRing(az, p); });
     rail();

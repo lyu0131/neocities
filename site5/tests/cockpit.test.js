@@ -63,6 +63,9 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   check('the triangle sight is up', await p.eval('SITE5.parts.sight === true'));
+  // the hierarchy: only the sight / active target (tier 1) and the rail's core (tier 2) carry a halo
+  const halo = await p.eval('JSON.stringify(SITE5.parts.halo)').then(JSON.parse);
+  check('only the sight, the target and the rail core glow', halo[1] > 0 && halo[2] > 0 && !halo[3] && !halo[4], JSON.stringify(halo));
   // one sphere: line weight follows depth (nearer parts of the monitor a touch heavier), and changes smoothly --
   // round the rail, no step between neighbouring points is more than a few percent
   const dep = JSON.parse(await p.eval(`(() => { const d = (az, el) => [Math.cos(el * Math.PI / 180) * Math.sin(az * Math.PI / 180), Math.sin(el * Math.PI / 180), Math.cos(el * Math.PI / 180) * Math.cos(az * Math.PI / 180)];

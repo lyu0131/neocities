@@ -78,6 +78,13 @@ The view rests on the nose (it was 7 deg below, as the frame is shot). The eye d
 measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, so it runs at 87 deg across
 (64 tall on a portrait screen) and the layout test scales the frame's positions to match.
 
+**Hierarchy** (brightness, opacity and weight only; the colours stay): `tier(n)` before each group.
+1 the triangle sight and the active target: full, the reticle bars and brackets a touch heavier, a sharp core over a
+restrained halo; 2 the pink rail's core: a fainter, tighter halo; 3 rulers, rings, coffin cells, heading ticks,
+escorts: crisp, no halo, 0.82 opacity; 4 plates, badges, tabs, dash text, dot grids: the finest, 0.7. A halo is a
+second wider faint stroke under the core (never a blur), capped at 4px (tier 1) / 3px (tier 2) past the core's edge,
+so it never runs neighbouring shapes together. The coffin glow keeps a quieter halo than before.
+
 Line weight follows depth: with the eye behind the centre, nearer parts of the monitor draw a little heavier
 (`depthScale`: the square root of the distance ratio, held to 0.85..1.35). Long lines (the rail, rings, ruler
 circles) are stroked a few segments at a time with round joins, so the weight changes smoothly with no seam.
