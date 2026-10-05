@@ -135,14 +135,17 @@
     contacts.forEach(function (c) { c.d = dir(c.az, c.el); c.off = Math.acos(clamp(dot(c.d, fwd0), -1, 1)) / D; });
     var turn = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), climb = (keys.u ? 1 : 0) - (keys.d ? 1 : 0);
     if (manual) {
-      // Fire control helps the pilot onto a target, as AUTO's chase does: within ASSIST of the nearest contact the
-      // keys turn slower (fine aim, down to 30% inside about 6 deg), and an axis with no key held eases the nose
-      // onto it and tracks it. A held key always wins. (Without this the keys' 55 deg/s and their coast overshot
-      // the 4.5 deg lock window every time, so a person could all but never lock.)
-      var aim = contacts.reduce(function (a, b) { return b.off < a.off ? b : a; }), near = aim.off < ASSIST;
-      var fine = near ? clamp(aim.off / 20, 0.3, 1) : 1, ex = wrap(aim.az - yaw.x), ey = aim.el - pitch.x;
-      var wy = turn ? turn * 55 * fine : near ? clamp(ex * 4, -30, 30) : 0, wp = climb ? climb * 40 * fine : near ? clamp(ey * 4, -30, 30) : 0;
-      yaw.v += (wy - yaw.v) * Math.min(1, dt * (turn || !near ? 4 : 8)); pitch.v += (wp - pitch.v) * Math.min(1, dt * (climb || !near ? 4 : 8));
+      // Fire control helps the pilot onto a target, as AUTO's chase does: once every key is let go with a contact
+      // within ASSIST of the nose, the nose eases onto it and tracks it (the one being locked, if it's in reach, so
+      // it doesn't hop round a bunched group). While any key is held the keys alone fly, at full rate. (Without
+      // this the keys' 55 deg/s and their coast overshot the 4.5 deg lock window every time; slowing the keys
+      // near contacts instead made every turn a crawl when the contacts were bunched, owner 2026-10-05.)
+      var held = turn || climb, cur = contacts.filter(function (c) { return c.id === lockId && c.off < ASSIST; })[0];
+      var aim = cur || contacts.reduce(function (a, b) { return b.off < a.off ? b : a; }), assist = !held && aim.off < ASSIST;
+      var wy = assist ? clamp(wrap(aim.az - yaw.x) * 4, -30, 30) : turn * 55, wp = assist ? clamp((aim.el - pitch.x) * 4, -30, 30) : climb * 40;
+      // a key ramps the turn up smoothly; letting go brakes it hard, so a tap stops about where it's let go
+      var rate = function (k) { return Math.min(1, dt * (assist ? 8 : k ? 4 : 12)); };
+      yaw.v += (wy - yaw.v) * rate(turn); pitch.v += (wp - pitch.v) * rate(climb);
       yaw.x += yaw.v * dt; pitch.x += pitch.v * dt;
     } else if (!reduce) {
       // chase the opponent with a lag, so it drifts inside the reticle; dive past it at 9.5-12.8s

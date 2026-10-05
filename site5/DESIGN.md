@@ -21,9 +21,11 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
 - **AUTO**: a 32s looping dogfight. The opponent follows `KEYS` (az/el, Catmull-Rom); the suit chases it on a spring so it
   drifts inside the reticle; `EVENTS` fire jinks, a dive (9.5–12.8s), a near miss and a roll (no beams: removed, owner 2026-10-06).
 - **MANUAL**: arrows/WASD fly it (55°/s turn, 40°/s climb); AUTO resumes 4s after the last key.
-  Fire control helps aim, as AUTO's chase does: within 12 deg of the nearest contact the keys turn slower (down to
-  30% inside about 6 deg), and an axis with no key held eases the nose onto it and tracks it; a held key always
-  wins. Without it the keys overshot the lock window every time (owner, 2026-10-05: no lock after WASD).
+  Fire control helps aim, as AUTO's chase does: once every key is let go with a contact within 12 deg, the nose
+  eases onto it and tracks it (the one being locked, if in reach, so it won't hop round a bunched group). Held keys
+  always fly at full rate; a key ramps the turn up smoothly and letting go brakes hard, so a tap stops about where
+  it's let go. (Owner, 2026-10-05: no lock after WASD; then, slowing the keys near contacts made turning
+  a crawl when they were bunched.)
 - **Head**: drag (pointer events, so mouse and finger) turns it; it drifts back 3s after letting go. On top of that it
   **leads every move** (0.3 x the turn rate, up to 24°; 0.42 x the climb rate, up to 20°) on a slightly bouncy spring,
   and the **mouse steers the gaze** (up to 9° across, 6° up and down). The HUD is painted on the ball, so this is what

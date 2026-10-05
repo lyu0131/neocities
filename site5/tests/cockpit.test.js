@@ -99,28 +99,34 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('on lock a pulse runs in along the rail', railPulsed);
   check('on lock a flash runs up the cluster, and its triangle turns pink', cascaded && triPink, JSON.stringify({ cascaded, triPink }));
   // turning hard off the target breaks the lock: the brackets fly apart, and the big triangle sways with the turn
+  // (and right next to the bunched contacts a held key still turns at full rate: the aim help never fights it)
+  const hdgA = await pose(p, 's.heading'), tA = Date.now();
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   let flew = false, sx = [];
   for (let i = 0; i < 120 && !(flew && sx.length > 60); i++) { const st = await sightNow(); if (st.fly > 0 && st.fly < 1) flew = true; sx.push(st.sway[0]); await p.sleep(12); }
+  while (Date.now() - tA < 1000) await p.sleep(20);
+  const turned = -(((await pose(p, 's.heading')) - hdgA + 540) % 360 - 180);
+  check('next to the contacts a held key turns at full rate', turned > 35, turned.toFixed(1) + ' deg in 1s');
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   check('a broken lock: the brackets fly apart', flew);
   check('the big triangle sways with the turn', Math.max(...sx) - Math.min(...sx) > 0.003, (Math.max(...sx) - Math.min(...sx)).toFixed(4));
   // MANUAL can lock too: a pilot who takes over, turns away, then steers at the enemy the way a person does (a
-  // quarter-second reaction, tapping the keys) gets a lock within 6s
+  // quarter-second reaction, tapping the keys) gets a lock within 3s of first bringing a contact within 12 deg
   {
     const KY = { l: ['ArrowLeft', 37], r: ['ArrowRight', 39], u: ['ArrowUp', 38], d: ['ArrowDown', 40] }, held = {};
     const key = async (k, on) => { if (!!held[k] === on) return; held[k] = on; await p.send('Input.dispatchKeyEvent', { type: on ? 'keyDown' : 'keyUp', key: KY[k][0], code: KY[k][0], windowsVirtualKeyCode: KY[k][1] }); };
     await key('l', true); await p.sleep(1500); await key('l', false);
-    let manualLock = null; const t0 = Date.now();
-    while (Date.now() - t0 < 6000 && manualLock === null) {
+    let manualLock = null, tClose = null; const t0 = Date.now();
+    while (Date.now() - t0 < 9000 && manualLock === null) {
       const s = JSON.parse(await p.eval(`(() => { const s = SITE5.pose, m = SITE5.m, b = m.qrot(m.qconj(s.suitQ), s.contacts[0].d);
-        return JSON.stringify({ x: Math.atan2(b[0], b[2]) / m.D, y: Math.asin(b[1]) / m.D, locked: s.locked, mode: s.mode }); })()`));
-      if (s.locked && s.mode === 'MANUAL') manualLock = (Date.now() - t0) / 1000;
+        return JSON.stringify({ x: Math.atan2(b[0], b[2]) / m.D, y: Math.asin(b[1]) / m.D, near: Math.min(...s.contacts.map(c => c.off)), locked: s.locked, mode: s.mode }); })()`));
+      if (tClose === null && s.near < 12) tClose = Date.now();
+      if (s.locked && s.mode === 'MANUAL') manualLock = (Date.now() - (tClose || t0)) / 1000;
       await key('r', s.x > 3); await key('l', s.x < -3); await key('u', s.y > 3); await key('d', s.y < -3);
       await p.sleep(250);
     }
     for (const k of Object.keys(KY)) await key(k, false);
-    check('MANUAL: steering at the enemy like a person locks it within 6s', manualLock !== null, manualLock === null ? 'no lock' : manualLock.toFixed(1) + 's');
+    check('MANUAL: steering at the enemy like a person locks within 3s of getting close', manualLock !== null && manualLock < 3, manualLock === null ? 'no lock' : manualLock.toFixed(1) + 's');
     await p.sleep(4600);
   }
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
