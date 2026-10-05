@@ -304,18 +304,19 @@
     });
     if (!S.rulerSample) S.rulerSample = [-40, -20, 0, 20, 40].map(function (ph) { return arcPt2(1, RULER_R, ph); });
   }
-  // the centre: the heading ticks over the nose scroll with the heading under a fixed caret (a tick every
-  // degree, a long one every 5), and the nose designator under the nose
+  // the centre: the heading ticks over the nose (+-12 deg) scroll with the heading under a fixed caret -- a tick
+  // every degree, taller every 5, tallest every 10, fading out at the ends -- and the nose designator under it
   function centre(p) {
     tier(3);
-    var h = p.heading, HT = 22.2, span = 5;
+    var h = p.heading, HT = 22.2, span = 12;
     for (var k = Math.ceil(h - span); k <= h + span; k++) {
-      var rel = k - h, big = ((k % 5) + 5) % 5 === 0;
-      stroke(C.line, (big ? 0.75 : 0.45) * (1 - smooth(span - 1.2, span, Math.abs(rel))), 1);
-      seg(dir(rel, HT), dir(rel, HT + (big ? 1.3 : 0.7) * SZ));
+      var rel = k - h, ten = ((k % 10) + 10) % 10 === 0, five = ((k % 5) + 5) % 5 === 0;
+      var al = (ten ? 0.95 : five ? 0.8 : 0.55) * (1 - smooth(span - 3, span, Math.abs(rel)));
+      stroke(C.line, al, ten ? 1.5 : five ? 1.25 : 1);
+      seg(dir(rel, HT), dir(rel, HT + (ten ? 2.3 : five ? 1.6 : 0.9) * SZ));
     }
     tapes.heading = Math.round(h * 10) / 10;
-    stroke(C.line, 0.85, 1.3); path([dir(-0.6 * SZ, HT - 1.4 * SZ), dir(0, HT - 0.7 * SZ), dir(0.6 * SZ, HT - 1.4 * SZ)]);
+    stroke(C.line, 0.95, 1.5); path([dir(-0.9 * SZ, HT - 1.8 * SZ), dir(0, HT - 0.8 * SZ), dir(0.9 * SZ, HT - 1.8 * SZ)]);
     var Bn = basis(dir(0, -10));
     stroke(C.salmon, 0.85, 1.4); seg(tp(Bn, -Z(2.6), 0), tp(Bn, -Z(1.7), 0)); seg(tp(Bn, Z(1.7), 0), tp(Bn, Z(2.6), 0));
     stroke(C.salmon, 0.7, 1); dashText(Bn, 0, Z(0.2), Z(1.4), 2, Z(0.9));

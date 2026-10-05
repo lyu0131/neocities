@@ -54,7 +54,8 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   ruler path, so they bow toward the middle and curve wherever you look; their dashes slide round with the
   suit's pitch (1.6 deg of arc per degree, a long one every fifth); a coffin column round the same centre just
   outside, the whole way round, points toward the nose; a plate on each at eye level.
-- **The centre**: heading ticks at el 22 that scroll with the heading (one a degree, a long one every 5) under a
+- **The centre**: heading ticks at el 22 across +-12 deg that scroll with the heading (one a degree, taller every 5,
+  tallest every 10, fading at the ends) under a
   fixed caret, and the nose designator at el -10 (salmon bars, dash text, a small V). The pitch ladder, the
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
 - **The cluster** under the nose, scaled by `SZ` about its centre (el -27), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
