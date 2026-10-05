@@ -76,9 +76,12 @@
   // the eye sits well behind the ball's centre, as the reference camera does: from there everything on the ball
   // curves the way the inside of a dome does (from the exact centre a great circle would look straight)
   var EYE0 = [0, 0, -0.4];
+  // how much the camera floats: the seat's sway and jolts, its roll and pitch, and the head leading the move all
+  // scale by this (owner: 75% of what it was, 2026-10-05)
+  var FLOAT = 0.75;
   var suitQ = euler(0, 3, 0);
 
-  function kick(x, y, z) { seat[0].v += x; seat[1].v += y; seat[2].v += z; }
+  function kick(x, y, z) { seat[0].v += x * FLOAT; seat[1].v += y * FLOAT; seat[2].v += z * FLOAT; }
   var EVENTS = [
     [6.35, function () { yaw.v += 80; kick(-0.5, 0, 0); }],                                   // jink
     [15.1, function () { kick(0, 0, -0.35); }],
@@ -161,15 +164,15 @@
 
     // the seat, hung in the ball: thrown outward in a turn, pressed down in a pull, lagging the roll
     if (!reduce) {
-      var ax = -yaw.v * D * 0.075, ay = -pitch.v * D * 0.06;
+      var ax = -yaw.v * D * 0.075 * FLOAT, ay = -pitch.v * D * 0.06 * FLOAT;
       spring(seat[0], ax, 5.5, 0.38, dt); spring(seat[1], ay, 5.5, 0.38, dt); spring(seat[2], 0, 5.5, 0.45, dt);
-      spring(seatRoll, -bank.v * 0.05, 6, 0.4, dt); spring(seatPitch, -pitch.v * 0.03, 6, 0.4, dt);
+      spring(seatRoll, -bank.v * 0.05 * FLOAT, 6, 0.4, dt); spring(seatPitch, -pitch.v * 0.03 * FLOAT, 6, 0.4, dt);
     }
     // the head drifts back to the nose once let go
     if (!dragging && now - lastDrag > 3000) { var k = Math.min(1, dt * 1.6); head.yaw -= head.yaw * k; head.pitch -= head.pitch * k; }
     // it leads the move (a third of the turn rate, a little under half the climb rate), and follows the mouse
     if (!reduce) {
-      spring(lead.yaw, clamp(yaw.v * 0.3, -24, 24), 4.2, 0.5, dt); spring(lead.pitch, clamp(pitch.v * 0.42, -20, 20), 4.2, 0.5, dt);
+      spring(lead.yaw, clamp(yaw.v * 0.3, -24, 24) * FLOAT, 4.2, 0.5, dt); spring(lead.pitch, clamp(pitch.v * 0.42, -20, 20) * FLOAT, 4.2, 0.5, dt);
       spring(gaze.yaw, dragging ? gaze.yaw.x : gazeAt[0] * 9, 3, 0.8, dt); spring(gaze.pitch, dragging ? gaze.pitch.x : -gazeAt[1] * 6, 3, 0.8, dt);
     }
     // the pilot's resting gaze is the nose itself: the triangle sight is right in front of the eyes

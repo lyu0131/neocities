@@ -15,6 +15,8 @@ the clips, and why, is in `docs/reference.md`.
 world -> **suit** (attitude quaternion) -> **ball** (unit sphere, rigid with the suit) -> **seat** (spring-hung in the
 ball: thrown outward in a turn, pressed down in a pull, lagging the roll; shaken by a near miss) -> **eye** (seat + head
 look; it sits at `EYE0`, a little above and behind the centre). Frames: x right, y up, z forward; degrees.
+  `FLOAT` (0.75, owner 2026-10-05) scales how much the camera floats: the seat's sway and jolts, its roll and
+  pitch, and the head leading the move.
 - The ball is a **display**: a point p on it shows the world in direction p from the centre. Seen from the eye, which is
   never at the centre, everything on it bends, and the bend moves as the seat sways. That is the only source of
   curvature; nothing is pre-curved.
@@ -73,8 +75,10 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   sweep arm at site4's 3.4s with a fading trail, the view wedge, a blip per contact lit as the arm passes, the
   target's pink) and the right one the thrust vector; the turn tabs light on the turn's side, chevrons running
   out; the plates hold bars (thrust left, its verniers firing for the turns; reactor right, a row going pink in a
-  dive); the cell grids blink on their own. In a climb the up chevrons ripple upward, in a dive the top V and the
-  dashes ripple down. The triangle pulses while a lock builds; on lock a pulse runs in along the rail to the caps,
+  dive); the cell grids blink on their own. The pitch arrows are the cluster's blue: the up arrow on top pointing
+  up, the down arrow under the trace pointing down; climbing pushes the up arrow up (on a spring) with echoes peeling
+  off upward and fading, diving the same downward. Only the triangle and its caret carry a state colour, always
+  together: salmon, pink once locked. The triangle pulses while a lock builds; on lock a pulse runs in along the rail to the caps,
   which flash, a flash runs up the chevron stack, and the triangle stays pink while locked. Lit pieces draw at tier 1
   for that moment. Reduced motion: the radar arm parks at the top and nothing scrolls, ripples, flashes or blinks.
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), small (about 2 deg across for the opponent); the

@@ -20,7 +20,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   for (let i = 0; i < 30; i++) { await p.sleep(100); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)')); }
   check('AUTO flies: the heading changes', Math.abs(((await pose(p, 's.heading')) - a0 + 540) % 360 - 180) > 3);
   check('AUTO says so', (await pose(p, 's.mode')) === 'AUTO');
-  check('the seat sways inside the ball', maxSeat > 0.004 && maxSeat < 0.3, maxSeat.toFixed(4));
+  check('the seat sways inside the ball', maxSeat > 0.003 && maxSeat < 0.3, maxSeat.toFixed(4));
 
   // keys take it over (MANUAL) and turn it; it hands back after 4s
   const cl = () => p.eval('JSON.stringify(SITE5.parts.cluster)').then(JSON.parse);
@@ -43,12 +43,18 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(400);
   const y0 = await noseY();
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
-  await p.sleep(500); let upLit = 0;
-  for (let i = 0; i < 10; i++) { upLit = Math.max(upLit, (await cl()).chev.up); await p.sleep(30); }
-  check('climbing lights the up chevrons', upLit > 0.3, upLit.toFixed(2));
+  await p.sleep(500); let upLit = 0, upY = 0;
+  for (let i = 0; i < 10; i++) { const c = (await cl()).chev; upLit = Math.max(upLit, c.up); upY = Math.max(upY, c.upY); await p.sleep(30); }
+  check('climbing lights the up arrow', upLit > 0.3, upLit.toFixed(2));
+  check('climbing pushes the up arrow up', upY > 0.3, upY.toFixed(2));
   const y1 = await noseY();
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
   check('climbing shifts the HUD down the screen', y1 - y0 > 40, `${y0.toFixed(0)} -> ${y1.toFixed(0)}`);
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
+  await p.sleep(400); let downY = 0;
+  for (let i = 0; i < 10; i++) { downY = Math.max(downY, (await cl()).chev.downY); await p.sleep(30); }
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
+  check('diving pushes the down arrow down', downY > 0.3, downY.toFixed(2));
   await p.sleep(4600);
   // the mouse steers the gaze a little: the HUD slides away from where you look
   await p.mouse('mouseMoved', 720, 450); await p.sleep(900);
@@ -80,13 +86,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   // the sight: faint at idle, closing in (and jittering) while a lock builds, full and blinking on lock
   // (E: springs open and closes in, clunks into the lock; brackets and V follow the target; pings while held)
-  const seen = {}; let maxK = 1, minK = 9, follow = null, pinged = false, onFor = 0, railPulsed = false, cascaded = false, triPink = false;
+  const seen = {}; let maxK = 1, minK = 9, follow = null, pinged = false, onFor = 0, railPulsed = false, cascaded = false, triPink = false, caretOff = false;
   const sightNow = () => p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale, cue: SITE5.parts.sightCue, err: SITE5.parts.sightCueErr, pings: SITE5.parts.sightPings, fly: SITE5.parts.sightFly, sway: SITE5.parts.sightSway })').then(JSON.parse);
   for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on && onFor > 40); i++) {
     const st = await sightNow();
     seen[st.s] = true; if (st.s === 'acquire') maxK = Math.max(maxK, st.k);
     if (st.s === 'on' || st.s === 'blink') minK = Math.min(minK, st.k);
-    if (st.s === 'on' || st.s === 'blink') { const k = await cl(); if (k.railPulse) railPulsed = true; if (k.cascade) cascaded = true; if (k.triPink) triPink = true; }
+    if (st.s === 'on' || st.s === 'blink') { const k = await cl(); if (k.railPulse) railPulsed = true; if (k.cascade) cascaded = true; if (k.triPink) triPink = true; if (!k.caret || k.caret !== k.triColor) caretOff = true; }
     if (st.s === 'on') { onFor++; if (st.pings) pinged = true; if (onFor > 25 && st.cue && Math.hypot(st.cue[0], st.cue[1]) > 0.002 && (!follow || st.err < follow.err)) follow = st; }
     await p.sleep(12);
   }
@@ -98,6 +104,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('a ping goes out while the lock is held', pinged);
   check('on lock a pulse runs in along the rail', railPulsed);
   check('on lock a flash runs up the cluster, and its triangle turns pink', cascaded && triPink, JSON.stringify({ cascaded, triPink }));
+  check('the caret always wears the triangle\'s colour', !caretOff);
   // turning hard off the target breaks the lock: the brackets fly apart, and the big triangle sways with the turn
   // (and right next to the bunched contacts a held key still turns at full rate: the aim help never fights it)
   const hdgA = await pose(p, 's.heading'), tA = Date.now();

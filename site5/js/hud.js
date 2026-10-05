@@ -352,26 +352,35 @@
     // as the seat's KX draws the grips closer: it spans about +-23 deg of the ball at full size.
     CK = m.clamp(tx / 0.34, 0.6, 1);
     var B = basis(dir(0, CLUSTER)), red = S.reduce, t = red ? 0 : p.t, la = mo.lockAge, cl = parts.cluster;
-    var py = red ? 0 : T(mo.pitch * 0.35);
-    var Q = function (x, y) { return tp(B, Z(x), Z(y) + py); };
-    var up = Math.max(0, mo.pitch), dn = Math.max(0, -mo.pitch), rip = function (k) { return red ? 1 : 0.5 + 0.5 * Math.sin(t * 14 - k * 1.6); };
-    var lTri = 0, lSal = up * rip(0), lUp = up * rip(1), lTop = dn * rip(0), lDash = dn * rip(1) * 0.6, casc = 0;
-    cl.chev = { up: Math.max(lSal, lUp), down: lTop };
+    var Q = function (x, y) { return tp(B, Z(x), Z(y)); };
+    // 3: the pitch arrows, in the cluster's blue: the up arrow on top pointing up, the down arrow under the trace
+    // pointing down. Climbing pushes the up arrow up (on a spring) and peels echoes off it upward, fading; diving
+    // does the same downward. Only the triangle and its caret carry a state colour, always together: salmon, and
+    // pink once locked (owner: the old mix of blue, salmon and pink looked muddy).
+    var up = m.clamp(mo.pitch, 0, 1), dn = m.clamp(-mo.pitch, 0, 1), yUp = 3.9 + mo.au.x * 0.9, yDn = -2.9 - mo.ad.x * 0.9;
+    var chev = function (y, sg) { return [Q(-1.8, y - sg * 1.3), Q(0, y), Q(1.8, y - sg * 1.3)]; };   // sg +1 points up
+    var echo = function (y, sg, amt) {
+      if (red || amt < 0.06) return;
+      tier(3);
+      for (var i = 0; i < 2; i++) { var f = (mo.echo + i / 2) % 1; stroke(C.line, 0.75 * amt * (1 - f) * (1 - f), 1.6); path(chev(y + sg * f * 1.2, sg)); }
+    };
+    var lTri = 0, lCar = 0, lDn = dn * 0.8, lDash = 0, lUp = up * 0.8, casc = 0;
     if (!red && mo.acqG > 0) lTri = 0.3 + 0.3 * mo.acqG + 0.35 * mo.acqG * Math.sin(t * 30);
-    if (!red && la >= 0 && la < 0.6) {
+    if (!red && la >= 0 && la < 0.6) {   // the lock's flash, bottom to top
       var lit = [0, 1, 2, 3, 4].map(function (k) { var x = (la - k * 0.07) / 0.06; return Math.exp(-x * x); });
-      lTri = Math.max(lTri, lit[0]); lSal = Math.max(lSal, lit[1]); lUp = Math.max(lUp, lit[2]); lDash = Math.max(lDash, lit[3]); lTop = Math.max(lTop, lit[4]);
+      lTri = Math.max(lTri, lit[0]); lCar = lit[1]; lDn = Math.max(lDn, lit[2]); lDash = lit[3]; lUp = Math.max(lUp, lit[4]);
       casc = lit.filter(function (x) { return x > 0.3; }).length;
     }
-    litStroke(C.line, 0.85, 2, lTop); path([Q(-1.8, 3.7), Q(0, 2.2), Q(1.8, 3.7)]);
-    litStroke(C.line, 0.6, 1.1, lDash); dashScroll(B, 0, Z(1) + py, Z(5.4), mo.dash); trace(B, 0, -Z(0.4) + py, Z(5.4), Z(0.65));
-    litStroke(C.line, 0.85, 2, lUp); path([Q(-1.8, -3.2), Q(0, -1.9), Q(1.8, -3.2)]);
-    litStroke(C.salmon, 0.85, 2, lSal); path([Q(-2, -5.8), Q(0, -4.3), Q(2, -5.8)]);
+    echo(yUp, 1, up); litStroke(C.line, 0.95, 2, lUp, 3); path(chev(yUp, 1));
+    litStroke(C.line, 0.6, 1.1, lDash); dashScroll(B, 0, Z(1), Z(5.4), mo.dash); trace(B, 0, -Z(0.4), Z(5.4), Z(0.65));
+    echo(yDn, -1, dn); litStroke(C.line, 0.95, 2, lDn, 3); path(chev(yDn, -1));
+    cl.chev = { up: lUp, down: lDn, upY: yUp - 3.9, downY: -2.9 - yDn };
     var pink = !!p.locked, tc = pink ? C.bar : C.salmon, tri = [Q(-3.2, -10.4), Q(3.2, -10.4), Q(0, -7)];
+    litStroke(tc, 0.85, 2, lCar); path([Q(-2, -5.8), Q(0, -4.3), Q(2, -5.8)]);   // the caret, the triangle's own
     tier(4); fill(tri, C.plate, 1); if (pink) fill(tri, C.bar, 0.16);
     litStroke(tc, 0.75, 1.5, pink ? Math.max(lTri, 0.7) : lTri); path(tri, true);
     litStroke(tc, 0.5, 1.1, pink ? 0.5 : lTri * 0.6); path([Q(-2, -9.8), Q(2, -9.8), Q(0, -7.9)], true);
-    cl.cascade = casc; cl.triPink = pink; cl.dash = mo.dash;
+    cl.cascade = casc; cl.triPink = pink; cl.dash = mo.dash; cl.caret = tc; cl.triColor = tc;
     var dr = red ? 0 : 1, bars = [], cells = '';
     [-1, 1].forEach(function (sd) {
       var bu = sd * Z(11.8), bs = Z(3.5);
@@ -528,7 +537,8 @@
   // The suit's motion, worked out once a frame for everything that reacts to it: the turn rates (body frame,
   // rad/s), and yaw (+ right) and pitch (+ up) normalised to -1..1 and smoothed; how long the lock has been held;
   // the dash scroll, the thrust vector's springs, the tab chevrons' run, and the trace's history.
-  var mo = { dt: 0, om: [0, 0, 0], yaw: 0, pitch: 0, lockAge: -1, acqG: 0, dash: 0, tabPh: 0, vx: { x: 0, v: 0 }, vy: { x: 0, v: 0 } };
+  var mo = { dt: 0, om: [0, 0, 0], yaw: 0, pitch: 0, lockAge: -1, acqG: 0, dash: 0, tabPh: 0, vx: { x: 0, v: 0 }, vy: { x: 0, v: 0 },
+    au: { x: 0, v: 0 }, ad: { x: 0, v: 0 }, echo: 0 };   // the pitch arrows' push (springs) and their echoes' run
   var moT = null, moQ = null, traceBuf = [], traceNext = 0;
   function wave(x) { return Math.sin(x * 7) * 0.3 + Math.sin(x * 13.3) * 0.3 + Math.sin(x * 29) * 0.22 + Math.sin(x * 61) * 0.13; }
   function motion(p) {
@@ -546,6 +556,8 @@
     mo.dash += mo.yaw * dt * Z(6);
     mo.tabPh += dt * (4 + 10 * Math.abs(mo.yaw));
     spring(mo.vx, mo.yaw, 6, 0.45, dt); spring(mo.vy, mo.pitch, 6, 0.45, dt);
+    spring(mo.au, Math.max(0, mo.pitch), 9, 0.5, dt); spring(mo.ad, Math.max(0, -mo.pitch), 9, 0.5, dt);
+    mo.echo = (mo.echo + dt * (1 + 1.5 * Math.abs(mo.pitch))) % 1;
     // the trace: a sample every 30ms, 57 kept (1.7s), bigger while manoeuvring
     if (p.t - traceNext > 2) traceNext = p.t - 1.7;
     for (; traceNext <= p.t; traceNext += 0.03) {
