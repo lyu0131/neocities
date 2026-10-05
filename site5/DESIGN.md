@@ -19,7 +19,7 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
   never at the centre, everything on it bends, and the bend moves as the seat sways. That is the only source of
   curvature; nothing is pre-curved.
 - **AUTO**: a 32s looping dogfight. The opponent follows `KEYS` (az/el, Catmull-Rom); the suit chases it on a spring so it
-  drifts inside the reticle; `EVENTS` fire shots, jinks, a dive (9.5–12.8s), a near miss and a roll.
+  drifts inside the reticle; `EVENTS` fire jinks, a dive (9.5–12.8s), a near miss and a roll (no beams: removed, owner 2026-10-06).
 - **MANUAL**: arrows/WASD fly it (55°/s turn, 40°/s climb); AUTO resumes 4s after the last key.
 - **Head**: drag (pointer events, so mouse and finger) turns it; it drifts back 3s after letting go. On top of that it
   **leads every move** (0.3 x the turn rate, up to 24°; 0.42 x the climb rate, up to 20°) on a slightly bouncy spring,
@@ -34,7 +34,7 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
 ## The picture (`js/world.js`)
 One WebGL2 full-screen fragment shader: ray from the eye -> the ball -> world direction -> night sky (moon, stars, thin
 high cloud), a moonlit cloud sea on a plane below that scrolls as the suit flies, the opponent's speck and thruster
-glint, beams as great-circle arcs widening toward their near end. Then the ball's **panel seams**: the spherical
+glint and the escorts' specks. Then the ball's **panel seams**: the spherical
 geodesic described below: thin light joints, as in the seat shots, with a faint shadow beside them. Rendered at
 0.7–0.75 of device resolution, stepping down by 0.1 (to 0.45) while frames average over 21ms.
 
@@ -74,7 +74,7 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   halo) and fading as the run moves on -- four runs climbing each ruler column (18 cells a second), two running
   round each side ring (14). Driven by the flight clock, so it holds still under reduced motion.
 - `SITE5.parts` (`rail`, `caps`, `ringCells`, `markers`, `lockSight`, `rear`, `seat`), `SITE5.tapes`
-  (`stream`: the rulers' pitch phase, `heading`), `SITE5.anchors`, `SITE5.ringSample` and `SITE5.seek(t)` are there for the tests.
+  (`stream`: the rulers' pitch phase, `heading`), `SITE5.anchors`, `SITE5.ringSample` are there for the tests.
 
 ## The eye and the camera
 The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every

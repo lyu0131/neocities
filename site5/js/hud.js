@@ -302,7 +302,6 @@
       }
       tier(4); plate(radialBasis(c, arcPt2(sd, RULER_R + 2 * SZ, 11)), 0, 0, Z(2.8), Z(1.25), 0.9); tier(3);
     });
-    if (!S.rulerSample) S.rulerSample = [-40, -20, 0, 20, 40].map(function (ph) { return arcPt2(1, RULER_R, ph); });
   }
   // the centre: the heading ticks over the nose (+-12 deg) scroll with the heading under a fixed caret -- a tick
   // every degree, taller every 5, tallest every 10, fading out at the ends -- and the nose designator under it

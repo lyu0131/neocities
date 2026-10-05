@@ -22,10 +22,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night)
 @media (hover: none) { #hint .fine { display: none; } #hint .touch { display: inline; } }
 @keyframes hint { 0%, 100% { opacity: 0; } 12%, 70% { opacity: .7; } }
 
-#looks { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; font: 9px/1 Michroma, 'B612 Mono', sans-serif; letter-spacing: .2em; }
-#looks a { color: var(--line); opacity: .45; text-decoration: none; padding: 6px 0; }
-#looks a:hover, #looks a:focus-visible, #looks a[aria-current] { opacity: .95; }
-#looks a[aria-current] { color: var(--pink); }
 :focus-visible { outline: 1px solid var(--pink); outline-offset: 3px; }
 
 .nogl-note { display: none; }
