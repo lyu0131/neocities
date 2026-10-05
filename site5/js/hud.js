@@ -364,24 +364,26 @@
       var opp = c.id === 'opp', isT = c.id === p.lockId, lock = isT && p.locked;
       if (isT) { tgt = c.id; return; }
       tier(opp ? 1 : 3);
-      wMark(po, Z(opp ? 2.8 : 2.2), C.line, opp ? 'UNKNOWN' : 'MS', opp ? C.salmon : C.line);
+      wMark(po, Z(opp ? 2 : 1.6), C.line, opp ? 'UNKNOWN' : 'MS', opp ? C.salmon : C.line);
       n++;
     });
     if (tgt) {
       var c = p.contacts.filter(function (k) { return k.id === tgt; })[0], po = toBall(c.d), lock = p.locked;
       tier(1);
       // sized to sit inside the sight's opening when it's on the nose
-      wMark(po, Z(c.id === 'opp' ? 2.8 : 2.4), lock ? C.bar : C.line, lock ? 'LOCK' : (c.id === 'opp' ? 'UNKNOWN' : 'MS'), lock ? C.bar : C.salmon);
+      wMark(po, Z(c.id === 'opp' ? 2 : 1.7), lock ? C.bar : C.line, lock ? 'LOCK' : (c.id === 'opp' ? 'UNKNOWN' : 'MS'), lock ? C.bar : C.salmon);
       n++;
     }
     parts.markers = n; parts.target = tgt;
   }
-  // the triangle sight (or the Y), always up on the nose; it brightens while a lock builds
+  // the triangle sight (or the Y), on the nose, only while locked on
   function lockSight(p) {
-    var g = smooth(0, 0.5, p.lockT);
-    GA = 0.72 + 0.28 * g;
+    // only while locked on: it fades in over 0.15s as the lock completes (lockT passes 0.5s) and goes when it breaks
+    var a = p.locked ? smooth(0.5, 0.65, p.lockT) : 0, g = 1;
+    parts.sight = a > 0;
+    if (a <= 0) return;
+    GA = a;
     tier(1);
-    parts.sight = true;
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
         var c = Math.cos(an * D), sn = Math.sin(an * D);

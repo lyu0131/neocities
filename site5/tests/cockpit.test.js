@@ -62,7 +62,16 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('the heading ticks scroll with the heading', pt.hdgBefore !== (await p.eval('SITE5.tapes.heading')), String(await p.eval('SITE5.tapes.heading')));
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
-  check('the triangle sight is up', await p.eval('SITE5.parts.sight === true'));
+  // the triangle sight only shows while locked on
+  let sOff = null, sOn = false;
+  for (let i = 0; i < 100 && !(sOn && sOff !== null); i++) {
+    await p.sleep(80);
+    const st = JSON.parse(await p.eval('JSON.stringify({ l: SITE5.pose.locked, t: SITE5.pose.lockT, s: SITE5.parts.sight })'));
+    if (!st.l && st.t === 0 && sOff === null) sOff = st.s === false;
+    if (st.l && st.t > 0.7 && st.s) sOn = true;
+  }
+  check('the triangle sight shows when locked on', sOn);
+  check('and is hidden without a lock', sOff === true, String(sOff));
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
   for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;

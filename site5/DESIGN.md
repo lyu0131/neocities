@@ -62,11 +62,10 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
 - **The cluster** under the nose, scaled by `SZ` about its centre (el -27), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
-- **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), sized to sit inside the sight's opening; the
+- **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), small (about 2 deg across for the opponent); the
   current target reads first (tier 1) and turns pink with LOCK once locked, whichever contact it is.
-- **The triangle sight** (or the Y, `?look=penelope`) is always up on the nose at about half its earlier size
-  (`TRI` 0.55), with the AUTO/MANUAL word; as a lock builds it brightens and closes in by up to 8%, and its
-  inner V turns pink once locked. No look switcher on screen.
+- **The triangle sight** (or the Y, `?look=penelope`) shows on the nose only while locked on (fading in over 0.15s
+  as the lock completes), at about half its earlier size (`TRI` 0.55), with the AUTO/MANUAL word and its inner V pink. No look switcher on screen.
 - **Cells**: flat translucent slate with a very faint gradient (lighter at the wide end, darker toward the point) and
   a soft luminous border (a faint wide halo under a fine edge). The ruler columns are spaced evenly the whole way
   round (an even count, so the stagger meets itself where the circle closes).
