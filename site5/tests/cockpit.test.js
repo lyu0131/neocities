@@ -62,20 +62,16 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('the heading ticks scroll with the heading', pt.hdgBefore !== (await p.eval('SITE5.tapes.heading')), String(await p.eval('SITE5.tapes.heading')));
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
-  // the triangle sight only shows while locked on
-  let sOff = null, sOn = false;
-  for (let i = 0; i < 100 && !(sOn && sOff !== null); i++) {
-    await p.sleep(80);
-    const st = JSON.parse(await p.eval('JSON.stringify({ l: SITE5.pose.locked, t: SITE5.pose.lockT, s: SITE5.parts.sight })'));
-    if (!st.l && st.t === 0 && sOff === null) sOff = st.s === false;
-    if (st.l && st.t > 0.7 && st.s) sOn = true;
+  // the sight: faint at idle, closing in (and jittering) while a lock builds, full and blinking on lock
+  const seen = {}; let maxK = 1;
+  for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on); i++) {
+    const st = JSON.parse(await p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale })'));
+    seen[st.s] = true; if (st.s === 'acquire') maxK = Math.max(maxK, st.k);
+    await p.sleep(12);
   }
-  check('the triangle sight shows when locked on', sOn);
-  // and it comes up in stages: dim brackets while acquiring, then on lock it snaps on and blinks before holding
-  const stages = new Set();
-  for (let i = 0; i < 400 && !(stages.has('acquire') && stages.has('blink') && stages.has('on')); i++) { stages.add(await p.eval('SITE5.parts.sightStage')); await p.sleep(15); }
-  check('the sight goes acquire -> blink -> on', ['acquire', 'blink', 'on'].every(k => stages.has(k)), [...stages].join(','));
-  check('and is hidden without a lock', sOff === true, String(sOff));
+  check('the sight sits faint on the nose at idle', !!seen.idle);
+  check('it closes in while the lock builds', !!seen.acquire && maxK > 1.15, 'max scale ' + maxK.toFixed(2));
+  check('on lock it blinks and holds', !!seen.blink && !!seen.on, Object.keys(seen).join(','));
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
   for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;

@@ -64,9 +64,9 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), small (about 2 deg across for the opponent); the
   current target reads first (tier 1) and turns pink with LOCK once locked, whichever contact it is.
-- **The triangle sight** (or the Y, `?look=penelope`) shows on the nose only for a lock ("4 + 1", from site5/demos/appear.html): while acquiring, just the corner
-  brackets, dim and jittering; on lock the whole sight snaps on, blinks twice (60ms beats) and holds; it goes at once
-  when the lock breaks, at about half its earlier size (`TRI` 0.55), with the AUTO/MANUAL word and its inner V pink. No look switcher on screen.
+- **The triangle sight** (or the Y, `?look=penelope`) is always on the nose: idle it sits faint (15%, no halo);
+  while a lock builds it closes in from 1.5x to its size, jittering (settling as it tightens) and brightening; on
+  lock it snaps to full, blinks twice (60ms beats) and holds; losing the lock drops it straight back to faint, at about half its earlier size (`TRI` 0.55), with the AUTO/MANUAL word and its inner V pink. No look switcher on screen.
 - **Cells**: flat translucent slate with a very faint gradient (lighter at the wide end, darker toward the point) and
   a soft luminous border (a faint wide halo under a fine edge). The ruler columns are spaced evenly the whole way
   round (an even count, so the stagger meets itself where the circle closes).
