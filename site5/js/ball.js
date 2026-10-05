@@ -209,12 +209,14 @@
   // jump the scripted flight's clock (tests; the events between are skipped)
   S.seek = function (t) { T = t; lt = t % LOOP; prevLt = lt - 0.001; if (t >= 16.5 && t < 16.5 + THREAT_DUR) { var n = nose(); threat = { t0: 16.5, a0: [n[0] - 105, n[1] + 6], a1: [n[0] + 5, n[1] + 1.5] }; } };
 
-  // the camera: 78 degrees across on a landscape screen (fitted with EYE0 to the reference frame), 56 tall on a portrait one
+  // the camera: 87 degrees across on a landscape screen, 64 tall on a portrait one. (78 matches the reference frame
+  // exactly with EYE0; the owner asked for it a little wider, 2026-10-05.) S.camRef is that fitted width.
   function camera(W, H) {
-    if (W >= H) { var tx = 0.81; return { tx: tx, ty: tx * H / W }; }
-    var ty = Math.tan(28 * D); return { tx: ty * W / H, ty: ty };
+    if (W >= H) { var tx = 0.95; return { tx: tx, ty: tx * H / W }; }
+    var ty = Math.tan(32 * D); return { tx: ty * W / H, ty: ty };
   }
 
+  S.camRef = 0.81;
   var last = null, avg = 16;
   function frame(now) {
     requestAnimationFrame(frame);

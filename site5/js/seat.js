@@ -104,7 +104,7 @@
 
   S.renderers.push(function (pose, w, h) {
     W = w; H = h; tx = S.cam.tx; ty = S.cam.ty;
-    KX = m.clamp(tx / 0.81, 0.42, 1);
+    KX = m.clamp(tx / 0.95, 0.42, 1);
     HQi = m.qconj(m.euler(pose.head.yaw, pose.head.pitch, 0));
     var drawn = { rail: 0, grip: 0 };
     // the faces turned toward the eye (the eye is the origin), far to near

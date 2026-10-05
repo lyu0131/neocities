@@ -63,8 +63,9 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
 ## The eye and the camera
 The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every
 great circle would look straight; from behind it, everything on the ball curves the way the inside of a dome does.
-The view is 78 deg across on a landscape screen (56 tall on a portrait one) and rests 7 deg below the nose -- the
-eye distance, width and tilt fitted together so the measured layout still lands on the frame (rms ~1%).
+The view rests 7 deg below the nose. The eye distance, a 78-deg width and that tilt were fitted together so the
+measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, so it runs at 87 deg across
+(64 tall on a portrait screen) and the layout test scales the frame's positions to match.
 
 ## The panels (`js/world.js`)
 92 near-equal panels: the Voronoi of a 3-frequency subdivided icosahedron (12 of them pentagons, the rest

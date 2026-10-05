@@ -96,7 +96,9 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     await r.sleep(2000);
     check('reduced motion: the suit holds still', Math.abs((await pose(r, 's.heading')) - h0) < 0.01 && (await pose(r, 'JSON.stringify(s.eye)')) === e0);
     // where the owner's front frame puts them (% of a 16:9 screen), within 2.5%
-    const want = { capL: [27, 64.5], rulerL: [13.5, 50], cluster: [50, 71.5], heading: [50, 3] };
+    // the reference positions, scaled from the fitted 78-deg view to the current (wider) one: screen offsets go as 1/tan
+    const k = await r.eval('SITE5.camRef / SITE5.cam.tx');
+    const want = Object.fromEntries(Object.entries({ capL: [27, 64.5], rulerL: [13.5, 50], cluster: [50, 71.5], heading: [50, 3] }).map(([n, v]) => [n, [50 + (v[0] - 50) * k, 50 + (v[1] - 50) * k]]));
     const got = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));
     const off = Object.keys(want).map(k => got[k] ? Math.hypot(got[k][0] - want[k][0], got[k][1] - want[k][1]) : 99);
     check('the HUD sits where the reference frame has it', off.every(d => d < 2.5), Object.keys(want).map((k, i) => k + ' ' + off[i].toFixed(1)).join(', '));
