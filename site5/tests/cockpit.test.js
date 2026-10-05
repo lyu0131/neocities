@@ -97,7 +97,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     // the triangle sits in front of the eyes (near the screen's centre), the rail and the cluster below it, and
     // the rulers still where the owner's front frame has them (scaled to the current view width)
     const sc = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));
-    check('the triangle is in front of the eyes', Math.abs(sc.nose[0] - 50) < 1 && Math.abs(sc.nose[1] - 50) < 10, JSON.stringify(sc.nose));
+    check('the triangle is in front of the eyes', Math.abs(sc.nose[0] - 50) < 1 && Math.abs(sc.nose[1] - 50) < 3, JSON.stringify(sc.nose));
     check('the rail and the cluster sit below the triangle', sc.capL[1] > sc.apex[1] + 4 && sc.cluster[1] > sc.apex[1] + 8, JSON.stringify({ apex: sc.apex, cap: sc.capL, cluster: sc.cluster }));
     const k = await r.eval('SITE5.camRef / SITE5.cam.tx');
     check('the rulers sit where the reference frame has them', Math.abs(sc.rulerL[0] - (50 - 36.5 * k)) < 2.5, sc.rulerL[0].toFixed(1) + ' vs ' + (50 - 36.5 * k).toFixed(1));

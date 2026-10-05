@@ -261,7 +261,7 @@
   }
   // the plate cluster under the nose, the whole group scaled by SZ about its centre (0, CLUSTER): Q(az, el) is where
   // a point the front frame has at (az, el -- centred on -26 there) goes
-  var CLUSTER = -30;
+  var CLUSTER = -27;
   function cluster() {
     var B = basis(dir(0, CLUSTER));
     var Q = function (az, el) { return tp(B, Z(az), Z(el + 26)); };
