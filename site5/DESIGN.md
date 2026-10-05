@@ -64,9 +64,13 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), small (about 2 deg across for the opponent); the
   current target reads first (tier 1) and turns pink with LOCK once locked, whichever contact it is.
-- **The triangle sight** (or the Y, `?look=penelope`) is always on the nose: idle it sits faint (15%, no halo);
-  while a lock builds it closes in from 1.5x to its size, jittering (settling as it tightens) and brightening; on
-  lock it snaps to full, blinks twice (60ms beats) and holds; losing the lock drops it straight back to faint, at about half its earlier size (`TRI` 0.55), with the AUTO/MANUAL word and its inner V pink. No look switcher on screen.
+- **The triangle sight** (or the Y, `?look=penelope`), at about half its earlier size (`TRI` 0.55), with the
+  AUTO/MANUAL word; the owner's pick "E" of the lock demos, all on springs. The big triangle rides the nose but
+  sways: it lags the suit's turns and drifts a little at rest. Idle it all sits faint (15%, no halo). While a lock
+  builds, the brackets and V flare open, close in (jittering, settling) and slew onto the target, brightening; on
+  lock they clunk past full size, blink twice (60ms beats), then breathe and follow the target tightly, the V pink,
+  and a faint outline pings out each second. When the lock breaks a copy of the brackets flies apart. Reduced
+  motion: no springs, sway, jitter or pings. No look switcher on screen.
 - **Cells**: flat translucent slate with a very faint gradient (lighter at the wide end, darker toward the point) and
   a soft luminous border (a faint wide halo under a fine edge). The ruler columns are spaced evenly the whole way
   round (an even count, so the stagger meets itself where the circle closes).

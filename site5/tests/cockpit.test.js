@@ -63,15 +63,29 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   // the sight: faint at idle, closing in (and jittering) while a lock builds, full and blinking on lock
-  const seen = {}; let maxK = 1;
-  for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on); i++) {
-    const st = JSON.parse(await p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale })'));
+  // (E: springs open and closes in, clunks into the lock; brackets and V follow the target; pings while held)
+  const seen = {}; let maxK = 1, minK = 9, follow = null, pinged = false, onFor = 0;
+  const sightNow = () => p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale, cue: SITE5.parts.sightCue, err: SITE5.parts.sightCueErr, pings: SITE5.parts.sightPings, fly: SITE5.parts.sightFly, sway: SITE5.parts.sightSway })').then(JSON.parse);
+  for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on && onFor > 40); i++) {
+    const st = await sightNow();
     seen[st.s] = true; if (st.s === 'acquire') maxK = Math.max(maxK, st.k);
+    if (st.s === 'on' || st.s === 'blink') minK = Math.min(minK, st.k);
+    if (st.s === 'on') { onFor++; if (st.pings) pinged = true; if (onFor > 25 && st.cue && Math.hypot(st.cue[0], st.cue[1]) > 0.002 && (!follow || st.err < follow.err)) follow = st; }
     await p.sleep(12);
   }
   check('the sight sits faint on the nose at idle', !!seen.idle);
   check('it closes in while the lock builds', !!seen.acquire && maxK > 1.15, 'max scale ' + maxK.toFixed(2));
   check('on lock it blinks and holds', !!seen.blink && !!seen.on, Object.keys(seen).join(','));
+  check('it springs into the lock, overshooting', minK < 0.985, 'min scale ' + minK.toFixed(3));
+  check('locked, the brackets and V follow the target off the nose', !!follow && follow.err < 0.004, JSON.stringify(follow && { cue: follow.cue, err: follow.err }));
+  check('a ping goes out while the lock is held', pinged);
+  // turning hard off the target breaks the lock: the brackets fly apart, and the big triangle sways with the turn
+  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
+  let flew = false, sx = [];
+  for (let i = 0; i < 120 && !(flew && sx.length > 60); i++) { const st = await sightNow(); if (st.fly > 0 && st.fly < 1) flew = true; sx.push(st.sway[0]); await p.sleep(12); }
+  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
+  check('a broken lock: the brackets fly apart', flew);
+  check('the big triangle sways with the turn', Math.max(...sx) - Math.min(...sx) > 0.003, (Math.max(...sx) - Math.min(...sx)).toFixed(4));
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
   for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;
@@ -121,6 +135,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     const h0 = await pose(r, 's.heading'), e0 = await pose(r, 'JSON.stringify(s.eye)');
     await r.sleep(2000);
     check('reduced motion: the suit holds still', Math.abs((await pose(r, 's.heading')) - h0) < 0.01 && (await pose(r, 'JSON.stringify(s.eye)')) === e0);
+    check('reduced motion: the sight does not sway', (await r.eval('JSON.stringify(SITE5.parts.sightSway)')) === '[0,0,0]', await r.eval('JSON.stringify(SITE5.parts.sightSway)'));
     // the triangle sits in front of the eyes (near the screen's centre), the rail and the cluster below it, and
     // the rulers still where the owner's front frame has them (scaled to the current view width)
     const sc = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));

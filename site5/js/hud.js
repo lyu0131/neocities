@@ -375,48 +375,102 @@
     }
     parts.markers = n; parts.target = tgt;
   }
-  // The sight is always on the nose. Idle it sits faint and transparent; while a lock builds it closes in from
-  // 1.5x to its size and jitters, the jitter settling as it tightens, growing brighter as it goes; on lock it snaps
-  // to full, blinks twice (60ms beats) and holds. Losing the lock drops it straight back to faint.
+  // The sight (the owner's pick, "E" of the lock demos, plus a sway). The big triangle rides the nose but sways: it
+  // lags the suit's turns on a spring and drifts a little at rest. Idle it all sits faint. While a lock builds, the
+  // brackets and V spring open, close in (jittering, the jitter settling) and slew onto the target; on lock they
+  // clunk past full size, blink twice (60ms beats), then breathe and follow the target as it weaves, and a faint
+  // outline pings out each second. When the lock breaks, a copy of the brackets flies apart. Reduced motion: no
+  // springs, sway, jitter or pings.
   var LOCK_AT = 0.5;   // lockT at which the lock completes (ball.js LOCK_TIME)
   var IDLE_A = 0.15;
+  var sp = { k: { x: 1, v: 0 }, cu: { x: 0, v: 0 }, cv: { x: 0, v: 0 }, wx: { x: 0, v: 0 }, wy: { x: 0, v: 0 }, wr: { x: 0, v: 0 } };
+  var was = 'idle', lastT = null, lastQ = null, lost = null;
+  function spring(o, to, w, z, dt) { o.v += (-w * w * (o.x - to) - 2 * z * w * o.v) * dt; o.x += o.v * dt; }
   function lockSight(p) {
-    var acq = !!p.lockId && !p.locked && p.lockT > 0, since = p.lockT - LOCK_AT;
+    var acq = !!p.lockId && !p.locked && p.lockT > 0, since = p.lockT - LOCK_AT, st = p.locked ? 'lock' : acq ? 'acq' : 'idle';
     var g = acq ? m.clamp(p.lockT / LOCK_AT, 0, 1) : (p.locked ? 1 : 0);   // how far the lock has built
     var blinkOff = p.locked && ((since >= 0.06 && since < 0.12) || (since >= 0.18 && since < 0.24));
-    var k = 1 + 0.5 * (1 - g * g * (3 - 2 * g));                            // 1.5x at the start, 1x at lock
-    var shake = acq && !S.reduce ? 0.006 * (1 - g) + 0.0012 : 0;            // tangent units: big at first, settling
-    var jx = (Math.random() - 0.5) * shake, jy = (Math.random() - 0.5) * shake;
+    var dt = lastT === null ? 0 : m.clamp(p.t - lastT, 0, 0.05); lastT = p.t;
+    // the target, in tangent units off the nose
+    var tc = p.contacts.filter(function (c) { return c.id === p.lockId; })[0], tb = tc && toBall(tc.d);
+    var aim = st !== 'idle' && tb && tb[2] > 0.5 ? [tb[0] / tb[2], tb[1] / tb[2]] : [0, 0];
+    // the suit's turn rate (body frame, rad/s), which the big triangle lags
+    var q = p.suitQ, om = [0, 0, 0];
+    if (lastQ && dt > 0) { var dq = m.qmul(m.qconj(lastQ), q), sg = dq[3] < 0 ? -2 / dt : 2 / dt; om = [dq[0] * sg, dq[1] * sg, dq[2] * sg]; }
+    lastQ = q;
+    if (st === 'acq' && was === 'idle') sp.k.v += 9;     // flare open as the lock starts
+    if (st === 'lock' && was !== 'lock') sp.k.v -= 3.5;  // the clunk into the lock
+    if (was === 'lock' && st !== 'lock') lost = { t: p.t, cu: sp.cu.x, cv: sp.cv.x, k: sp.k.x };
+    was = st;
+    var kTo = st === 'acq' ? 1.5 - 0.45 * g : st === 'lock' ? 1 + 0.018 * Math.sin(since * 7.5) : 1;
+    var lim = function (x, a) { return m.clamp(x, -a, a); };
+    if (S.reduce) {
+      sp.k.x = st === 'lock' ? 1 : kTo; sp.cu.x = aim[0]; sp.cv.x = aim[1]; sp.wx.x = sp.wy.x = sp.wr.x = 0; lost = null;
+    } else {
+      spring(sp.k, kTo, 15, 0.42, dt);
+      var wc = st === 'acq' ? 8 : 28;   // slews in loosely, sticks tight once locked
+      spring(sp.cu, aim[0], wc, 0.8, dt); spring(sp.cv, aim[1], wc, 0.8, dt);
+      spring(sp.wx, lim(-om[1] * 0.025, 0.014) + 0.0025 * Math.sin(p.t * 0.9), 6, 0.5, dt);
+      spring(sp.wy, lim(om[0] * 0.025, 0.014) + 0.0018 * Math.sin(p.t * 1.3 + 1), 6, 0.5, dt);
+      spring(sp.wr, lim(-om[2] * 0.08, 0.06) + 0.012 * Math.sin(p.t * 0.7), 6, 0.5, dt);
+    }
+    var k = sp.k.x, kf = 1 + (k - 1) * 0.25, cu = sp.cu.x, cv = sp.cv.x;
+    var fly = lost ? (p.t - lost.t) / 0.3 : 1; if (fly >= 1) lost = null;
+    var shake = acq && !S.reduce ? 0.4 * (0.006 * (1 - g) + 0.0012) : 0;   // tangent units: big at first, settling
+    var jit = function () { return (Math.random() - 0.5) * shake; };
     parts.sight = p.locked; parts.sightStage = p.locked ? (blinkOff ? 'blink' : 'on') : acq ? 'acquire' : 'idle';
-    parts.sightScale = k;
+    parts.sightScale = k; parts.sightCue = [cu, cv]; parts.sightCueErr = Math.hypot(cu - aim[0], cv - aim[1]);
+    parts.sightSway = [sp.wx.x, sp.wy.x, sp.wr.x]; parts.sightFly = lost ? fly : 0; parts.sightPings = 0;
     if (blinkOff) return;
     tier(1);
     if (!p.locked) { GA = IDLE_A + (0.7 - IDLE_A) * g; HALO = null; }
-    var J = function (q) { return norm([q[0] + jx, q[1] + jy, q[2]]); };
+    else if (since > 0.24 && !S.reduce) GA = 0.9 + 0.1 * Math.sin(since * 7.5);
+    var cr = Math.cos(sp.wr.x), sr = Math.sin(sp.wr.x);
+    // the frame (swaying) and the cue (the brackets and V, on the target), from tangent offsets (x right, y up)
+    var Fr = function (x, y) { return tp(F, sp.wx.x + x * cr - y * sr, sp.wy.x + x * sr + y * cr); };
+    var jx = jit(), jy = jit();
+    var Cu = function (x, y) { return tp(F, cu + x + jx, cv + y + jy); };
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
         var c = Math.cos(an * D), sn = Math.sin(an * D), w = 0.0045 * SZ * 0.55;
-        [-1, 1].forEach(function (o) { var pt = function (r) { return J(tp(F, (c * r - sn * o * w) * k, (sn * r + c * o * w) * k)); }; stroke(C.line, 0.8, 1.8); seg(pt(0.03 * SZ * 0.55), pt(0.085 * SZ * 0.55)); });
+        [-1, 1].forEach(function (o) { var pt = function (r) { return Cu((c * r - sn * o * w) * k, (sn * r + c * o * w) * k); }; stroke(C.line, 0.8, 1.8); seg(pt(0.03 * SZ * 0.55), pt(0.085 * SZ * 0.55)); });
       });
-      ctx.letterSpacing = '2px'; text(J(tp(F, 0.055 * k, 0.055 * k)), p.mode, C.pink, 0.95, 9, 'left'); ctx.letterSpacing = '0px';
+      ctx.letterSpacing = '2px'; text(Fr(0.055, 0.055), p.mode, C.pink, 0.95, 9, 'left'); ctx.letterSpacing = '0px';
     } else {
-      // TRI: the sight at about half its old size (owner); k: closing in while a lock builds
-      var TRI = 0.55, u = Math.min(0.22, tx * 0.4) * SZ * TRI * k / 237, L = function (x, y) { return J(tp(F, x * u, -y * u)); }, lw = Math.max(0.6, f / 605 * 0.8 * SZ * TRI * 1.35);
+      // TRI: the sight at about half its old size (owner); kf: the frame breathes a quarter as much as the cue
+      var TRI = 0.55, u = Math.min(0.22, tx * 0.4) * SZ * TRI / 237, lw = Math.max(0.6, f / 605 * 0.8 * SZ * TRI * 1.35);
+      var L = function (x, y) { return Fr(x * u * kf, -y * u * kf); }, B = function (x, y) { return Cu(x * u * k, -y * u * k); };
       var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt), face = [L(-hw, Tt), L(hw, Tt), L(0, A)];
       var keep = HALO;
-      fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true); HALO = keep;
+      fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true);
+      // the ping: a faint outline echo going out, on lock and every second after
+      if (p.locked && !S.reduce && since % 1 < 0.5) {
+        var pq = (since % 1) / 0.5, Pg = function (x, y) { return Fr(x * u * kf * (1 + 0.4 * pq), -y * u * kf * (1 + 0.4 * pq)); };
+        var ga = GA; GA = 1; stroke(C.line, 0.45 * (1 - pq) * (1 - pq), 1.2); path([Pg(-hw, Tt), Pg(hw, Tt), Pg(0, A)], true); GA = ga;
+        parts.sightPings = 1;
+      }
+      HALO = keep;
+      var brk = function (sd, P) { var ix = sd * hw * 0.62, iy = Tt + 62, ux = -sd * hw / len, uy = (A - Tt) / len; return [P(ix - sd * 78, iy), P(ix, iy), P(ix + ux * 84, iy + uy * 84)]; };
       [-1, 1].forEach(function (sd) {
         var ux = -sd * hw / len, uy = (A - Tt) / len, nx = sd * (A - Tt) / len, ny = hw / len;
         var at = function (t, off) { return L(sd * hw + ux * len * t + nx * off, Tt + uy * len * t + ny * off); };
         stroke(C.line, 0.7, 7 * lw); seg(at(-0.04, 30), at(0.3, 30)); seg(at(0.72, 30), at(1.03, 30));
-        var ix = sd * hw * 0.62, iy = Tt + 62;
-        stroke(C.line, 0.64, 4.6 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)]);
+        stroke(C.line, 0.64, 4.6 * lw); path(brk(sd, B));
       });
-      stroke(p.locked ? C.bar : C.line, p.locked ? 0.9 : 0.64, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
+      stroke(p.locked ? C.bar : C.line, p.locked ? 0.9 : 0.64, 4.6 * lw); path([B(-48, A - 196), B(0, A - 116), B(48, A - 196)]);
       ctx.letterSpacing = '2px'; text(L(hw + 6, Tt - 14), p.mode, C.pink, 0.95, 9, 'right'); ctx.letterSpacing = '0px';
+      // the broken lock: a copy of the brackets flies apart where the lock was
+      if (lost) {
+        var lk = lost.k * (1 + 0.8 * fly);
+        [-1, 1].forEach(function (sd) {
+          var Fl = function (x, y) { return tp(F, lost.cu + (x + sd * fly * 90) * u * lk, lost.cv - (y - fly * 40) * u * lk); };
+          GA = 1; tier(1); stroke(C.line, 0.7 * (1 - fly), 4.6 * lw); path(brk(sd, Fl));
+        });
+      }
     }
     GA = 1;
   }
+
 
 
 
