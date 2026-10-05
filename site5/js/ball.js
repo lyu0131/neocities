@@ -72,7 +72,9 @@
   var keys = {}, lastKey = -1e9;
   var shake = 0, flash = 0, beams = [], pos = [0, 0], lockT = 0, locked = false;
   var spd = { x: 420, v: 0 }, alt = 1800, dist = 0;   // airspeed km/h, altitude m, distance flown m
-  var EYE0 = [0, 0.05, -0.1];                 // the eye sits a little above and behind the ball's centre
+  // the eye sits well behind the ball's centre, as the reference camera does: from there everything on the ball
+  // curves the way the inside of a dome does (from the exact centre a great circle would look straight)
+  var EYE0 = [0, 0, -0.4];
   var suitQ = euler(0, 3, 0);
 
   function ballToWorld(p) { return qrot(suitQ, norm(p)); }
@@ -171,7 +173,8 @@
       spring(lead.yaw, clamp(yaw.v * 0.3, -24, 24), 4.2, 0.5, dt); spring(lead.pitch, clamp(pitch.v * 0.42, -20, 20), 4.2, 0.5, dt);
       spring(gaze.yaw, dragging ? gaze.yaw.x : gazeAt[0] * 9, 3, 0.8, dt); spring(gaze.pitch, dragging ? gaze.pitch.x : -gazeAt[1] * 6, 3, 0.8, dt);
     }
-    var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: head.pitch + lead.pitch.x + gaze.pitch.x };
+    // the pilot's resting gaze is 7 deg below the nose, as the owner's reference frames are shot
+    var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: -7 + head.pitch + lead.pitch.x + gaze.pitch.x };
 
     // lock: the opponent held within 7 degrees of the nose for half a second
     var od = dir(o[0], o[1]), off = Math.acos(clamp(dot(od, qrot(suitQ, [0, 0, 1])), -1, 1)) / D;
@@ -206,10 +209,10 @@
   // jump the scripted flight's clock (tests; the events between are skipped)
   S.seek = function (t) { T = t; lt = t % LOOP; prevLt = lt - 0.001; if (t >= 16.5 && t < 16.5 + THREAT_DUR) { var n = nose(); threat = { t0: 16.5, a0: [n[0] - 105, n[1] + 6], a1: [n[0] + 5, n[1] + 1.5] }; } };
 
-  // the camera: about 100 degrees across on a landscape screen, 70 tall on a portrait one
+  // the camera: 78 degrees across on a landscape screen (fitted with EYE0 to the reference frame), 56 tall on a portrait one
   function camera(W, H) {
-    if (W >= H) { var tx = Math.tan(50 * D); return { tx: tx, ty: tx * H / W }; }
-    var ty = Math.tan(38 * D); return { tx: ty * W / H, ty: ty };
+    if (W >= H) { var tx = 0.81; return { tx: tx, ty: tx * H / W }; }
+    var ty = Math.tan(28 * D); return { tx: ty * W / H, ty: ty };
   }
 
   var last = null, avg = 16;

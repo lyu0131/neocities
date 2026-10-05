@@ -15,21 +15,11 @@
   <canvas id="world" aria-hidden="true"></canvas>
   <canvas id="hud" aria-hidden="true"></canvas>
   <p id="hint" aria-hidden="true"><span class="fine">DRAG TO LOOK · ARROWS TO FLY</span><span class="touch">DRAG TO LOOK</span></p>
-  <nav id="looks" aria-label="Look">
-    <a href="?look=mix">MIX</a><a href="?look=xi">XI</a><a href="?look=penelope">PENELOPE</a>
-  </nav>
   <p class="nogl-note">This browser can't draw the panoramic monitor (no WebGL2).</p>
 </main>
 <script src="js/ball.js" defer></script>
 <script src="js/world.js" defer></script>
 <script src="js/hud.js" defer></script>
 <script src="js/seat.js" defer></script>
-<script>
-  // mark the current look in the switcher
-  (function () {
-    var l = (/[?&]look=(mix|xi|penelope)\b/.exec(location.search) || [])[1] || 'mix';
-    var a = document.querySelector('#looks a[href="?look=' + l + '"]'); if (a) a.setAttribute('aria-current', 'page');
-  })();
-</script>
 </body>
 </html>

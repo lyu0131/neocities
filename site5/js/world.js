@@ -3,7 +3,9 @@
    that point p shows the outside world in its own direction from the centre (the ball is a display,
    not a window), turned by the suit's attitude. So the picture bends as a real spherical screen would,
    and the bend changes as the seat moves. Then the ball's own panel seams (thin light joints): a geodesic of hexagons and
-   pentagons (the spherical Voronoi of a Fibonacci point set), drawn in ball coordinates.
+   pentagons (a geodesic: the Voronoi of a 3-frequency subdivided icosahedron, 92 near-equal panels, 12 of them
+   pentagons), turned so a panel sits square on the nose and the pattern mirrors left to right; drawn in ball
+   coordinates.
    No textures, no pre-curved art. Renders below device resolution and steps down further if slow. */
 (function () {
   'use strict';
@@ -19,7 +21,7 @@
     'uniform vec2 uRes, uTan, uPos; uniform vec3 uEye, uOpp, uTint; uniform mat3 uEyeM, uSuitM;',
     'uniform float uTime, uFlash, uSeam; uniform vec3 uBA[2], uBB[2]; uniform float uBI[2];',
     'uniform vec3 uDots[3]; uniform float uDotK[3];',
-    'uniform vec3 uCells[64];',
+    'uniform vec3 uCells[92];',
     'out vec4 o;',
     'const vec3 MOON = normalize(vec3(-.45, .30, .84));',
     'float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }',
@@ -81,11 +83,10 @@
     '  }',
     // the ball's panels: the nearest two cell centres; their difference is zero on a seam
     '  float d1 = -2., d2 = -2.; int id = 0;',
-    '  for (int i = 0; i < 64; i++) { float dd = dot(p, uCells[i]); if (dd > d1) { d2 = d1; d1 = dd; id = i; } else if (dd > d2) d2 = dd; }',
+    '  for (int i = 0; i < 92; i++) { float dd = dot(p, uCells[i]); if (dd > d1) { d2 = d1; d1 = dd; id = i; } else if (dd > d2) d2 = dd; }',
     '  float e = d1 - d2, px = fwidth(e) + 1e-5;',
     // a thin light joint, as in the seat shots, with the faintest shadow beside it
     '  float seam = 1. - smoothstep(px * .45, px * 1.25, e), lip = (1. - smoothstep(px * 1.25, px * 2.6, e)) * (1. - seam);',
-    '  col *= 1. + (h21(vec2(float(id), 3.)) - .5) * .05 * uSeam;',
     '  col = mix(col, vec3(.36, .44, .56), seam * uSeam * .42);',
     '  col *= 1. - lip * uSeam * .18;',
     '  col = col * uTint + vec3(.9, .95, 1.) * uFlash;',
@@ -113,12 +114,44 @@
   var loc = gl.getAttribLocation(prog, 'a');
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-  // 64 panel centres on a Fibonacci sphere: a geodesic of mostly hexagons, a few pentagons
-  var cells = [];
-  for (var i = 0; i < 64; i++) {
-    var y = 1 - (i + 0.5) / 64 * 2, rr = Math.sqrt(1 - y * y), th = i * 2.399963 + 0.4;
-    cells.push(Math.cos(th) * rr, y, Math.sin(th) * rr);
-  }
+  // The panel centres: an icosahedron, each face split 3 ways (92 points, the 12 corners are the pentagons).
+  // Turned so one face's centre is the nose (a hexagon square in front), with one of that face's corners
+  // straight above or below it, so the pattern mirrors left to right; of the two, the one keeping the
+  // pentagons further from the nose, sides, tail, top and bottom.
+  var cells = (function () {
+    var P = (1 + Math.sqrt(5)) / 2;
+    var V = [[-1, P, 0], [1, P, 0], [-1, -P, 0], [1, -P, 0], [0, -1, P], [0, 1, P], [0, -1, -P], [0, 1, -P], [P, 0, -1], [P, 0, 1], [-P, 0, -1], [-P, 0, 1]].map(m.norm);
+    var FACES = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+                 [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    var pts = [], seen = {};
+    FACES.forEach(function (fc) {
+      for (var i = 0; i <= 3; i++) for (var j = 0; j <= 3 - i; j++) {
+        var k = 3 - i - j, a = V[fc[0]], b = V[fc[1]], c = V[fc[2]];
+        var q = m.norm([a[0] * i + b[0] * j + c[0] * k, a[1] * i + b[1] * j + c[1] * k, a[2] * i + b[2] * j + c[2] * k]);
+        var key = q.map(function (x) { return x.toFixed(4); }).join();
+        if (!seen[key]) { seen[key] = 1; pts.push(q); }
+      }
+    });
+    var f0 = FACES[0], g = m.norm([0, 1, 2].reduce(function (s, n) { return [s[0] + V[f0[n]][0], s[1] + V[f0[n]][1], s[2] + V[f0[n]][2]]; }, [0, 0, 0]));
+    function frame(up) {
+      // z' = the face centre, y' = toward (or away from) one of its corners, x' = y' x z'
+      var c = V[f0[0]], d = m.dot(c, g), y = m.norm([(c[0] - g[0] * d) * up, (c[1] - g[1] * d) * up, (c[2] - g[2] * d) * up]);
+      var x = [y[1] * g[2] - y[2] * g[1], y[2] * g[0] - y[0] * g[2], y[0] * g[1] - y[1] * g[0]];
+      return function (q) { return [m.dot(q, x), m.dot(q, y), m.dot(q, g)]; };
+    }
+    var best = null;
+    [1, -1].forEach(function (up) {
+      var T = frame(up), corners = V.map(T), worst = 180;
+      [[0, 0, 1], [0, 0, -1], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]].forEach(function (t) {
+        corners.forEach(function (c) { worst = Math.min(worst, Math.acos(m.clamp(m.dot(c, t), -1, 1)) / m.D); });
+      });
+      if (!best || worst > best.worst) best = { worst: worst, T: T };
+    });
+    var out = [];
+    pts.forEach(function (q) { out.push.apply(out, best.T(q)); });
+    S.panels = { n: pts.length, pentagonClearance: Math.round(best.worst) };
+    return out;
+  })();
   gl.uniform3fv(U.uCells, cells);
   var LOOKS = { mix: { seam: 0.75, tint: [0.95, 0.99, 1.06] }, xi: { seam: 0.95, tint: [0.92, 1.0, 1.03] }, penelope: { seam: 0.45, tint: [0.96, 0.92, 1.16] } };
   var L = LOOKS[S.look];

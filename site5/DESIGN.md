@@ -33,52 +33,49 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
 One WebGL2 full-screen fragment shader: ray from the eye -> the ball -> world direction -> night sky (moon, stars, thin
 high cloud), a moonlit cloud sea on a plane below that scrolls as the suit flies, the opponent's speck and thruster
 glint, beams as great-circle arcs widening toward their near end. Then the ball's **panel seams**: the spherical
-Voronoi of 64 Fibonacci points, a geodesic of hexagons and pentagons: thin light joints, as in the seat shots, with
-a faint shadow beside them and a per-panel tone. Rendered at
+geodesic described below: thin light joints, as in the seat shots, with a faint shadow beside them. Rendered at
 0.7–0.75 of device resolution, stepping down by 0.1 (to 0.45) while frames average over 21ms.
 
 ## The HUD (`js/hud.js`)
-A 2D canvas of vectors authored on the ball and projected through the same geometry, every line subdivided every
-~1.2°. The detail follows the clips' key frames: long flat-topped hex cells in staggered pairs, dash rulers with no
-spine, label plates with two lines of tiny unreadable "text", hex badges, arrow plates, dot grids.
-- **Circles, not meridians.** The side ladders and tapes are arcs of circles centred on the boresight (`arcPt(sd,
-  theta, phi)`: theta out from the nose, phi round it), as in the Xi's FPV frames. Seen from near the ball's centre a
-  circle round the nose projects as a true circle; a line of constant azimuth is a great circle and projects straight,
-  which is why the first ladders looked like two straight lines. `S.arcSample` lets the test check the roundness.
-- **Ball-fixed, front**: the triangle reticle (with the AUTO/MANUAL word); a short **roll arc** over it (ticks turning with
-  the bank against a fixed pink pointer); the heading tape (el +28.5°); hex-cell ladders (cells 36° out, the dash ruler
-  just inside at 31°, as in the seat shots) whose ruler **streams at airspeed**, fading out round toward the top and
-  bottom (40–66° round) so they read as ( ) brackets, with a plate each; the white **pitch tape** (left) and **altitude
-  tape** (right) 47° out, scrolling round their arcs (1.6° of arc per degree of pitch, 1.8° per 20 m) and running on off
-  the top and bottom of the screen, each with a pink read-out at eye level; the **plate cluster** under the sight
-  (periwinkle/salmon chevrons, badges, arrow plates, tab plates, dot grids); the waist rail (el −15°).
-- **Ball-fixed, rear** (the monitor is all the way round): the same ladder pair as circles round the tail, the reciprocal
-  heading tape (salmon caret) and the AFT marker set at az 180.
-- **World-fixed**: pink horizon bars on a white tick rail, either side of the heading **and its reciprocal**; the target
-  marker with its closing lock ring (scaled with the triangle on narrow screens; labels always outside it) and a
-  dotted lead arc when it's off the nose.
-- **From the owner's screenshot set (`/ref`, git-ignored, 2026-10-05)**:
-  - a **pitch ladder**, world-fixed: a rung pair every 5° (solid above the horizon, broken below, an end tick toward
-    it) only near the current pitch, and long **hatch rows** at 0°; it banks and slides with the suit;
-  - a **ring of loose radial dashes** 26.5° out, open at the top and bottom (not a solid line: the solid ring didn't fit);
-  - **vertebra cells** in the ladders (wedges, narrower toward the sight, with an occasional wing cell pointing in);
-  - the horizon bars end, toward the sight, in a **diamond plate** with a salmon chevron;
-  - small **triangle rows** either side of the sight, a third salmon caret and a triangle plate in the cluster;
-  - contact markers with **tabs** at their top corners; two escorts (`MS`) fly with the opponent; locking grows a
-    **Y brace** of double bars out of the opponent's marker, pink once locked;
-  - an **incoming threat** (16.5 s into the loop, 3.1 s): a hot point with a trail of **stacked chevrons**, and while
-    it (or the opponent) is out of view a pink **feathered arrow** at the screen edge pointing toward it.
-- Looks (`?look=`): `mix` (default), `xi`, `penelope` (its own **Y reticle**: three double bars round an '=' centre);
-  the table at the top of hud.js says which elements each carries.
-- `SITE5.parts` reports what drew (`rear`, `seat`, `rungs`, `hatch`, `ladderRoll`, `ringDashes`, `caps`, `brace`, `trail`,
-  `edgeArrow`, `yReticle`), `SITE5.tapes` the live scales, and `SITE5.seek(t)` jumps the flight clock, for the tests.
+A 2D canvas of vectors authored on the ball and projected through the same geometry as the picture, every line
+subdivided every ~1.2 deg. **The layout is measured, not composed** (owner, 2026-10-05: "you have the elements,
+but you don't position them correctly"): every front position was read off the owner's front frame (ref, 1:26:32)
+and turned into ball angles; the side rings come from the side frame (29:50). A test checks the anchors land
+within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced-motion) pose.
+- **The pink rail**: a parallel at el -18 right round the ball (pink core over a lighter line, white tick rails),
+  open in front between az +-30 where diamond caps close it, salmon chevrons at +-26 pointing in.
+- **Side rings** at az +-90 and 180, centred on the rail: 34 coffin cells (radius 17) pointing in, a 3.4 deg
+  crosshair circle with radial ticks, a dotted ring (26), two dot grids.
+- **The tall rulers**: arcs of circles round a point off each side (az +-90, el -10, radius 48), so they bow
+  toward the middle as in the frame and curve wherever you look; dashes streaming at airspeed; a coffin column
+  round the same centre just outside (42.5 / 40), points toward the nose; a plate on each at eye level.
+- **The centre**: heading ticks at el 22 with a caret, a vertical line el 13 -> -8, the nose designator at
+  el -10 (salmon bars, dash text, a small V), the slashes and frame dashes where the frame has them.
+- **The cluster** under the nose (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
+  badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
+- **World-fixed**: the pitch ladder (a rung pair every 2.5 deg near the current pitch, the '=' zero line, the long
+  hatch rows out to +-40; it banks with the suit) and the contacts as doubled W marks (UNKNOWN, MS; the locked
+  one pink with LOCK), a dotted lead arc toward the opponent when it's off the nose.
+- **The triangle sight** (or the Y, `?look=penelope`) only comes up during a lock. No look switcher on screen.
+- `SITE5.parts` (`rail`, `caps`, `ringCells`, `rungs`, `hatch`, `ladderRoll`, `markers`, `lockSight`, `rear`, `seat`),
+  `SITE5.tapes.stream`, `SITE5.anchors`, `SITE5.ringSample` and `SITE5.seek(t)` are there for the tests.
+
+## The eye and the camera
+The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every
+great circle would look straight; from behind it, everything on the ball curves the way the inside of a dome does.
+The view is 78 deg across on a landscape screen (56 tall on a portrait one) and rests 7 deg below the nose -- the
+eye distance, width and tilt fitted together so the measured layout still lands on the frame (rms ~1%).
+
+## The panels (`js/world.js`)
+92 near-equal panels: the Voronoi of a 3-frequency subdivided icosahedron (12 of them pentagons, the rest
+hexagons), turned so a hexagon sits square on the nose and the pattern mirrors left to right. No per-panel tone.
 
 ## The controls (`js/seat.js`)
-Two arm rails with control grips, fixed to the seat like the eye, built from chamfered prisms in the seat frame and
-drawn in perspective with simple facet shading over the HUD: a rail with a tick track, a pink line and a lamp; a grip
-on a stalk with a ribbed handle, a head block with three thumb buttons and a lamp, and a trigger. Only the head
-turning moves them: at rest the grip heads just show in the lower corners; looking down shows the rails. On a narrow
-(portrait) screen the pair is drawn closer together (`KX`), or the tight view would never take them in.
+After the ref frames (#28, #29, #31): two armrest consoles with a raised head where the grip mounts and a strut
+under it with a red lamp; an upright grip on a hinge, ribbed, a head cap with three thumb buttons and a lamp, and a
+hand-guard loop round its front; a tick track and pink line along each console. Chamfered prisms in the seat frame,
+facet-shaded. Only the head turning moves them; they sit just under the view and come up when looking down. No
+seat back (never in the pilot's view) and no tablets (no panels). Narrow screens draw the pair closer (`KX`).
 
 ## Palette (sampled off the clips)
 Lines `#AFC0EC` (mix) / `#9CB3E8` / `#BAC4F4`, white ticks `#EEF3FA`, mode word `#FFA3DC`, horizon bars `#FF4F8B` over

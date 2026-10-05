@@ -17,7 +17,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
 
   // the scripted flight turns the suit, and the seat swings inside the ball
   const a0 = await pose(p, 's.heading'); let maxSeat = 0;
-  for (let i = 0; i < 30; i++) { await p.sleep(100); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1] - .05, s.eye[2] + .1)')); }
+  for (let i = 0; i < 30; i++) { await p.sleep(100); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)')); }
   check('AUTO flies: the heading changes', Math.abs(((await pose(p, 's.heading')) - a0 + 540) % 360 - 180) > 3);
   check('AUTO says so', (await pose(p, 's.mode')) === 'AUTO');
   check('the seat sways inside the ball', maxSeat > 0.004 && maxSeat < 0.3, maxSeat.toFixed(4));
@@ -47,89 +47,67 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.mouse('mouseMoved', 1400, 450); await p.sleep(1200);
   const g1 = await p.eval('SITE5.project([0, 0, 1])[0]');
   check('looking right with the mouse slides the HUD left', g0 - g1 > 25, `${g0.toFixed(0)} -> ${g1.toFixed(0)}`);
-  // the triangle is smaller: its face under a third of the screen wide
-  check('the triangle is smaller', await p.eval('SITE5.triWidth') < 1440 * 0.33, String(await p.eval('SITE5.triWidth')));
-
-  // the side scales are live: the pitch tape and the altitude tape scroll as you climb, the roll scale
-  // turns as you bank, the ladder rulers stream with airspeed (SITE5.tapes: what each drew this frame)
-  const tapes = () => p.eval('JSON.stringify(SITE5.tapes)').then(JSON.parse);
-  const t0 = await tapes();
-  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
-  await p.sleep(1000);
-  const t1 = await tapes();
-  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
-  check('the pitch tape scrolls when climbing', t0 && t1 && t1.pitchLabels.join() !== t0.pitchLabels.join(), t0 && t1 && t0.pitchLabels.join() + ' -> ' + t1.pitchLabels.join());
-  check('the altitude reads higher after a climb', t1 && t1.alt > t0.alt + 5, t0 && t1 && t0.alt + ' -> ' + t1.alt);
-  check('the ladder rulers stream', t1 && t1.stream !== t0.stream);
-  await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-  await p.sleep(1000);
-  const t2 = await tapes();
-  await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-  check('the roll scale turns with the bank', t2 && Math.abs(t2.roll) > 8, t2 && String(t2.roll));
-  await p.sleep(4600);
-
-  // the side ladders and tapes are circular arcs centred on the sight, as in the FPV frames: points on
-  // the ruler sit at one distance from where the nose projects (a meridian would not)
-  const circ = await p.eval(`(() => { const c = SITE5.project([0, 0, 1]), pts = SITE5.arcSample || [];
-    const r = pts.map(q => { const s = SITE5.project(q); return s ? Math.hypot(s[0] - c[0], s[1] - c[1]) : NaN; }).filter(v => v === v);
-    return JSON.stringify({ n: r.length, min: Math.min(...r), max: Math.max(...r) }); })()`).then(JSON.parse);
-  check('the side ladders are circular arcs round the sight', circ.n >= 5 && (circ.max - circ.min) / circ.max < 0.08, JSON.stringify(circ));
-
-  // the screenshot set (ref/): pitch ladder with the 0-deg hatch rows, the radial dash ring, bar end
-  // caps, three contacts, the lock's Y brace, an incoming threat with its chevron trail and edge arrow
+  // the layout is measured off the owner's front frame: the anchors sit where that frame has them (checked
+  // still, in the reduced-motion run below); here, live: the rail, its caps, the rulers stream, three contacts
   const parts = () => p.eval('JSON.stringify(SITE5.parts)').then(JSON.parse);
   let pt = await parts();
-  check('a pitch ladder is drawn (rungs and the 0-deg hatch rows)', pt.rungs >= 4 && pt.hatch >= 10, JSON.stringify({ rungs: pt.rungs, hatch: pt.hatch }));
-  check('a ring of radial dashes round the sight', pt.ringDashes >= 16, String(pt.ringDashes));
-  check('the horizon bars end in diamond caps', pt.caps >= 2, String(pt.caps));
+  check('the pink rail is drawn with its two diamond caps', pt.rail === true && pt.caps === 2, JSON.stringify({ rail: pt.rail, caps: pt.caps }));
+  check('a pitch ladder is drawn (rungs and the hatch rows)', pt.rungs >= 3 && pt.hatch >= 20, JSON.stringify({ rungs: pt.rungs, hatch: pt.hatch }));
   check('three contacts in the world', (await pose(p, 's.contacts.length')) === 3);
+  const st0 = await p.eval('SITE5.tapes.stream'); await p.sleep(500);
+  check('the ruler dashes stream at airspeed', (await p.eval('SITE5.tapes.stream')) !== st0);
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
   await p.sleep(900); pt = await parts();
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
   check('the pitch ladder banks with the suit', Math.abs(pt.ladderRoll) > 6, String(pt.ladderRoll));
   await p.sleep(4600);
-  let braced = false;
-  for (let i = 0; i < 60 && !braced; i++) { await p.sleep(100); braced = await p.eval('SITE5.pose.locked && SITE5.parts.brace === true'); }
-  check('a lock throws the Y brace round the target', braced);
-  // early in its run the threat is behind the pilot (an edge arrow); late, in view with its trail
-  await p.eval('SITE5.seek(16.8)'); await p.sleep(250);
-  check('a threat out of view gets an arrow at the screen edge', await p.eval('!!SITE5.pose.threat && SITE5.parts.edgeArrow > 0'));
-  let trail = 0;
-  await p.eval('SITE5.seek(18.6)');
-  for (let i = 0; i < 12 && trail < 3; i++) { await p.sleep(60); trail = await p.eval('SITE5.parts.trail'); }
-  check('an incoming threat in view leaves a chevron trail', trail >= 3, String(trail));
+  // the triangle sight only comes up on a lock
+  let sightOff = await p.eval('SITE5.pose.lockT === 0 ? SITE5.parts.lockSight === false : null');
+  let sightOn = false;
+  for (let i = 0; i < 80 && !sightOn; i++) { await p.sleep(100); sightOn = await p.eval('SITE5.pose.locked && SITE5.parts.lockSight === true'); if (sightOff === null) sightOff = await p.eval('SITE5.pose.lockT === 0 ? SITE5.parts.lockSight === false : null'); }
+  check('the triangle sight comes up on a lock', sightOn);
+  check('and is gone without one', sightOff === true, String(sightOff));
 
   // a drag turns the pilot's head, not the suit
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 25 * k, 450, 1); await p.mouse('mouseReleased', 500, 450);
   check('a drag turns the head', Math.abs(await pose(p, 's.head.yaw')) > 20, String(await pose(p, 's.head.yaw')));
-  // looking round to the tail: the monitor's rear set is there (heading tape, AFT marker, ladders)
+  // looking round to the tail: the rail runs on, and a coffin ring sits on it behind the seat too
   await p.mouse('mousePressed', 700, 450, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700 - 75 * k, 450, 1); await p.mouse('mouseReleased', 100, 450);
   await p.sleep(200);
-  check('the rear of the monitor has its own HUD', await p.eval('SITE5.parts.rear === true'));
+  check('the rear of the monitor has its own HUD', await p.eval('SITE5.parts.rear === true && SITE5.parts.ringCells > 10'), String(await p.eval('SITE5.parts.ringCells')));
   // looking down (dragging the view up): the arm rails and grips are there, drawn in perspective
   await p.goto(PAGE, 300); await ready(p);
   await p.mouse('mousePressed', 700, 650, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700, 650 - 40 * k, 1); await p.mouse('mouseReleased', 700, 330);
   await p.sleep(200);
   check('looking down shows the controls', await p.eval('SITE5.parts.seat.grip > 4 && SITE5.parts.seat.rail > 4'), JSON.stringify(await p.eval('SITE5.parts.seat')));
-  check('the mix has no big outer ring', await p.eval('SITE5.parts.ring === false'));
   check('no JS errors', p.errors.length === 0, p.errors.join(' | '));
   check('frames hold up (avg under 25ms)', (await p.eval('SITE5.frameMs')) < 25, (await p.eval('SITE5.frameMs')).toFixed(1) + 'ms');
 
-  for (const look of ['xi', 'penelope']) {
-    await p.goto(`${PAGE}?look=${look}`, 300); await ready(p);
-    check(`?look=${look} loads and draws`, (await p.eval('SITE5.look')) === look && await p.eval('!!SITE5.gl'));
-    if (look === 'penelope') check('penelope wears the Y reticle (no ring)', await p.eval('SITE5.parts.yReticle === true && SITE5.parts.ring === false'));
-  }
+  await p.goto(`${PAGE}?look=penelope`, 300); await ready(p);
+  check('?look=penelope loads and draws', (await p.eval('SITE5.look')) === 'penelope' && await p.eval('!!SITE5.gl'));
   check('looks: no JS errors', p.errors.length === 0, p.errors.join(' | '));
   p.close();
 
   // reduced motion: no auto flight, no sway
   {
-    const r = await launch({ width: 1440, height: 900, reduce: true });
+    const r = await launch({ width: 1440, height: 810, reduce: true });   // 16:9, as the reference frame
     await r.goto(PAGE, 300); await ready(r);
     const h0 = await pose(r, 's.heading'), e0 = await pose(r, 'JSON.stringify(s.eye)');
     await r.sleep(2000);
     check('reduced motion: the suit holds still', Math.abs((await pose(r, 's.heading')) - h0) < 0.01 && (await pose(r, 'JSON.stringify(s.eye)')) === e0);
+    // where the owner's front frame puts them (% of a 16:9 screen), within 2.5%
+    const want = { capL: [27, 64.5], rulerL: [13.5, 50], cluster: [50, 71.5], heading: [50, 3] };
+    const got = JSON.parse(await r.eval("JSON.stringify(Object.fromEntries(Object.entries(SITE5.anchors).map(([k, v]) => { const s = SITE5.project(v); return [k, s ? [s[0] / innerWidth * 100, s[1] / innerHeight * 100] : null]; })))"));
+    const off = Object.keys(want).map(k => got[k] ? Math.hypot(got[k][0] - want[k][0], got[k][1] - want[k][1]) : 99);
+    check('the HUD sits where the reference frame has it', off.every(d => d < 2.5), Object.keys(want).map((k, i) => k + ' ' + off[i].toFixed(1)).join(', '));
+    // turn the head to the right side: the coffin ring there projects as a circle round its centre
+    await r.mouse('mousePressed', 1200, 400, 1); for (let k = 1; k <= 14; k++) await r.mouse('mouseMoved', 1200 - 40 * k, 400, 1);
+    await r.sleep(150);
+    const circ = JSON.parse(await r.eval(`(() => { const pts = SITE5.ringSample.map(q => SITE5.project(q)); const c = pts.pop();
+      const d = pts.filter(Boolean).map(s => Math.hypot(s[0] - c[0], s[1] - c[1])); return JSON.stringify({ n: d.length, min: Math.min(...d), max: Math.max(...d) }); })()`));
+    await r.mouse('mouseReleased', 640, 400);
+    // seen from the eye, 0.4 behind the ball's centre, the ring is foreshortened into an ellipse round its centre
+    check('the side coffin ring closes round its centre on the rail', circ.n === 6 && (circ.max - circ.min) / circ.max < 0.3, JSON.stringify(circ));
     r.close();
   }
 
