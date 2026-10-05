@@ -105,6 +105,24 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   check('a broken lock: the brackets fly apart', flew);
   check('the big triangle sways with the turn', Math.max(...sx) - Math.min(...sx) > 0.003, (Math.max(...sx) - Math.min(...sx)).toFixed(4));
+  // MANUAL can lock too: a pilot who takes over, turns away, then steers at the enemy the way a person does (a
+  // quarter-second reaction, tapping the keys) gets a lock within 6s
+  {
+    const KY = { l: ['ArrowLeft', 37], r: ['ArrowRight', 39], u: ['ArrowUp', 38], d: ['ArrowDown', 40] }, held = {};
+    const key = async (k, on) => { if (!!held[k] === on) return; held[k] = on; await p.send('Input.dispatchKeyEvent', { type: on ? 'keyDown' : 'keyUp', key: KY[k][0], code: KY[k][0], windowsVirtualKeyCode: KY[k][1] }); };
+    await key('l', true); await p.sleep(1500); await key('l', false);
+    let manualLock = null; const t0 = Date.now();
+    while (Date.now() - t0 < 6000 && manualLock === null) {
+      const s = JSON.parse(await p.eval(`(() => { const s = SITE5.pose, m = SITE5.m, b = m.qrot(m.qconj(s.suitQ), s.contacts[0].d);
+        return JSON.stringify({ x: Math.atan2(b[0], b[2]) / m.D, y: Math.asin(b[1]) / m.D, locked: s.locked, mode: s.mode }); })()`));
+      if (s.locked && s.mode === 'MANUAL') manualLock = (Date.now() - t0) / 1000;
+      await key('r', s.x > 3); await key('l', s.x < -3); await key('u', s.y > 3); await key('d', s.y < -3);
+      await p.sleep(250);
+    }
+    for (const k of Object.keys(KY)) await key(k, false);
+    check('MANUAL: steering at the enemy like a person locks it within 6s', manualLock !== null, manualLock === null ? 'no lock' : manualLock.toFixed(1) + 's');
+    await p.sleep(4600);
+  }
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
   for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;

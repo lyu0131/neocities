@@ -72,6 +72,7 @@
   var keys = {}, lastKey = -1e9;
   var shake = 0, flash = 0, pos = [0, 0], lockT = 0, locked = false, lockId = null;
   var LOCK_IN = 4.5, LOCK_OUT = 7, LOCK_TIME = 0.5;   // acquire inside the (small) triangle, release past it
+  var ASSIST = 12;   // MANUAL: fire control's reach, deg off the nose
   // the eye sits well behind the ball's centre, as the reference camera does: from there everything on the ball
   // curves the way the inside of a dome does (from the exact centre a great circle would look straight)
   var EYE0 = [0, 0, -0.4];
@@ -126,9 +127,22 @@
     var manual = now - lastKey < 4000 || keys.l || keys.r || keys.u || keys.d;
     if (!reduce) { T += dt; prevLt = lt; lt = T % LOOP; if (!manual) events(prevLt, lt); }
     var o = oppAt(lt);
+    // the opponent and its two escorts, loosely in company with it (az, el in the world)
+    var contacts = [{ id: 'opp', az: o[0], el: o[1] },
+      { id: 'ms1', az: o[0] + 9 + 4 * Math.sin(T * 0.33), el: o[1] - 5 + 2 * Math.cos(T * 0.43) },
+      { id: 'ms2', az: o[0] - 13 + 3 * Math.cos(T * 0.37), el: o[1] + 4 + 2 * Math.sin(T * 0.31) }];
+    var fwd0 = qrot(suitQ, [0, 0, 1]);
+    contacts.forEach(function (c) { c.d = dir(c.az, c.el); c.off = Math.acos(clamp(dot(c.d, fwd0), -1, 1)) / D; });
     var turn = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), climb = (keys.u ? 1 : 0) - (keys.d ? 1 : 0);
     if (manual) {
-      yaw.v += (turn * 55 - yaw.v) * Math.min(1, dt * 4); pitch.v += (climb * 40 - pitch.v) * Math.min(1, dt * 4);
+      // Fire control helps the pilot onto a target, as AUTO's chase does: within ASSIST of the nearest contact the
+      // keys turn slower (fine aim, down to 30% inside about 6 deg), and an axis with no key held eases the nose
+      // onto it and tracks it. A held key always wins. (Without this the keys' 55 deg/s and their coast overshot
+      // the 4.5 deg lock window every time, so a person could all but never lock.)
+      var aim = contacts.reduce(function (a, b) { return b.off < a.off ? b : a; }), near = aim.off < ASSIST;
+      var fine = near ? clamp(aim.off / 20, 0.3, 1) : 1, ex = wrap(aim.az - yaw.x), ey = aim.el - pitch.x;
+      var wy = turn ? turn * 55 * fine : near ? clamp(ex * 4, -30, 30) : 0, wp = climb ? climb * 40 * fine : near ? clamp(ey * 4, -30, 30) : 0;
+      yaw.v += (wy - yaw.v) * Math.min(1, dt * (turn || !near ? 4 : 8)); pitch.v += (wp - pitch.v) * Math.min(1, dt * (climb || !near ? 4 : 8));
       yaw.x += yaw.v * dt; pitch.x += pitch.v * dt;
     } else if (!reduce) {
       // chase the opponent with a lag, so it drifts inside the reticle; dive past it at 9.5-12.8s
@@ -158,11 +172,7 @@
     // the pilot's resting gaze is the nose itself: the triangle sight is right in front of the eyes
     var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: head.pitch + lead.pitch.x + gaze.pitch.x };
 
-    // the opponent and its two escorts, loosely in company with it
-    var od = dir(o[0], o[1]);
-    var contacts = [{ id: 'opp', d: od },
-      { id: 'ms1', d: dir(o[0] + 9 + 4 * Math.sin(T * 0.33), o[1] - 5 + 2 * Math.cos(T * 0.43)) },
-      { id: 'ms2', d: dir(o[0] - 13 + 3 * Math.cos(T * 0.37), o[1] + 4 + 2 * Math.sin(T * 0.31)) }];
+    var od = contacts[0].d;
     // Targeting: the contact nearest the boresight, once inside LOCK_IN, is held for LOCK_TIME to lock. The
     // current target is kept until it drifts past LOCK_OUT (or another sits clearly nearer), so the lock never
     // flickers between two close contacts.
