@@ -26,7 +26,9 @@ look; it sits at `EYE0`, a little above and behind the centre). Frames: x right,
   and the **mouse steers the gaze** (up to 9° across, 6° up and down). The HUD is painted on the ball, so this is what
   moves it on screen: climb and the whole HUD drops, as in the FPV clip when the pilot looks up. Off under reduced
   motion. `SITE5.project(ballPoint)` gives a ball point's screen position (tests use it).
-- Lock: the opponent within 7° of the nose for 0.5s (released past 11°).
+- **Targeting**: the contact (opponent or either escort) nearest the boresight, once within 4.5 deg (inside the
+  sight), is held 0.5s to lock; the target is kept until it passes 7 deg or another sits 2.5 deg nearer, so the
+  lock doesn't flicker. `pose.lockId` names it.
 - `SITE5.pose` is the one per-frame snapshot both renderers read; `SITE5.renderers` are called in order.
 
 ## The picture (`js/world.js`)
@@ -60,9 +62,11 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
 - **The cluster** under the nose, scaled by `SZ` about its centre (el -27), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
   badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
-- **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS; the locked one pink with LOCK).
-- **The triangle sight** (or the Y, `?look=penelope`) is always up on the nose, with the AUTO/MANUAL word; it
-  brightens while a lock builds. No look switcher on screen.
+- **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), sized to sit inside the sight's opening; the
+  current target reads first (tier 1) and turns pink with LOCK once locked, whichever contact it is.
+- **The triangle sight** (or the Y, `?look=penelope`) is always up on the nose at about half its earlier size
+  (`TRI` 0.55), with the AUTO/MANUAL word; as a lock builds it brightens and closes in by up to 8%, and its
+  inner V turns pink once locked. No look switcher on screen.
 - **Cells**: flat translucent slate with a very faint gradient (lighter at the wide end, darker toward the point) and
   a soft luminous border (a faint wide halo under a fine edge). The ruler columns are spaced evenly the whole way
   round (an even count, so the stagger meets itself where the circle closes).

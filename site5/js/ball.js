@@ -70,7 +70,8 @@
   var lead = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 } };   // the head looking into the move
   var gaze = { yaw: { x: 0, v: 0 }, pitch: { x: 0, v: 0 } }, gazeAt = [0, 0];   // the mouse, -1..1
   var keys = {}, lastKey = -1e9;
-  var shake = 0, flash = 0, beams = [], pos = [0, 0], lockT = 0, locked = false;
+  var shake = 0, flash = 0, beams = [], pos = [0, 0], lockT = 0, locked = false, lockId = null;
+  var LOCK_IN = 4.5, LOCK_OUT = 7, LOCK_TIME = 0.5;   // acquire inside the (small) triangle, release past it
   var spd = { x: 420, v: 0 }, alt = 1800, dist = 0;   // airspeed km/h, altitude m, distance flown m
   // the eye sits well behind the ball's centre, as the reference camera does: from there everything on the ball
   // curves the way the inside of a dome does (from the exact centre a great circle would look straight)
@@ -176,10 +177,23 @@
     // the pilot's resting gaze is the nose itself: the triangle sight is right in front of the eyes
     var view = { yaw: head.yaw + lead.yaw.x + gaze.yaw.x, pitch: head.pitch + lead.pitch.x + gaze.pitch.x };
 
-    // lock: the opponent held within 7 degrees of the nose for half a second
-    var od = dir(o[0], o[1]), off = Math.acos(clamp(dot(od, qrot(suitQ, [0, 0, 1])), -1, 1)) / D;
-    lockT = off < 7 ? lockT + dt : (off > 11 ? 0 : lockT);
-    locked = lockT > 0.5;
+    // the opponent and its two escorts, loosely in company with it
+    var od = dir(o[0], o[1]);
+    var contacts = [{ id: 'opp', d: od },
+      { id: 'ms1', d: dir(o[0] + 9 + 4 * Math.sin(T * 0.33), o[1] - 5 + 2 * Math.cos(T * 0.43)) },
+      { id: 'ms2', d: dir(o[0] - 13 + 3 * Math.cos(T * 0.37), o[1] + 4 + 2 * Math.sin(T * 0.31)) }];
+    // Targeting: the contact nearest the boresight, once inside LOCK_IN, is held for LOCK_TIME to lock. The
+    // current target is kept until it drifts past LOCK_OUT (or another sits clearly nearer), so the lock never
+    // flickers between two close contacts.
+    var fwd = qrot(suitQ, [0, 0, 1]);
+    contacts.forEach(function (c) { c.off = Math.acos(clamp(dot(c.d, fwd), -1, 1)) / D; });
+    var near = contacts.reduce(function (a, b) { return b.off < a.off ? b : a; });
+    var cur = contacts.filter(function (c) { return c.id === lockId; })[0];
+    if (cur && cur.off < LOCK_OUT && !(near !== cur && near.off < cur.off - 2.5)) lockT += dt;
+    else if (near.off < LOCK_IN) { if (near.id !== lockId) lockT = 0; lockId = near.id; lockT += dt; }
+    else { lockId = null; lockT = 0; }
+    locked = lockT > LOCK_TIME;
+    var off = contacts[0].off;
 
     shake *= Math.exp(-dt * 3.2); flash *= Math.exp(-dt * 7);
     var j = shake * 0.03, jr = shake * 1.6;
@@ -189,10 +203,6 @@
       var u = (T - b.t0) / b.dur;
       return { a: b.a, b: b.b, i: u < 0.15 ? u / 0.15 : Math.pow(1 - (u - 0.15) / 0.85, 1.5) };
     });
-    // the opponent's two escorts, loosely in company with it
-    var contacts = [{ id: 'opp', d: od },
-      { id: 'ms1', d: dir(o[0] + 9 + 4 * Math.sin(T * 0.33), o[1] - 5 + 2 * Math.cos(T * 0.43)) },
-      { id: 'ms2', d: dir(o[0] - 13 + 3 * Math.cos(T * 0.37), o[1] + 4 + 2 * Math.sin(T * 0.31)) }];
     var th = null;
     if (threat) {
       var tu = (T - threat.t0) / THREAT_DUR;
@@ -202,7 +212,7 @@
     S.pose = {
       suitQ: suitQ, contacts: contacts, threat: th, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
       heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, bank: bank.x, spd: spd.x, alt: alt, dist: dist, beams: bs, flash: flash, pos: pos,
-      locked: locked, lockT: lockT, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
+      locked: locked, lockT: lockT, lockId: lockId, offNose: off, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
     };
   }
 

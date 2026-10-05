@@ -355,28 +355,42 @@
     stroke(color, 0.8, 1.3); path([tp(B, -r * 0.2, r * 0.2), tp(B, 0, -r * 0.2), tp(B, r * 0.2, r * 0.2)]);
     ctx.letterSpacing = '2px'; text(tp(B, r * 0.85, -r * 1.35), label, labelColor || color, 0.9, 9, 'left'); ctx.letterSpacing = '0px';
   }
+  // the contacts: whichever is the target reads first (tier 1), pink with LOCK once locked; the rest are quieter
   function contacts(p) {
-    var n = 0;
-    tier(3);
-    p.contacts.slice(1).forEach(function (c) { var po = toBall(c.d); if (project(po)) { wMark(po, Z(3.2), C.line, 'MS'); n++; } });
-    var po = toBall(p.opp), lock = p.locked;
-    tier(1);
-    wMark(po, Z(4.2), lock ? C.bar : C.line, lock ? 'LOCK' : 'UNKNOWN', lock ? C.bar : C.salmon);
-    parts.markers = n + 1;
+    var n = 0, tgt = null;
+    p.contacts.forEach(function (c) {
+      var po = toBall(c.d);
+      if (!project(po)) return;
+      var opp = c.id === 'opp', isT = c.id === p.lockId, lock = isT && p.locked;
+      if (isT) { tgt = c.id; return; }
+      tier(opp ? 1 : 3);
+      wMark(po, Z(opp ? 2.8 : 2.2), C.line, opp ? 'UNKNOWN' : 'MS', opp ? C.salmon : C.line);
+      n++;
+    });
+    if (tgt) {
+      var c = p.contacts.filter(function (k) { return k.id === tgt; })[0], po = toBall(c.d), lock = p.locked;
+      tier(1);
+      // sized to sit inside the sight's opening when it's on the nose
+      wMark(po, Z(c.id === 'opp' ? 2.8 : 2.4), lock ? C.bar : C.line, lock ? 'LOCK' : (c.id === 'opp' ? 'UNKNOWN' : 'MS'), lock ? C.bar : C.salmon);
+      n++;
+    }
+    parts.markers = n; parts.target = tgt;
   }
   // the triangle sight (or the Y), always up on the nose; it brightens while a lock builds
   function lockSight(p) {
-    GA = 0.72 + 0.28 * smooth(0, 0.5, p.lockT);
+    var g = smooth(0, 0.5, p.lockT);
+    GA = 0.72 + 0.28 * g;
     tier(1);
     parts.sight = true;
     if (Y_SIGHT) {
       [150, 30, 270].forEach(function (an) {
         var c = Math.cos(an * D), sn = Math.sin(an * D);
-        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045 * SZ, sn * r + c * o * 0.0045 * SZ); }; stroke(C.line, 0.8, 2); seg(pt(0.03 * SZ), pt(0.085 * SZ)); });
+        [-1, 1].forEach(function (o) { var pt = function (r) { return tp(F, c * r - sn * o * 0.0045 * SZ * 0.55, sn * r + c * o * 0.0045 * SZ * 0.55); }; stroke(C.line, 0.8, 1.8); seg(pt(0.03 * SZ * 0.55), pt(0.085 * SZ * 0.55)); });
       });
-      ctx.letterSpacing = '4px'; text(tp(F, 0.1, 0.1), p.mode, C.pink, 0.95, 12, 'left'); ctx.letterSpacing = '0px';
+      ctx.letterSpacing = '2px'; text(tp(F, 0.055, 0.055), p.mode, C.pink, 0.95, 9, 'left'); ctx.letterSpacing = '0px';
     } else {
-      var u = Math.min(0.22, tx * 0.4) * SZ / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = f / 605 * 0.8 * SZ;
+      // TRI: the sight at about half its old size (owner); it closes in by up to 8% as the lock builds
+      var TRI = 0.55, u = Math.min(0.22, tx * 0.4) * SZ * TRI * (1 - 0.08 * g) / 237, L = function (x, y) { return tp(F, x * u, -y * u); }, lw = Math.max(0.6, f / 605 * 0.8 * SZ * TRI * 1.35);
       var Tt = -200, A = 210, hw = 237, len = Math.hypot(hw, A - Tt), face = [L(-hw, Tt), L(hw, Tt), L(0, A)];
       fill(face, 'rgb(170, 186, 245)', 0.07); HALO = null; stroke(C.line, 0.34, Math.max(1, lw)); path(face, true); tier(1);
       [-1, 1].forEach(function (sd) {
@@ -386,14 +400,14 @@
         var ix = sd * hw * 0.62, iy = Tt + 62;
         stroke(C.line, 0.64, 4.6 * lw); path([L(ix - sd * 78, iy), L(ix, iy), L(ix + ux * 84, iy + uy * 84)]);
       });
-      stroke(C.line, 0.64, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
-      ctx.letterSpacing = '3px'; text(L(hw - 24, Tt + 20 + 12 / lw), p.mode, C.pink, 0.95, Math.max(9, Math.round(12 * lw)), 'right'); ctx.letterSpacing = '0px';
+      stroke(p.locked ? C.bar : C.line, p.locked ? 0.9 : 0.64, 4.6 * lw); path([L(-48, A - 196), L(0, A - 116), L(48, A - 196)]);
+      ctx.letterSpacing = '2px'; text(L(hw + 6, Tt - 14), p.mode, C.pink, 0.95, 9, 'right'); ctx.letterSpacing = '0px';
     }
     GA = 1;
   }
 
   S.project = function (p) { return E ? project(p) : null; };
-  S.anchors = { capL: dir(-GAP, RAIL), rulerL: dir(-RULER, -7.5), cluster: dir(0, CLUSTER), heading: dir(0, 22.2), nose: [0, 0, 1], apex: dir(0, -8) };
+  S.anchors = { capL: dir(-GAP, RAIL), rulerL: dir(-RULER, -7.5), cluster: dir(0, CLUSTER), heading: dir(0, 22.2), nose: [0, 0, 1], apex: dir(0, -4.5) };
   S.renderers.push(function (p, w, h) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }

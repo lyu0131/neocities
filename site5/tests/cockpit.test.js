@@ -63,6 +63,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.sleep(4600);
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   check('the triangle sight is up', await p.eval('SITE5.parts.sight === true'));
+  // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
+  let tg = null;
+  for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;
+    const near = s.contacts.reduce((a, b) => b.off < a.off ? b : a); return JSON.stringify({ lockId: s.lockId, near: near.id, off: near.off, marked: SITE5.parts.target }); })()`); }
+  tg = tg && JSON.parse(tg);
+  check('a lock goes to the contact nearest the sight', !!tg && tg.lockId === tg.near && tg.off < 7, JSON.stringify(tg));
+  check('and the HUD marks that contact as the target', !!tg && tg.marked === tg.lockId);
   // the hierarchy: only the sight / active target (tier 1) and the rail's core (tier 2) carry a halo
   const halo = await p.eval('JSON.stringify(SITE5.parts.halo)').then(JSON.parse);
   check('only the sight, the target and the rail core glow', halo[1] > 0 && halo[2] > 0 && !halo[3] && !halo[4], JSON.stringify(halo));
