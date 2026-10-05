@@ -61,7 +61,16 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
   fixed caret, and the nose designator at el -10 (salmon bars, dash text, a small V). The pitch ladder, the
   centre line, the slashes, the frame dashes and the dotted lead arc were removed (owner, 2026-10-05).
 - **The cluster** under the nose, scaled by `SZ` about its centre (el -27), from the frame's (el -24 .. -36): V, dash text, caret, salmon caret, a salmon triangle plate;
-  badges at +-10, arrow plates at +-18 pointing out, tab plates at +-8, dot grids at +-24.
+  badges at +-10, arrow plates at +-18 pointing out, turn tabs above and below each badge, cell grids at +-24.
+  Every shape reads the flight (the owner's picks of the cluster demos): the upper dash row scrolls with the turn
+  and the lower is a scrolling trace that spikes with each manoeuvre; the left badge is the radar (heading-up, a
+  sweep arm at site4's 3.4s with a fading trail, the view wedge, a blip per contact lit as the arm passes, the
+  target's pink) and the right one the thrust vector; the turn tabs light on the turn's side, chevrons running
+  out; the plates hold bars (thrust left, its verniers firing for the turns; reactor right, a row going pink in a
+  dive); the cell grids blink on their own. In a climb the up chevrons ripple upward, in a dive the top V and the
+  dashes ripple down. The triangle pulses while a lock builds; on lock a pulse runs in along the rail to the caps,
+  which flash, a flash runs up the chevron stack, and the triangle stays pink while locked. Lit pieces draw at tier 1
+  for that moment. Reduced motion: the radar arm parks at the top and nothing scrolls, ripples, flashes or blinks.
 - **World-fixed**: the contacts as doubled W marks (UNKNOWN, MS), small (about 2 deg across for the opponent); the
   current target reads first (tier 1) and turns pink with LOCK once locked, whichever contact it is.
 - **The triangle sight** (or the Y, `?look=penelope`), at about half its earlier size (`TRI` 0.55), with the
@@ -90,7 +99,7 @@ measured layout lands on the frame (rms ~1%); the owner then asked for a wider v
 **Hierarchy** (brightness, opacity and weight only; the colours stay): `tier(n)` before each group.
 1 the triangle sight and the active target: full, the reticle bars and brackets a touch heavier, a sharp core over a
 restrained halo; 2 the pink rail's core: a fainter, tighter halo; 3 rulers, rings, coffin cells, heading ticks,
-escorts: crisp, no halo, 0.82 opacity; 4 plates, badges, tabs, dash text, dot grids: the finest, 0.7. A halo is a
+escorts: crisp, no halo, 0.82 opacity; 4 plates, badges, tabs, dash text, dot grids: the finest, 0.7 (the cluster's pieces step up to tier 1 while lit). A halo is a
 second wider faint stroke under the core (never a blur), capped at 4px (tier 1) / 3px (tier 2) past the core's edge,
 so it never runs neighbouring shapes together. The coffin glow keeps a quieter halo than before.
 

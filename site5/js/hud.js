@@ -198,26 +198,23 @@
     stroke(C.line, 0.45 * al, 1); path(longHex(B, u, v, a * 0.86, b * 0.68, b * 0.62), true);
     stroke(C.line, 0.55 * al, 1); dashText(B, u - a * 0.05, v + b * 0.22, a * 0.5, 2, b * 0.44);
   }
-  // an arrow plate pointing toward sd, with a chevron inside
-  function arrowPlate(B, u, v, s, sd) {
+  // an arrow plate pointing toward sd, with a chevron inside (moved into the nose when the plate holds bars)
+  function arrowPlate(B, u, v, s, sd, bars) {
     var P = function (x, y) { return tp(B, u + sd * x * s, v + y * s); };
     var out = [P(-1, 0.75), P(0.35, 0.75), P(1, 0), P(0.35, -0.75), P(-1, -0.75)];
     fill(out, C.plate, 1); stroke(C.line, 0.75, 1.3); path(out, true);
     stroke(C.line, 0.5, 1); path([P(-0.82, 0.55), P(0.25, 0.55), P(0.75, 0), P(0.25, -0.55), P(-0.82, -0.55)], true);
-    stroke(C.line, 0.85, 1.5); path([P(0.1, 0.34), P(-0.35, 0), P(0.1, -0.34)]);
+    if (bars) { stroke(C.line, 0.85, 1.3); path([P(0.58, 0.26), P(0.36, 0), P(0.58, -0.26)]); }
+    else { stroke(C.line, 0.85, 1.5); path([P(0.1, 0.34), P(-0.35, 0), P(0.1, -0.34)]); }
   }
-  // a hexagonal badge with a smaller hexagon and three spokes
-  function badge(B, u, v, s) {
-    var hex = function (r) { var q = []; for (var a = 0; a < 360; a += 60) q.push(tp(B, u + Math.cos(a * D) * r * 1.15, v + Math.sin(a * D) * r)); return q; };
+  function hexPts(B, u, v, r) { var q = []; for (var a = 0; a < 360; a += 60) q.push(tp(B, u + Math.cos(a * D) * r * 1.15, v + Math.sin(a * D) * r)); return q; }
+  // a hexagonal badge with a smaller hexagon and three spokes (bare: the outer hexagon only, to hold an instrument)
+  function badge(B, u, v, s, bare) {
+    var hex = function (r) { return hexPts(B, u, v, r); };
     fill(hex(s), C.plate, 1); stroke(C.line, 0.75, 1.3); path(hex(s), true);
+    if (bare) return;
     stroke(C.line, 0.5, 1); path(hex(s * 0.45), true);
     for (var a = 90; a < 450; a += 120) seg(tp(B, u + Math.cos(a * D) * s * 0.52, v + Math.sin(a * D) * s * 0.45), tp(B, u + Math.cos(a * D) * s * 0.85, v + Math.sin(a * D) * s * 0.8));
-  }
-  // a small tab plate: a bracket pair with a short arrow inside
-  function tabPlate(B, u, v, s, sd) {
-    var P = function (x, y) { return tp(B, u + sd * x * s, v + y * s); };
-    stroke(C.line, 0.7, 1.2); path([P(-0.4, 0.5), P(-1, 0.5), P(-1.2, 0), P(-1, -0.5), P(-0.4, -0.5)]); path([P(0.4, 0.5), P(1, 0.5), P(1.2, 0), P(1, -0.5), P(0.4, -0.5)]);
-    stroke(C.line, 0.6, 1); path([P(-0.5, 0), P(0.5, 0)]); path([P(0.2, 0.22), P(0.5, 0), P(0.2, -0.22)]);
   }
   function dots(B, u, v, cols, rows, s) {
     for (var i = 0; i < cols; i++) for (var j = 0; j < rows; j++) {
@@ -231,7 +228,7 @@
   // ---- ball-fixed ----
   // The pink rail at the waist, right round the ball, with its tick rails; open in front, where diamond
   // caps close it and salmon chevrons point in at the cluster.
-  function rail() {
+  function rail(p) {
     var u = 1.2 * SZ, dn = 1.6 * SZ;
     var run = function (e) { var pts = []; for (var az = GAP + 1.4 * SZ; az <= 360 - GAP - 1.4 * SZ + 0.01; az += 3) pts.push(dir(az, e)); return pts; };
     tier(3);
@@ -244,17 +241,29 @@
       var big = Math.round((az - GAP - 4) / 4.5) % 3 === 0;
       stroke(C.tick, big ? 0.6 : 0.35, 1); seg(dir(az, RAIL + u), dir(az, RAIL + u + (big ? 1.6 : 0.7) * SZ)); seg(dir(az, RAIL - dn), dir(az, RAIL - dn - (big ? 1.3 : 0.6) * SZ));
     }
+    // On lock a bright run comes in along the rail to each cap (0.28s), the caps flash pink, then the salmon
+    // chevrons that point at the cluster.
+    var la = mo.lockAge, pulse = !S.reduce && la >= 0 && la < 0.8;
+    var capLit = pulse ? bump(la, 0.26, 0.6, 0.1) : 0, chevLit = pulse ? bump(la, 0.36, 0.75, 0.1) : 0;
     var caps = 0;
     [-1, 1].forEach(function (sd) {
+      if (pulse && la < 0.28) {
+        var a0 = GAP + 1.4 * SZ + 22 * (1 - la / 0.28);
+        litStroke(C.barIn, 1, 2.6, 1); path([dir(sd * (a0 + 5), RAIL), dir(sd * a0, RAIL)]);
+        parts.cluster.railPulse = true;
+      }
       var B = basis(dir(sd * GAP, RAIL)), w = Z(2.6), h = Z(3.4);
       var dia = [tp(B, -w, 0), tp(B, 0, h), tp(B, w, 0), tp(B, 0, -h)];
+      tier(3);
       if (fill(dia, C.plate, 1)) caps++;
-      stroke(C.line, 0.85, 1.3); path(dia, true);
-      stroke(C.line, 0.5, 1); path([tp(B, -w * 0.62, 0), tp(B, 0, h * 0.62), tp(B, w * 0.62, 0), tp(B, 0, -h * 0.62)], true);
-      stroke(C.line, 0.9, 1.3); path([tp(B, -sd * w * 0.2, h * 0.3), tp(B, sd * w * 0.25, 0), tp(B, -sd * w * 0.2, -h * 0.3)]);
+      if (capLit > 0.05) fill(dia, C.bar, 0.18 * capLit);
+      litStroke(capLit > 0.05 ? C.bar : C.line, 0.85, 1.3, capLit, 3); path(dia, true);
+      litStroke(C.line, 0.5, 1, capLit * 0.6, 3); path([tp(B, -w * 0.62, 0), tp(B, 0, h * 0.62), tp(B, w * 0.62, 0), tp(B, 0, -h * 0.62)], true);
+      litStroke(C.line, 0.9, 1.3, capLit, 3); path([tp(B, -sd * w * 0.2, h * 0.3), tp(B, sd * w * 0.25, 0), tp(B, -sd * w * 0.2, -h * 0.3)]);
       var Bc = basis(dir(sd * (GAP - 4 * SZ), RAIL - 0.5 * SZ));
-      stroke(C.salmon, 0.9, 2); path([tp(Bc, sd * Z(0.9), Z(1.5)), tp(Bc, -sd * Z(0.6), 0), tp(Bc, sd * Z(0.9), -Z(1.5))]);
+      litStroke(C.salmon, 0.9, 2, chevLit, 3); path([tp(Bc, sd * Z(0.9), Z(1.5)), tp(Bc, -sd * Z(0.6), 0), tp(Bc, sd * Z(0.9), -Z(1.5))]);
     });
+    tier(3);
     parts.rail = true; parts.caps = caps;
   }
   // A ring of coffin cells round the rail at az, pointing in, with its crosshair and dotted ring.
@@ -324,24 +333,147 @@
   // the plate cluster under the nose, the whole group scaled by SZ about its centre (0, CLUSTER): Q(az, el) is where
   // a point the front frame has at (az, el -- centred on -26 there) goes
   var CLUSTER = -27;
-  function cluster() {
-    tier(4);
-    var B = basis(dir(0, CLUSTER));
-    var Q = function (az, el) { return tp(B, Z(az), Z(el + 26)); };
-    stroke(C.line, 0.85, 1.8); path([Q(-1.4, -23.2), Q(0, -24.4), Q(1.4, -23.2)]);
-    stroke(C.line, 0.55, 1); dashText(B, 0, Z(0.4), Z(4.6), 2, Z(0.9));
-    stroke(C.line, 0.85, 1.8); path([Q(-1.4, -29), Q(0, -28), Q(1.4, -29)]);
-    stroke(C.salmon, 0.85, 1.8); path([Q(-1.6, -31.6), Q(0, -30.4), Q(1.6, -31.6)]);
-    var tri = [Q(-2.6, -35.6), Q(2.6, -35.6), Q(0, -32.8)];
-    fill(tri, C.plate, 1); stroke(C.salmon, 0.75, 1.3); path(tri, true);
-    stroke(C.salmon, 0.5, 1); path([Q(-1.6, -35.1), Q(1.6, -35.1), Q(0, -33.5)], true);
+  // The lower cluster: every shape reads the flight (the owner's picks of the cluster demos: 9, B1-B4, 1, 3, 6, 7).
+  //   the chevron stack: in a climb the up chevrons ripple upward, in a dive the top V and the dashes ripple down,
+  //     and the stack rides up a touch in a climb; the triangle pulses while a lock builds, a flash runs up the
+  //     stack on lock (70ms a step) and the triangle holds pink while locked
+  //   the dashes: the upper row scrolls with the turn; the lower row is a scrolling trace (1.7s of history) that
+  //     spikes with every manoeuvre
+  //   the left hex is the radar (heading-up, a sweep arm at site4's radar rate with a fading trail, the view wedge,
+  //     a blip per contact that lights as the arm passes, the target's pink); the right hex is the thrust vector
+  //   the turn tabs, above and below each hex, light on the side of the turn, their chevrons running outward
+  //   the plates hold bars: thrust on the left (main, and the verniers that fire for each turn), reactor on the
+  //     right (a row that drops pink in a dive); the cell grids blink on their own schedules
+  // Reduced motion: the radar arm parks at the top; nothing scrolls, ripples, flashes or blinks.
+  var SWEEP = 3.4;   // seconds a turn: site4's radar (and its emblems) turn at this rate
+  function cluster(p) {
+    var B = basis(dir(0, CLUSTER)), red = S.reduce, t = red ? 0 : p.t, la = mo.lockAge, cl = parts.cluster;
+    var py = red ? 0 : T(mo.pitch * 0.35);
+    var Q = function (az, el) { return tp(B, Z(az), Z(el + 26) + py); };
+    var up = Math.max(0, mo.pitch), dn = Math.max(0, -mo.pitch), rip = function (k) { return red ? 1 : 0.5 + 0.5 * Math.sin(t * 14 - k * 1.6); };
+    var lTri = 0, lSal = up * rip(0), lUp = up * rip(1), lTop = dn * rip(0), lDash = dn * rip(1) * 0.6, casc = 0;
+    cl.chev = { up: Math.max(lSal, lUp), down: lTop };
+    if (!red && mo.acqG > 0) lTri = 0.3 + 0.3 * mo.acqG + 0.35 * mo.acqG * Math.sin(t * 30);
+    if (!red && la >= 0 && la < 0.6) {
+      var lit = [0, 1, 2, 3, 4].map(function (k) { var x = (la - k * 0.07) / 0.06; return Math.exp(-x * x); });
+      lTri = Math.max(lTri, lit[0]); lSal = Math.max(lSal, lit[1]); lUp = Math.max(lUp, lit[2]); lDash = Math.max(lDash, lit[3]); lTop = Math.max(lTop, lit[4]);
+      casc = lit.filter(function (x) { return x > 0.3; }).length;
+    }
+    litStroke(C.line, 0.85, 1.8, lTop); path([Q(-1.4, -23.2), Q(0, -24.4), Q(1.4, -23.2)]);
+    litStroke(C.line, 0.55, 1, lDash); dashScroll(B, 0, Z(0.4) + py, Z(4.6), mo.dash); trace(B, 0, Z(0.4) - Z(0.9) + py, Z(4.6), Z(0.9) * 0.5);
+    litStroke(C.line, 0.85, 1.8, lUp); path([Q(-1.4, -29), Q(0, -28), Q(1.4, -29)]);
+    litStroke(C.salmon, 0.85, 1.8, lSal); path([Q(-1.6, -31.6), Q(0, -30.4), Q(1.6, -31.6)]);
+    var pink = !!p.locked, tc = pink ? C.bar : C.salmon, tri = [Q(-2.6, -35.6), Q(2.6, -35.6), Q(0, -32.8)];
+    tier(4); fill(tri, C.plate, 1); if (pink) fill(tri, C.bar, 0.16);
+    litStroke(tc, 0.75, 1.3, pink ? Math.max(lTri, 0.7) : lTri); path(tri, true);
+    litStroke(tc, 0.5, 1, pink ? 0.5 : lTri * 0.6); path([Q(-1.6, -35.1), Q(1.6, -35.1), Q(0, -33.5)], true);
+    cl.cascade = casc; cl.triPink = pink; cl.dash = mo.dash;
+    var dr = red ? 0 : 1, bars = [], cells = '';
     [-1, 1].forEach(function (sd) {
-      badge(B, sd * Z(10.1), 0, Z(2.3));
-      arrowPlate(B, sd * Z(18), Z(0.7), Z(3.1), sd);
-      tabPlate(B, sd * Z(8), Z(3.4), Z(1.3), sd);
-      tabPlate(B, sd * Z(8), -Z(3), Z(1.3), sd);
-      dots(B, sd * Z(24.3), -Z(1.3), 3, 2, Z(0.55));
+      var bu = sd * Z(10.1), bs = Z(2.3);
+      tier(4); badge(B, bu, 0, bs, true);
+      if (sd < 0) radarHex(B, bu, 0, bs, p, cl); else cl.thrust = thrustHex(B, bu, 0, bs, t);
+      var k = m.clamp(sd * mo.yaw, 0, 1);
+      turnTab(B, bu, Z(4.2), Z(1.5), sd, k); turnTab(B, bu, -Z(4.1), Z(1.5), sd, k);
+      cl.tabs = cl.tabs || []; cl.tabs[sd < 0 ? 0 : 1] = k;
+      tier(4); arrowPlate(B, sd * Z(18), Z(0.7), Z(3.1), sd, true);
+      var v = sd < 0
+        ? [0.55 + 0.35 * Math.abs(mo.pitch) + dr * 0.04 * Math.sin(t * 2.1), 0.28 + 0.62 * Math.max(0, mo.yaw) + dr * 0.05 * Math.sin(t * 3.3), 0.28 + 0.62 * Math.max(0, -mo.yaw) + dr * 0.05 * Math.sin(t * 2.7)]
+        : [0.92 + dr * 0.03 * Math.sin(t * 1.3), 0.64 + dr * 0.09 * Math.sin(t * 0.9), 0.42 + dr * 0.08 * Math.sin(t * 1.7) - 0.36 * Math.max(0, -mo.pitch)];
+      v = v.map(function (x) { return m.clamp(x, 0, 1); });
+      plateBars(B, sd * Z(18), Z(0.7), Z(3.1), sd, v); bars = bars.concat(v);
+      cells += cellGrid(B, sd * Z(24.3), -Z(1.3), Z(0.55), t, sd);
     });
+    cl.bars = bars; cl.cells = cells;
+  }
+  // a cluster stroke lit by k (0..1): brighter, a touch heavier and with a halo scaled by k (drawn at tier 1);
+  // unlit, at its own tier (4 unless given)
+  function litStroke(color, alpha, width, k, base) {
+    if (k > 0.05) { tier(1); HALO = { w: 3, k: 0.16 * Math.min(1, k), max: 4 }; stroke(color, alpha * 0.7 + (1 - alpha * 0.7) * Math.min(1, k), width * (1 + 0.2 * Math.min(1, k))); }
+    else { tier(base || 4); stroke(color, alpha, width); }
+  }
+  function bump(x, a, b, r) { return smooth(a, a + r, x) * (1 - smooth(b - r, b, x)); }
+  // one row of dash "text" that scrolls by phase (tangent units), wrapping inside its width
+  function dashScroll(B, u, v, a, phase) {
+    var span = a * 2.08;
+    for (var i = 0; i < 13; i++) {
+      if ((i * 7) % 5 === 3) continue;
+      var x = -a + ((i * a * 0.16 + phase) % span + span) % span;
+      if (x <= a) seg(tp(B, u + x, v), tp(B, u + Math.min(a * 1.11, x + a * 0.11), v));
+    }
+  }
+  function trace(B, u, v, a, h) {
+    var n = traceBuf.length, pts = [];
+    for (var i = 0; i < n; i++) pts.push(tp(B, u - a + 2 * a * i / (n - 1), v + m.clamp(traceBuf[i], -1, 1) * h));
+    if (n > 1) path(pts);
+    parts.cluster.trace = n; parts.cluster.traceSpread = Math.max.apply(null, traceBuf) - Math.min.apply(null, traceBuf);
+  }
+  function radarHex(B, u, v, s, p, cl) {
+    var R = s * 0.82, th = S.reduce ? 0 : (p.t / SWEEP * 360) % 360, half = Math.atan(tx) / D;
+    var P = function (r, a) { return [u + Math.sin(a * D) * r * 1.15, v + Math.cos(a * D) * r]; };
+    var at = function (q) { return tp(B, q[0], q[1]); };
+    var wedge = function (a0, a1) { var q = [tp(B, u, v)]; for (var a = a0; a <= a1 + 0.01; a += 2.5) q.push(at(P(R, a))); return q; };
+    tier(4);
+    fill(wedge(-half, half), C.line, 0.07);                                                          // the view
+    if (!S.reduce) for (var i = 0; i < 6; i++) fill(wedge(th - (i + 1) * 10, th - i * 10), C.line, 0.16 * (1 - i / 6));   // the trail
+    stroke(C.line, 0.35, 1); path(hexPts(B, u, v, s * 0.45), true);                                // a range ring
+    litStroke(C.line, 0.9, 1, 0.5); seg(tp(B, u, v), at(P(R, th)));                                // the arm
+    tier(4);
+    var n = 0, h = T(0.17);
+    p.contacts.forEach(function (c) {
+      var b = toBall(c.d), brg = Math.atan2(b[0], b[2]) / D, ago = (((th - brg) % 360) + 360) % 360 / 360 * SWEEP;
+      var a = S.reduce ? 0.6 : 0.3 + 0.7 * Math.exp(-ago / 0.6), q = P(R * 0.64, brg);
+      fill([tp(B, q[0] - h, q[1] - h), tp(B, q[0] + h, q[1] - h), tp(B, q[0] + h, q[1] + h), tp(B, q[0] - h, q[1] + h)], c.id === p.lockId ? C.bar : C.line, a);
+      n++;
+    });
+    var o = T(0.3);
+    fill([tp(B, u, v + o), tp(B, u + o * 0.66, v - o * 0.66), tp(B, u, v - o * 0.27), tp(B, u - o * 0.66, v - o * 0.66)], C.line, 0.8);   // own ship
+    cl.radarArm = th; cl.blips = n;
+  }
+  // the thrust vector: a cross, and a dot on a stalk that swings with the turns (on a soft spring)
+  function thrustHex(B, u, v, s, t) {
+    tier(4);
+    stroke(C.line, 0.35, 1); path(hexPts(B, u, v, s * 0.45), true);
+    stroke(C.line, 0.3, 1); seg(tp(B, u - s * 0.85, v), tp(B, u + s * 0.85, v)); seg(tp(B, u, v - s * 0.75), tp(B, u, v + s * 0.75));
+    var dr = S.reduce ? 0 : 1, ax = m.clamp(mo.vx.x * 0.9 + dr * 0.12 * Math.sin(t * 1.7), -1, 1), ay = m.clamp(mo.vy.x * 0.9 + dr * 0.1 * Math.cos(t * 1.3), -1, 1);
+    var dx = ax * s * 0.62 * 1.15, dy = ay * s * 0.58, r = T(0.2);
+    litStroke(C.line, 0.7, 1.3, 0.4); seg(tp(B, u, v), tp(B, u + dx, v + dy));
+    tier(4); fill([tp(B, u + dx - r, v + dy), tp(B, u + dx, v + dy + r), tp(B, u + dx + r, v + dy), tp(B, u + dx, v + dy - r)], C.line, 0.95);
+    return [ax, ay];
+  }
+  // a turn tab: a slim bracket pair round three small chevrons pointing out toward sd; turning that way lights it
+  // and the chevrons run outward, faster the harder the turn
+  function turnTab(B, u, v, s, sd, k) {
+    var P = function (x, y) { return tp(B, u + sd * x * s, v + y * s); }, h = 0.32;
+    litStroke(C.line, 0.6, 1.1, k * 0.6);
+    path([P(-0.95, h), P(-1.15, h), P(-1.3, 0), P(-1.15, -h), P(-0.95, -h)]); path([P(0.95, h), P(1.15, h), P(1.3, 0), P(1.15, -h), P(0.95, -h)]);
+    for (var i = 0; i < 3; i++) {
+      var x = -0.45 + i * 0.45, run = S.reduce ? 1 : 0.5 + 0.5 * Math.sin(mo.tabPh - i * 2.1);
+      litStroke(C.line, 0.5, 1.2, k * run); path([P(x - 0.12, h * 0.72), P(x + 0.12, 0), P(x - 0.12, -h * 0.72)]);
+    }
+    tier(4);
+  }
+  // three bar rows in an arrow plate: a track, and a fill that goes pink under 20%
+  function plateBars(B, u, v, s, sd, vals) {
+    var P = function (x, y) { return tp(B, u + sd * x * s, v + y * s); };
+    vals.forEach(function (val, i) {
+      var y = 0.3 - i * 0.3, x0 = -0.72, x1 = 0.18, xe = x0 + (x1 - x0) * Math.max(0.02, val);
+      tier(4); stroke(C.line, 0.3, 1); seg(P(x0, y), P(x1, y));
+      litStroke(val < 0.2 ? C.bar : C.line, 0.85, 2.2, val < 0.2 ? 0.6 : 0); seg(P(x0, y), P(xe, y));
+    });
+    tier(4);
+  }
+  // the 3 x 2 cell grid, each cell on its own blink (site4's combat-system cells); returns the pattern
+  function cellGrid(B, u, v, s, t, sd) {
+    var bits = '';
+    tier(4);
+    for (var i = 0; i < 3; i++) for (var j = 0; j < 2; j++) {
+      var q = i * 2 + j, on = Math.sin(t * 3000 / (2300 + q * 480) + q + (sd > 0 ? 3 : 0)) > -0.55;
+      var x = u + (i - 1) * s * 2.3, y = v + (j - 0.5) * s * 2.3;
+      fill([tp(B, x - s, y - s), tp(B, x + s, y - s), tp(B, x + s, y + s), tp(B, x - s, y + s)], C.line, on ? 0.9 : 0.15);
+      bits += on ? 1 : 0;
+    }
+    return bits;
   }
 
   // ---- world-fixed ----
@@ -384,20 +516,44 @@
   var LOCK_AT = 0.5;   // lockT at which the lock completes (ball.js LOCK_TIME)
   var IDLE_A = 0.15;
   var sp = { k: { x: 1, v: 0 }, cu: { x: 0, v: 0 }, cv: { x: 0, v: 0 }, wx: { x: 0, v: 0 }, wy: { x: 0, v: 0 }, wr: { x: 0, v: 0 } };
-  var was = 'idle', lastT = null, lastQ = null, lost = null;
+  var was = 'idle', lost = null;
   function spring(o, to, w, z, dt) { o.v += (-w * w * (o.x - to) - 2 * z * w * o.v) * dt; o.x += o.v * dt; }
+  // The suit's motion, worked out once a frame for everything that reacts to it: the turn rates (body frame,
+  // rad/s), and yaw (+ right) and pitch (+ up) normalised to -1..1 and smoothed; how long the lock has been held;
+  // the dash scroll, the thrust vector's springs, the tab chevrons' run, and the trace's history.
+  var mo = { dt: 0, om: [0, 0, 0], yaw: 0, pitch: 0, lockAge: -1, acqG: 0, dash: 0, tabPh: 0, vx: { x: 0, v: 0 }, vy: { x: 0, v: 0 } };
+  var moT = null, moQ = null, traceBuf = [], traceNext = 0;
+  function wave(x) { return Math.sin(x * 7) * 0.3 + Math.sin(x * 13.3) * 0.3 + Math.sin(x * 29) * 0.22 + Math.sin(x * 61) * 0.13; }
+  function motion(p) {
+    var dt = moT === null ? 0 : m.clamp(p.t - moT, 0, 0.05), q = p.suitQ, om = [0, 0, 0];
+    moT = p.t; mo.dt = dt;
+    if (moQ && dt > 0) { var dq = m.qmul(m.qconj(moQ), q), sg = dq[3] < 0 ? -2 / dt : 2 / dt; om = [dq[0] * sg, dq[1] * sg, dq[2] * sg]; }
+    moQ = q; mo.om = om;
+    var k = dt > 0 ? 1 - Math.exp(-dt / 0.12) : 0;
+    mo.yaw += (m.clamp(om[1] / 0.35, -1, 1) - mo.yaw) * k;
+    mo.pitch += (m.clamp(-om[0] / 0.3, -1, 1) - mo.pitch) * k;
+    mo.lockAge = p.locked ? p.lockT - LOCK_AT : -1;
+    mo.acqG = !p.locked && p.lockId && p.lockT > 0 ? m.clamp(p.lockT / LOCK_AT, 0, 1) : 0;
+    if (!traceBuf.length) { for (var i = 0; i < 57; i++) traceBuf.push(wave(p.t - 1.7 + i * 0.03) * 0.3); traceNext = p.t; }
+    if (S.reduce) return;
+    mo.dash += mo.yaw * dt * Z(6);
+    mo.tabPh += dt * (4 + 10 * Math.abs(mo.yaw));
+    spring(mo.vx, mo.yaw, 6, 0.45, dt); spring(mo.vy, mo.pitch, 6, 0.45, dt);
+    // the trace: a sample every 30ms, 57 kept (1.7s), bigger while manoeuvring
+    if (p.t - traceNext > 2) traceNext = p.t - 1.7;
+    for (; traceNext <= p.t; traceNext += 0.03) {
+      traceBuf.push(wave(traceNext) * (0.3 + 0.9 * m.clamp(Math.abs(mo.yaw) + Math.abs(mo.pitch), 0, 1)) + (Math.random() - 0.5) * 0.12);
+      if (traceBuf.length > 57) traceBuf.shift();
+    }
+  }
   function lockSight(p) {
     var acq = !!p.lockId && !p.locked && p.lockT > 0, since = p.lockT - LOCK_AT, st = p.locked ? 'lock' : acq ? 'acq' : 'idle';
     var g = acq ? m.clamp(p.lockT / LOCK_AT, 0, 1) : (p.locked ? 1 : 0);   // how far the lock has built
     var blinkOff = p.locked && ((since >= 0.06 && since < 0.12) || (since >= 0.18 && since < 0.24));
-    var dt = lastT === null ? 0 : m.clamp(p.t - lastT, 0, 0.05); lastT = p.t;
+    var dt = mo.dt, om = mo.om;
     // the target, in tangent units off the nose
     var tc = p.contacts.filter(function (c) { return c.id === p.lockId; })[0], tb = tc && toBall(tc.d);
     var aim = st !== 'idle' && tb && tb[2] > 0.5 ? [tb[0] / tb[2], tb[1] / tb[2]] : [0, 0];
-    // the suit's turn rate (body frame, rad/s), which the big triangle lags
-    var q = p.suitQ, om = [0, 0, 0];
-    if (lastQ && dt > 0) { var dq = m.qmul(m.qconj(lastQ), q), sg = dq[3] < 0 ? -2 / dt : 2 / dt; om = [dq[0] * sg, dq[1] * sg, dq[2] * sg]; }
-    lastQ = q;
     if (st === 'acq' && was === 'idle') sp.k.v += 9;     // flare open as the lock starts
     if (st === 'lock' && was !== 'lock') sp.k.v -= 3.5;  // the clunk into the lock
     if (was === 'lock' && st !== 'lock') lost = { t: p.t, cu: sp.cu.x, cv: sp.cv.x, k: sp.k.x };
@@ -484,11 +640,12 @@
     ctx.clearRect(0, 0, W, H);
     ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
     parts.ringCells = 0; parts._litG = 0; parts.halo = {};
+    motion(p); parts.cluster = { railPulse: false };
     rulers(p);
     RING_AZ.forEach(function (az) { sideRing(az, p); });
-    rail();
+    rail(p);
     centre(p);
-    cluster();
+    cluster(p);
     contacts(p);
     lockSight(p);
     parts.rear = !!(project(dir(180, RAIL)) || project(dir(150, RAIL)) || project(dir(-150, RAIL)));
