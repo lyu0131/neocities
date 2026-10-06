@@ -27,7 +27,6 @@
     cellEdge: '#8DA0BC', glow: 'rgb(150, 182, 255)', glowEdge: '#CFE0FF', plate: 'rgba(120, 140, 200, .10)'
   };
   var FONT = "Michroma, 'B612 Mono', sans-serif";
-  S.hudCtx = ctx;
   var parts = S.parts = {};
   var tapes = S.tapes = {};
 

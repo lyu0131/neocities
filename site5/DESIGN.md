@@ -122,12 +122,16 @@ circles) are stroked a few segments at a time with round joins, so the weight ch
 hexagons), turned so a hexagon sits square on the nose and the pattern mirrors left to right. No per-panel tone. The seams ease off to 45% within ~20 deg of the nose,
 so the aiming area reads clean.
 
-## The controls (`js/seat.js`)
-After the ref frames (#28, #29, #31): two armrest consoles with a raised head where the grip mounts and a strut
-under it with a red lamp; an upright grip on a hinge, ribbed, a head cap with three thumb buttons and a lamp, and a
-hand-guard loop round its front; a tick track and pink line along each console. Chamfered prisms in the seat frame,
-facet-shaded. Only the head turning moves them; they sit just under the view and come up when looking down. No
-seat back (never in the pilot's view) and no tablets (no panels). Narrow screens draw the pair closer (`KX`).
+## The seat (`js/seat.js`)
+A real 3D model after the ref frames (#14, #28, #29, #31-33), WebGL2 on its own canvas (`#seat`) over the HUD: the
+bucket seat (pan, quilted cushion, thigh bolsters, lumbar back and pads, wrap-round shoulder bolsters, headrest
+wings), the armrest consoles (arm pad, inlaid panels, pink trim, vented head with bolts, support leg with a red lamp
+strip), the grips (ribbed boot, head cap, thumb buttons, trigger) and what the seat hangs on (pedestal, cross
+members, hoses, the boom arm). Rounded boxes and tubes in the seat frame. Lit by the panoramic monitor itself (sky
+above, moonlit cloud sea below, in world directions through the suit's attitude, so the light moves as it banks),
+plus the near-miss flash; contact shading (ambient occlusion, the unseen pilot's helmet and torso included) is
+worked out after load in idle slices. Only the head turning moves it. The back behind the head is left open (the
+pilot's body would hide it) and there are no tablets (no panels). Narrow screens draw the consoles closer (`KX`).
 
 ## Palette (sampled off the clips)
 Lines `#AFC0EC` (mix) / `#9CB3E8` / `#BAC4F4`, white ticks `#EEF3FA`, mode word `#FFA3DC`, horizon bars `#FF4F8B` over

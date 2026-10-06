@@ -9,8 +9,8 @@
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); }
 #cockpit { position: fixed; inset: 0; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 #cockpit:active { cursor: grabbing; }
-#world, #hud { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-#hud { pointer-events: none; }
+#world, #hud, #seat { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#hud, #seat { pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 #hint {

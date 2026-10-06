@@ -170,6 +170,12 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   await p.mouse('mousePressed', 700, 650, 1); for (let k = 1; k <= 8; k++) await p.mouse('mouseMoved', 700, 650 - 40 * k, 1); await p.mouse('mouseReleased', 700, 330);
   await p.sleep(200);
   check('looking down shows the controls', await p.eval('SITE5.parts.seat.grip > 4 && SITE5.parts.seat.rail > 4'), JSON.stringify(await p.eval('SITE5.parts.seat')));
+  // the seat is a real 3D model on its own canvas: looking down, it fills a good part of the view, and its contact
+  // shading (worked out after load) is in
+  const seatCover = await p.eval(`new Promise(r => requestAnimationFrame(() => { const g = SITE5.seatGL, w = g.drawingBufferWidth, h = g.drawingBufferHeight, px = new Uint8Array(4 * w * h);
+    g.readPixels(0, 0, w, h, g.RGBA, g.UNSIGNED_BYTE, px); let n = 0; for (let i = 3; i < px.length; i += 4 * 16) if (px[i] > 0) n++; r(n / (px.length / 64)); }))`);
+  check('looking down, the 3D seat fills a good part of the view', seatCover > 0.15, (seatCover * 100).toFixed(0) + '%');
+  check('the seat contact shading is in', await p.eval('SITE5.parts.seatAO === true'));
   check('no JS errors', p.errors.length === 0, p.errors.join(' | '));
   check('frames hold up (avg under 25ms)', (await p.eval('SITE5.frameMs')) < 25, (await p.eval('SITE5.frameMs')).toFixed(1) + 'ms');
 
