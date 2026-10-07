@@ -18,11 +18,16 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // strapping in: the hand rings start open and swing shut
   const open0 = await p.eval('SITE5.parts.ringOpen');
   // the scripted flight turns the suit, and the seat swings inside the ball
-  const a0 = await pose(p, 's.heading'); let maxSeat = 0;
-  for (let i = 0; i < 30; i++) { await p.sleep(100); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)')); }
+  const ctl = () => p.eval('JSON.stringify(SITE5.parts.controls)').then(JSON.parse);
+  const a0 = await pose(p, 's.heading'); let maxSeat = 0, armIn = 0; const keysIn = [0, 0, 0, 0];
+  for (let i = 0; i < 60; i++) { await p.sleep(50); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)'));
+    const c = await ctl(); armIn = Math.max(armIn, c.arm); c.keys.forEach((k, j) => { keysIn[j] = Math.max(keysIn[j], k); }); }
   check('AUTO flies: the heading changes', Math.abs(((await pose(p, 's.heading')) - a0 + 540) % 360 - 180) > 3);
   check('AUTO says so', (await pose(p, 's.mode')) === 'AUTO');
   check('the seat sways inside the ball', maxSeat > 0.003 && maxSeat < 0.3, maxSeat.toFixed(4));
+  const c3 = await ctl();
+  check('strapped in, the ARM cover flips up and the button goes in', c3.cover > 0.9 && armIn > 0.5 && c3.arm < 0.1, JSON.stringify({ cover: c3.cover, armIn, arm: c3.arm }));
+  check('the four finger keys ripple through a check', keysIn.every(k => k > 0.4) && c3.keys.every(k => k < 0.1), JSON.stringify(keysIn));
   check('the hand rings start open and close as you strap in', open0 > 60 && (await p.eval('SITE5.parts.ringOpen')) === 0, open0 + ' -> ' + (await p.eval('SITE5.parts.ringOpen')));
 
   // keys take it over (MANUAL) and turn it; it hands back after 4s
@@ -37,6 +42,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('the thrust vector swings into the turn', turning.thrust[0] < -0.1, JSON.stringify(turning.thrust));
   check('the thrust bars fire the verniers for the turn', turning.bars[2] > turning.bars[1] + 0.2, JSON.stringify(turning.bars));
   check('a key takes over: MANUAL', (await pose(p, 's.mode')) === 'MANUAL');
+  check('taking over flicks the toggle to MANUAL', (await ctl()).toggle > 0.8, String((await ctl()).toggle));
   check('left turns it left', ((await pose(p, 's.heading')) - h0 + 540) % 360 - 180 < -15);
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   await p.sleep(4600);
@@ -92,11 +98,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   // the sight: faint at idle, closing in (and jittering) while a lock builds, full and blinking on lock
   // (E: springs open and closes in, clunks into the lock; brackets and V follow the target; pings while held)
+  const dial0 = (await ctl()).dial; let thumbIn = 0, triggerIn = 0;
   const seen = {}; let maxK = 1, minK = 9, follow = null, pinged = false, onFor = 0, railPulsed = false, cascaded = false, triPink = false, caretOff = false;
   const sightNow = () => p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale, cue: SITE5.parts.sightCue, err: SITE5.parts.sightCueErr, pings: SITE5.parts.sightPings, fly: SITE5.parts.sightFly, sway: SITE5.parts.sightSway })').then(JSON.parse);
   for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on && onFor > 40); i++) {
     const st = await sightNow();
     seen[st.s] = true; if (st.s === 'acquire') maxK = Math.max(maxK, st.k);
+    if (st.s === 'acquire') thumbIn = Math.max(thumbIn, (await ctl()).thumb); if (st.s === 'on') triggerIn = Math.max(triggerIn, (await ctl()).trigger);
     if (st.s === 'on' || st.s === 'blink') minK = Math.min(minK, st.k);
     if (st.s === 'on' || st.s === 'blink') { const k = await cl(); if (k.railPulse) railPulsed = true; if (k.cascade) cascaded = true; if (k.triPink) triPink = true; if (!k.caret || k.caret !== k.triColor) caretOff = true; }
     if (st.s === 'on') { onFor++; if (st.pings) pinged = true; if (onFor > 25 && st.cue && Math.hypot(st.cue[0], st.cue[1]) > 0.002 && (!follow || st.err < follow.err)) follow = st; }
@@ -111,12 +119,16 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('on lock a pulse runs in along the rail', railPulsed);
   check('on lock a flash runs up the cluster, and its triangle turns pink', cascaded && triPink, JSON.stringify({ cascaded, triPink }));
   check('the caret always wears the triangle\'s colour', !caretOff);
+  check('the thumb holds the dome in while the lock builds', thumbIn > 0.5, thumbIn.toFixed(2));
+  check('the trigger snaps in on the lock', triggerIn > 0.8, triggerIn.toFixed(2));
+  check('the SEL dial clicks round for a new target', (await ctl()).dial - dial0 >= 20, dial0 + ' -> ' + (await ctl()).dial);
   // turning hard off the target breaks the lock: the brackets fly apart, and the big triangle sways with the turn
   // (and right next to the bunched contacts a held key still turns at full rate: the aim help never fights it)
   const hdgA = await pose(p, 's.heading'), tA = Date.now();
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
-  let flew = false, sx = [];
-  for (let i = 0; i < 120 && !(flew && sx.length > 60); i++) { const st = await sightNow(); if (st.fly > 0 && st.fly < 1) flew = true; sx.push(st.sway[0]); await p.sleep(12); }
+  let flew = false, sx = [], squeeze = 0;
+  for (let i = 0; i < 120 && !(flew && sx.length > 60); i++) { const st = await sightNow(); if (st.fly > 0 && st.fly < 1) flew = true; sx.push(st.sway[0]); squeeze = Math.max(squeeze, (await ctl()).paddle); await p.sleep(12); }
+  check('a broken lock squeezes the pinky paddle', squeeze > 0.3, squeeze.toFixed(2));
   while (Date.now() - tA < 1000) await p.sleep(20);
   const turned = -(((await pose(p, 's.heading')) - hdgA + 540) % 360 - 180);
   check('next to the contacts a held key turns at full rate', turned > 35, turned.toFixed(1) + ' deg in 1s');

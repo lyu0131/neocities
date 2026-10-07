@@ -22,3 +22,4 @@ site4/tests/out/
 # owner reference screenshots (large, local only)
 /ref/
 /site5/demos/
+/.superpowers/

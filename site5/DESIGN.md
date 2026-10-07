@@ -126,16 +126,27 @@ so the aiming area reads clean.
 A real 3D model after the ref frames (#14, #28, #29, #31-33), WebGL2 on its own canvas (`#seat`) over the HUD: the
 bucket seat (pan, quilted cushion, thigh bolsters, lumbar back and pads, wrap-round shoulder bolsters, headrest
 wings), the armrest consoles (arm pad, inlaid panels, pink trim, vented head with bolts, support leg with a red lamp
-strip), the hand rings (the owner's design, from their sketch: no joystick) -- modelled in Blender by `tools/make_ring.py`
-and shipped as `js/ring-data.js` (the pages open from file://). One floats, standless, over the front of each console:
-the forearm goes through a slim inner ring (a soft liner inside) and the hand closes on an L handbar -- a rail forward
-from the ring's outer side, bent 90 deg inward into a rubber grip with four flat glossy keys, one per finger, in a
-recessed channel, each with a hairline of soft blue light, and a domed thumb control in a ring of light on its free
-end. The outer track (a pink trim line round it) yaws and pitches; the inner ring rolls inside it. The upper halves of
-both open together as a clamshell about one hinge on the outer side: on load they start open and swing shut as the
-pilot straps in (closed at once under reduced motion). They move with `pose.stick` (from the turn and climb rates, so
-AUTO moves them too): turning rolls the ring up to 35 deg with 10 of yaw, climbing tilts it back up to 18. Contact
-shading baked in Cycles. Rebuild: `blender -b --factory-startup -P site5/tools/make_ring.py` and what the seat hangs on (pedestal, cross
+strip), the hand rings (the owner's design, from their sketch: no joystick) -- modelled in Blender, in the live session
+over the MCP, after the owner's references (pistons, mechanics, a HOTAS's switches). The source is
+`tools/hand_ring.blend`; `tools/export_ring.py` bakes its contact shading and writes `js/ring-data.js` (the pages
+open from file://). One floats, standless, over the front of each console: the forearm goes through a slim inner ring
+(a soft liner inside) and the hand closes on an L handbar -- a rail from the ring's outer side through a clamp collar
+and an armoured sleeve (a lit channel, cap screws), a knuckle housing at the L's corner (vents, an amber status light,
+a stencilled R), then 90 deg inward into a rubber grip under three armour plates, with four flat glossy keys, one per
+finger, in a recessed channel, and a domed thumb control in a ring of light on the knurled end cap. Two cables run
+from the knuckle to the collar in clips. The outer track (a pink trim line round it) yaws and pitches; the inner ring
+rolls inside it; the upper halves of both open together as a clamshell about one hinge on the outer side: on load
+they start open and swing shut as the pilot straps in (closed at once under reduced motion). Two pistons (a red
+band, a chrome rod) work between the frames: one from the track to the handbar, stroking as the ring rolls, one
+across the hinge, driving the clamshell. They move with `pose.stick` (from the turn and climb rates, so AUTO moves
+them too): turning rolls the ring up to 35 deg with 10 of yaw, climbing tilts it back up to 18.
+The right hand's controls (targeting) are worked by the flight: the thumb holds the dome in while a lock builds, the
+trigger blade under the index finger snaps in on the lock, the red pinky paddle squeezes when a lock breaks; on the
+knuckle, the SEL dial clicks round a position for each new target and the toggle flicks to MANUAL when the pilot
+takes over; once strapped in, the guarded ARM button's flip cover goes up, the button goes in, and the four keys
+ripple through a check (under reduced motion, the cover is simply up). The left hand is the right mirrored, its
+controls at rest and without the lettering, until its own thrust set (twist throttle, boost lever, thumb wheel) is
+built. Re-export after editing the .blend: `blender -b site5/tools/hand_ring.blend -P site5/tools/export_ring.py`. Last, what the seat hangs on (pedestal, cross
 members, hoses, the boom arm). Rounded boxes and tubes in the seat frame. Lit by the panoramic monitor itself (sky
 above, moonlit cloud sea below, in world directions through the suit's attitude, so the light moves as it banks),
 plus the near-miss flash. Physically based materials (roughness, metalness, roughness-aware Fresnel; a rough
