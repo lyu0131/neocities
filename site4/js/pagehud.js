@@ -27,7 +27,10 @@
   var CONTACTS = BUNNYS.contacts.map(function (c) { return Object.assign({ brg: BUNNYS.wrap360(c.yaw) }, c); });
   var PAGES = BUNNYS.contacts.filter(function (c) { return c.page; }).map(function (c) { return c.page; });
   var here = document.documentElement.dataset.page;
-  var me = CONTACTS.filter(function (c) { return c.page === here; })[0] || CONTACTS[0];
+  // a page that isn't one of the cockpit's contacts (the field manual, manual*.html) reads as its own
+  // unit at the tools' bearing, so the scope shows all three contact pages as links
+  var me = CONTACTS.filter(function (c) { return c.page === here; })[0] ||
+    (/^manual/.test(here) ? { code: 'MAN', label: 'FIELD MANUAL', brg: 52, rng: '0.1 KM' } : CONTACTS[0]);
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);

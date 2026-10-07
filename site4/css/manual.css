@@ -1,0 +1,97 @@
+/* manual.css: the field manual pages (manual*.html), generated from the guide by gen_manual.py.
+   Loaded after cockpit.css; uses its tokens only. Long reading pages, so the content pages' hover
+   magnify is switched off here: a 1.12em step on a panel this long reflows the whole page. */
+.manual .screen .panel:hover, .manual .screen .panel:focus-within { font-size: inherit; }
+.manual .screen a { display: inline; }
+.manual .screen a:hover, .manual .screen a:focus-visible { font-size: inherit; }
+.manual .strip ul { flex-wrap: wrap; gap: 4px 10px; }
+.fm-blurb { color: var(--stencil); margin-top: -8px; }
+
+.manual .screen h3 { font-size: 15px; color: var(--hud); margin: 28px 0 10px; }
+.manual .screen :not(pre) > code {
+  font: 400 .86em/1.4 'B612 Mono', monospace; background: var(--glass); border: 1px solid var(--edge);
+  padding: 0 4px; overflow-wrap: anywhere;
+}
+
+/* code: recessed glass with a COPY control (js/manual.js); the text never wraps, so a copy pastes exactly */
+.fm-code { margin: 14px 0 18px; border: 1px solid var(--edge); background: var(--glass); max-width: 100%; }
+.fm-code-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 5px 5px 5px 12px; border-bottom: 1px solid var(--edge);
+  font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--stencil);
+}
+.fm-code .copy {
+  font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .12em; background: transparent; color: var(--hud);
+  border: 1px solid rgba(140, 255, 193, .5); padding: 8px 12px; min-height: 32px; min-width: 76px; cursor: pointer;
+}
+.fm-code .copy:hover, .fm-code .copy:focus-visible { background: var(--amber); color: var(--night); border-color: var(--amber); }
+.fm-code .copy.is-done { background: var(--hud); color: var(--night); border-color: var(--hud); }
+.fm-code pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto; white-space: pre; tab-size: 2;
+  font: 400 13px/1.55 'B612 Mono', monospace; color: var(--ice);
+}
+.fm-code pre code { font: inherit; background: none; border: 0; padding: 0; }
+.fm-code .c, .fm-code .c1, .fm-code .cm, .fm-code .ch, .fm-code .cs, .fm-code .cp { color: var(--stencil); }
+.fm-code .k, .fm-code .kd, .fm-code .kn, .fm-code .kr, .fm-code .kt, .fm-code .kc, .fm-code .ow,
+.fm-code .nt, .fm-code .nb, .fm-code .nf, .fm-code .gh, .fm-code .gu { color: var(--hud); }
+.fm-code .s, .fm-code .s1, .fm-code .s2, .fm-code .sd, .fm-code .se, .fm-code .si, .fm-code .sb,
+.fm-code .sh, .fm-code .dl, .fm-code .m, .fm-code .mi, .fm-code .mf, .fm-code .il { color: var(--amber); }
+
+/* tables scroll inside their own box on a phone, never the page */
+.fm-table { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--edge); background: var(--glass); }
+.fm-table table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.45; }
+.fm-table th {
+  text-align: left; padding: 8px 10px; background: var(--housing);
+  font: 700 10px/1.3 'B612 Mono', monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--hud);
+}
+.fm-table td { padding: 8px 10px; border-top: 1px solid var(--edge); vertical-align: top; min-width: 9ch; }
+.fm-table td:first-child { color: var(--ice); font-weight: 700; }
+
+/* exercises, recipes, best practice and cautions */
+.fm-ex { border: 1px solid rgba(140, 255, 193, .35); background: rgba(7, 12, 21, .75); padding: 14px 16px 4px; margin: 22px 0; }
+.fm-best { border-left: 2px solid var(--hud); padding: 2px 0 2px 16px; margin: 22px 0; }
+.fm-caution { border: 1px solid var(--amber); padding: 14px 16px 4px; margin: 22px 0; }
+.manual .screen .fm-ex h3, .manual .screen .fm-best h3, .manual .screen .fm-caution h3 {
+  border: 0; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--ice);
+}
+.fm-tag { font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--night); background: var(--hud); padding: 5px 7px; }
+.fm-recipe .fm-tag { background: transparent; color: var(--hud); border: 1px solid var(--hud); }
+.fm-caution .fm-tag { background: transparent; color: var(--amber); border: 1px solid var(--amber); }
+.fm-caution .fm-tag::before { content: "\25B2\00A0"; }
+.fm-note { font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .1em; color: var(--amber); border: 1px solid rgba(255, 176, 46, .6); padding: 4px 6px; }
+.manual .screen p.fm-expected { max-width: none; border-left: 2px solid var(--hud); background: rgba(140, 255, 193, .06); padding: 8px 12px; }
+.fm-flag, .fm-tested { font: 700 .78em/1 'B612 Mono', monospace; letter-spacing: .06em; padding: 1px 4px; white-space: nowrap; }
+.fm-flag { color: var(--amber); border: 1px solid rgba(255, 176, 46, .6); }
+.fm-tested { color: var(--hud); border: 1px solid rgba(140, 255, 193, .5); }
+
+.fm-tasks { list-style: none; margin: 0 0 14px; padding: 0; }
+.fm-tasks li { position: relative; padding-left: 24px; }
+.fm-tasks li + li { margin-top: 6px; }
+.fm-box { position: absolute; left: 0; top: .32em; width: 12px; height: 12px; border: 1px solid var(--hud); }
+.manual .screen .list { margin-bottom: 14px; }
+.fm-exlist li { break-inside: avoid; }
+@media (min-width: 860px) { .fm-exlist { columns: 2; column-gap: 32px; } }
+.fm-url { display: block; font: 400 11px/1.4 'B612 Mono', monospace; color: var(--stencil); overflow-wrap: anywhere; }
+
+.fm-loop { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: center; margin: 16px 0 20px; }
+.fm-loop svg { width: 100%; height: auto; display: block; }
+.fm-loop figcaption { grid-column: 1 / -1; }
+.fm-legend { grid-template-columns: max-content 1fr; }
+@media (max-width: 700px) {
+  .fm-loop { grid-template-columns: minmax(0, 1fr); }
+  .fm-legend { grid-template-columns: max-content 1fr; gap: 6px 14px; }
+  .fm-code pre { font-size: 12px; }
+}
+
+.fm-pager { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.manual .screen .fm-pager a {
+  font: 700 12px/1.2 'B612 Mono', monospace; letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  border: 1px solid var(--edge); background: var(--housing); padding: 10px 14px; color: var(--hud);
+}
+.manual .screen .fm-pager a:hover, .manual .screen .fm-pager a:focus-visible { background: var(--hud); color: var(--night); }
+/* a phone wraps the strip onto a second row: start the screen below it */
+@media (max-width: 700px) {
+  .manual .strip { gap: 6px 14px; }
+  .manual .strip ul { gap: 2px 4px; }
+  .manual .screen { padding-top: 150px; }
+}

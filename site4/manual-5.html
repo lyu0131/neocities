@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
+<script src="js/link.js"></script>
+<title>Applying it, Field manual, Sylas Lyu</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/cockpit.css">
+<link rel="stylesheet" href="css/manual.css">
+</head>
+<!-- generated from the guide's Markdown by gen_manual.py; edit the source, not this file -->
+<body class="page manual" style="--brg: 52">
+
+<nav class="strip" aria-label="Field manual">
+  <a class="ret" href="hangar.html">&#9666; HANGAR</a>
+  <ul>
+    <li><a href="manual.html" title="Field manual">INDEX</a></li>
+    <li><a href="manual-1.html" title="Concepts">P1</a></li>
+    <li><a href="manual-2.html" title="Foundations">P2</a></li>
+    <li><a href="manual-3.html" title="claude.ai">P3</a></li>
+    <li><a href="manual-4.html" title="Claude Code">P4</a></li>
+    <li><a href="manual-5.html" aria-current="page" title="Applying it">P5</a></li>
+    <li><a href="manual-6.html" title="Sources">SRC</a></li>
+  </ul>
+</nav>
+
+<main class="screen">
+  <p class="bar"><span>PART 5</span> <span class="unit">SYLAS LYU &#183; FIELD MANUAL &#183; REV B</span></p>
+  <h1>APPLYING IT</h1>
+  <p class="fm-blurb">Workflow recipes, safety, troubleshooting, a four-week plan and a cheat sheet.</p>
+  <ul class="rail">
+    <li><b>PART</b><span>P5</span></li>
+    <li><b>SECTIONS</b><span>5</span></li>
+    <li><b>PLATFORM</b><span>WINDOWS 11</span></li>
+    <li><b>REVISION</b><span>B · 7 OCT 2026</span></li>
+  </ul>
+  <section class="panel" id="sec-16" data-ref="FM-1600 &#183; REV B" data-sector="Playbook">
+    <p class="sub">SECTION 16</p>
+    <h2>Workflow playbook</h2>
+<p>Pick the tool by where the inputs live and what has to happen to them. Most of your work belongs in claude.ai Projects with skills; Claude Code takes over once code or data files on your laptop are involved.</p>
+<h3>The decision rules</h3>
+<ol class="list">
+<li>Inputs you can upload, output is text, a doc or a deck: claude.ai, inside the right Project.</li>
+<li>Inputs are files on your laptop and something has to run on them: Claude Code in that folder.</li>
+<li>You keep copying information out of another app: connect it (connector in claude.ai, MCP server in Claude Code).</li>
+<li>You have explained the same procedure three times: write a skill.</li>
+<li>A side job would flood the conversation: a subagent.</li>
+<li>A rule must hold every single time: a hook or a deny rule, plus read-only files where a script could get round them; never only an instruction.</li>
+<li>The same job recurs on a timetable: a scheduled task.</li>
+</ol>
+<div class="fm-ex fm-recipe" id="recipe-1"><h3><span class="fm-tag">RECIPE 1</span> Quizzes and thought journals</h3>
+<ul class="list">
+<li>One Project per course, holding the syllabus, assigned chapters and lecture transcripts, with the instructions from <a href="manual-3.html#ex-7">Exercise 7</a>.</li>
+<li>Your existing quiz and journal skills run inside those Projects. Give each skill a distinct trigger phrase in its description, as text-quiz and homework-quiz already do.</li>
+<li>For a study guide you will reread, ask for it as a doc; for a one-off check, keep it in chat.</li>
+<li>Use incognito chat for anything you do not want feeding into memory.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-2"><h3><span class="fm-tag">RECIPE 2</span> Lectures to notes</h3>
+<ul class="list">
+<li>Single lecture: upload the transcript to the course Project and say "make notes from this lecture"; the lecture-notes skill (<a href="manual-3.html#sec-8">section 8</a>) shapes the output.</li>
+<li>A term's worth at once: <a href="manual-4.html#ex-25">Exercise 25</a>'s batch script in Claude Code.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-3"><h3><span class="fm-tag">RECIPE 3</span> Reading and writing a paper</h3>
+<ul class="list">
+<li>A Project for the paper: upload the sources, and put your citation style and spelling rules in its instructions.</li>
+<li>Ask for claims with page references, then spot-check a few against the PDFs. Retrieval can miss passages and Claude can misattribute.</li>
+<li>Draft in a doc so you can edit in place and comment.</li>
+<li>Before submitting, run the citation-checker subagent (<a href="manual-4.html#sec-12">section 12</a>) in Claude Code over the draft and a <code>sources/</code> folder.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-4"><h3><span class="fm-tag">RECIPE 4</span> Research data analysis</h3>
+<ul class="list">
+<li>Work in Claude Code in the analysis folder, never by pasting data into chat.</li>
+<li>Set up once: a CLAUDE.md like the <a href="manual-4.html#sec-10">section 10</a> example; a deny rule on <code>Edit(./data/raw/**)</code> and read-only raw files (<a href="manual-4.html#sec-10">section 10</a>); Python through uv.</li>
+<li>For each analysis: start in plan mode, approve the plan, let Claude write the script, run it on a sample first, then the full data.</li>
+<li>Read the code it wrote as well as the numbers. Ask it to print row counts and input file names so silent filtering shows up.</li>
+<li>Before any data leaves your laptop: if the dataset came with a data use agreement, IRB conditions or lab rules, check what they allow. Claude Code sends the contents of files it reads to Anthropic's servers to process them.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-5"><h3><span class="fm-tag">RECIPE 5</span> UX design work</h3>
+<ul class="list">
+<li>Mockups and flows: ask for a design in claude.ai, which opens as an editable artifact; or work through the Figma and Canva connectors when the file lives there.</li>
+<li>Critique: your Design plugin includes a design-critique skill; give it a screenshot or a Figma link.</li>
+<li>Research synthesis: the same plugin's research-synthesis skill takes interview notes or survey results.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-6"><h3><span class="fm-tag">RECIPE 6</span> Your website</h3>
+<ul class="list">
+<li>Claude Code in the site's folder, with Git initialised so every change can be undone (<code>git init</code> once, then ask Claude to commit after each working change; Git basics are in <a href="manual-2.html#sec-4">section 4</a>).</li>
+<li>Plan mode for anything touching more than one page.</li>
+<li>Ask Claude to open or preview the page after changes, then look at it yourself.</li>
+</ul>
+</div><div class="fm-ex fm-recipe" id="recipe-7"><h3><span class="fm-tag">RECIPE 7</span> Long tasks that finish</h3>
+<p>This recipe adapts a setup posted by @beamnxw on X on 6 October 2026 ("Make Opus 5.5 Finish Long Tasks"), checked against Anthropic's docs on 7 October; corrections to the post are listed at the end. The example is a sourced write-up, such as a literature summary for the HiTOP paper, in a folder holding <code>task.md</code> (the brief), <code>sources/</code>, <code>drafts/</code> and <code>final/</code>. The aim is a run that leaves files you can open, evidence you can check, and a note the next session can resume from.</p>
+<ol class="list">
+<li>Durable facts in CLAUDE.md, the task itself elsewhere:</li>
+</ol>
+<div class="fm-code" id="c-65"><div class="fm-code-head"><span>MARKDOWN · C-65</span><button aria-label="Copy code block 65" class="copy" type="button">COPY</button></div><pre><code><span class="gh"># Write-up project</span>
+<span class="k">-</span><span class="w"> </span>Reference material is in sources/; working files in drafts/; approved files in final/.
+<span class="k">-</span><span class="w"> </span>British spelling. Plain prose, short paragraphs.
+<span class="k">-</span><span class="w"> </span>Cite primary sources only, with the URL or page and the date checked.
+<span class="k">-</span><span class="w"> </span>After each stage, update progress.md with decisions, open issues and the next action.
+<span class="k">-</span><span class="w"> </span>When finishing, report the output paths and what was verified.</code></pre></div>
+<ol class="list" start="2">
+<li>The repeated procedure as a skill, in <code>.claude/skills/write-draft/SKILL.md</code>, run as <code>/write-draft &lt;topic&gt;</code>:</li>
+</ol>
+<div class="fm-code" id="c-66"><div class="fm-code-head"><span>MARKDOWN · C-66</span><button aria-label="Copy code block 66" class="copy" type="button">COPY</button></div><pre><code>---
+name: write-draft
+<span class="gu">description: Drafts a sourced write-up from the files in sources/ and checks every claim. Use when asked to draft or rewrite a write-up.</span>
+<span class="gu">---</span>
+Topic: $ARGUMENTS
+
+<span class="k">1.</span> Read the relevant files in sources/.
+<span class="k">2.</span> Write an outline, then save the draft as drafts/draft.md.
+<span class="k">3.</span> Ask the evidence-reviewer subagent to check every factual claim against sources/.
+<span class="k">4.</span> Fix incorrect claims and mark unresolved ones with [CHECK].
+<span class="k">5.</span> Save the reviewer's table as drafts/checks.md.
+<span class="k">6.</span> Update progress.md, then report both paths and the verification results.</code></pre></div>
+<ol class="list" start="3">
+<li>A deny rule so finished work stays put (merge into <code>.claude/settings.json</code>). As <a href="manual-4.html#sec-10">section 10</a> explains, this stops Claude's own file tools; mark finished files read-only too if a script might touch them.</li>
+</ol>
+<div class="fm-code" id="c-67"><div class="fm-code-head"><span>JSON · C-67</span><button aria-label="Copy code block 67" class="copy" type="button">COPY</button></div><pre><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"permissions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"deny"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"Read(.env)"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Read(.env.*)"</span><span class="p">,</span><span class="w"> </span><span class="s2">"Edit(final/**)"</span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+<p>Copy approved files into <code>final/</code> yourself.</p>
+<ol class="list" start="4">
+<li>A reviewer that can read and search but not edit, in <code>.claude/agents/evidence-reviewer.md</code>. The <code>effort</code> line gives it more reasoning than the main session (unless <code>CLAUDE_CODE_EFFORT_LEVEL</code> is set, which wins):</li>
+</ol>
+<div class="fm-code" id="c-68"><div class="fm-code-head"><span>MARKDOWN · C-68</span><button aria-label="Copy code block 68" class="copy" type="button">COPY</button></div><pre><code>---
+name: evidence-reviewer
+description: Checks factual claims in a draft against the cited sources. Use after drafting.
+tools: Read, Grep, Glob, WebSearch, WebFetch
+<span class="gu">effort: high</span>
+<span class="gu">---</span>
+Read the draft and the sources it cites. For each factual claim, return one table row:
+claim, verdict (verified, incorrect, unresolved), source location, correction needed.
+For unresolved claims, say what evidence is missing. Never edit files.</code></pre></div>
+<ol class="list" start="5">
+<li>Start the session from the project folder and check the setup before the real run:</li>
+</ol>
+<div class="fm-code" id="c-69"><div class="fm-code-head"><span>POWERSHELL · C-69</span><button aria-label="Copy code block 69" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">&lt;</span><span class="n">project</span> <span class="n">folder</span><span class="p">&gt;</span>
+<span class="n">claude</span> <span class="p">-</span><span class="n">-effort</span> <span class="n">medium</span></code></pre></div>
+<p>Inside it, run <code>/context</code> to see what loaded, <code>/permissions</code> to see the effective rules, and type <code>@</code> to check that evidence-reviewer appears in the list. Medium is already the default effort for Opus 5.5. <code>/effort high</code> changes it mid-session and saves it as your default; press s in the <code>/effort</code> slider to apply a level to this session only.</p>
+<ol class="list" start="6">
+<li>State what "done" means with <code>/goal</code>. After each turn a separate small model checks the condition against what the conversation shows, so ask for evidence in the conversation:</li>
+</ol>
+<div class="fm-code" id="c-70"><div class="fm-code-head"><span>TEXT · C-70</span><button aria-label="Copy code block 70" class="copy" type="button">COPY</button></div><pre><code>/goal Use /write-draft on the topic in task.md. Done when drafts/draft.md and drafts/checks.md exist, every incorrect claim is fixed, unresolved claims are marked [CHECK], and both paths plus the verification results are shown in the conversation. Stop after 12 turns and report the blocker if this is not met.</code></pre></div>
+<p>The turn limit is judged by that checker from the conversation, so treat it as a soft limit; <code>/goal clear</code> (or <code>/clear</code>) removes a goal.</p>
+<ol class="list" start="7">
+<li>Keep a handoff note, <code>progress.md</code>, updated after each stage:</li>
+</ol>
+<div class="fm-code" id="c-71"><div class="fm-code-head"><span>TEXT · C-71</span><button aria-label="Copy code block 71" class="copy" type="button">COPY</button></div><pre><code>Task: &lt;topic&gt;
+Outputs: drafts/draft.md, drafts/checks.md
+Done: &lt;finished stages and checks&gt;
+Decisions: &lt;choices made, with their sources&gt;
+Open: &lt;missing evidence or blockers&gt;
+Next: &lt;one concrete next step&gt;</code></pre></div>
+<p>To resume in a fresh session, ask: "Read progress.md, open the files it lists, continue from Next, and update the note."</p>
+<p>Corrections and limits found when checking the post against the docs:</p>
+<ul class="list">
+<li><code>/agents</code> in current versions only prints a reminder; the @-list or asking Claude shows which subagents exist.</li>
+<li>Root CLAUDE.md is re-read after <code>/compact</code>, but path-scoped rules and nested CLAUDE.md files are summarised away until Claude reads a matching file again.</li>
+<li>A top-level <code>effortLevel</code> in user settings does not apply to Opus 5.5; the <code>CLAUDE_CODE_EFFORT_LEVEL</code> variable, <code>--effort</code>, <code>/effort</code> and per-model settings do.</li>
+<li><code>/rewind</code> restores Claude's own file edits only; changes made by shell commands and by most subagents need git. Commit after each stage.</li>
+<li>The post's "60% fewer tokens" comes from one customer quoted in the Opus 5.5 announcement; Anthropic's own figure there is about 40% lower cost than Opus 5 on typical workloads at default settings. Measure your own runs with <code>/usage</code>.</li>
+<li><code>/goal</code> needs a recent version of Claude Code (the docs give no minimum); run <code>claude update</code>, or switch from npm (<a href="manual-4.html#sec-9">section 9</a>), if it is missing. It needs a trusted folder and is turned off by <code>"disableAllHooks": true</code>. A goal keeps your permission mode, so in Manual mode each turn still stops for approvals; press Shift + Tab to auto mode for an unattended run.</li>
+</ul>
+</div><h3>General habits</h3>
+<ul class="list">
+<li>One task per chat or session. Long conversations crowd out early details; start fresh and let Project knowledge or CLAUDE.md carry what persists.</li>
+<li>Put stable facts where they load automatically (Project instructions, CLAUDE.md, profile preferences) instead of retyping them.</li>
+<li>Ask for a plan before large jobs; correcting a plan is cheap.</li>
+<li>Verify. Claude can be confidently wrong about citations, numbers and code. Check anything you will submit or rely on.</li>
+<li>When something keeps going wrong, change the setup instead of repeating the request: a clearer skill description, a CLAUDE.md line, a deny rule.</li>
+<li>Give Claude a check it can run: a test, an expected number, a screenshot to compare. Anthropic's best-practices page recommends this, and asks for Claude to show evidence rather than assert success.</li>
+<li>After correcting Claude twice on the same issue, <code>/clear</code> and start again with a better first prompt; the failed attempts are crowding the context.</li>
+<li>If you could describe the change in one sentence, skip plan mode; otherwise explore, plan, implement, then commit.</li>
+<li>For a second opinion, have a fresh session or a subagent review the work, and tell it to flag only gaps that affect correctness or the stated requirements.</li>
+</ul>
+
+  </section>
+  <section class="panel" id="sec-17" data-ref="FM-1700 &#183; REV B" data-sector="Safety">
+    <p class="sub">SECTION 17</p>
+    <h2>Safety, privacy, cost and context hygiene</h2>
+<p>An agent acts with your permissions, so the main risks are things it does that you did not intend, data going somewhere it should not, and usage spent on context nobody needed. Each has a specific control.</p>
+<h3>Risks and controls</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude edits or deletes the wrong files</td>
+<td>Manual or plan mode while learning; Git in every project; <code>/rewind</code> to roll back; deny rules and read-only files on folders that must not change</td>
+</tr>
+<tr>
+<td>A command does damage</td>
+<td>Read prompts before approving; a <code>PreToolUse</code> hook for patterns you never want (<a href="manual-4.html#sec-13">section 13</a>). Anthropic warns auto mode reduces prompts but does not guarantee safety; in auto mode broad allow rules such as <code>Bash(*)</code> are ignored, it pauses after 3 blocked actions in a row or 20 in total, and limits you state ("don't push") count as boundaries until compaction drops the message that stated them; use a deny rule for anything that must hold</td>
+</tr>
+<tr>
+<td>bypassPermissions runs anything</td>
+<td>Only inside a disposable container or virtual machine, per Anthropic's permission-modes page</td>
+</tr>
+<tr>
+<td>Hidden instructions in a web page, file or tool result (prompt injection)</td>
+<td>Connect only trusted servers; turn off write tools for Research; treat surprising actions as a signal to stop and check</td>
+</tr>
+<tr>
+<td>A plugin, hook or MCP server misbehaves</td>
+<td>They run as you. Install from the official marketplace or Anthropic's directory; read hooks and "Will install" lists first</td>
+</tr>
+<tr>
+<td>Secrets leak</td>
+<td>Never paste passwords or API keys into chat; deny reads of <code>.env</code> files (<a href="manual-4.html#sec-10">section 10</a>); use narrowly scoped tokens for MCP servers</td>
+</tr>
+<tr>
+<td>Research data leaves where it is allowed to be</td>
+<td>Check data use agreements, IRB conditions and lab rules before any file reaches an AI service</td>
+</tr>
+<tr>
+<td>A chat feeds memory you did not want</td>
+<td>Incognito chat; view and edit memory in Settings</td>
+</tr>
+</tbody>
+</table></div>
+<p>For Anthropic's data handling terms, read the Claude Code "Data usage" page and the claude.ai privacy settings rather than relying on summaries, including this one.</p>
+<h3>What fills the context window</h3>
+<p>From Anthropic's "Extend Claude Code" page:</p>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Loads</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLAUDE.md</td>
+<td>Whole file, every session</td>
+<td>Every request</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td>Name and description every request; full text when used</td>
+<td>Low until used</td>
+</tr>
+<tr>
+<td>MCP servers</td>
+<td>Tool names at start; full definitions when needed</td>
+<td>Low until used</td>
+</tr>
+<tr>
+<td>Subagents</td>
+<td>Their own separate context</td>
+<td>Isolated from your session</td>
+</tr>
+<tr>
+<td>Hooks</td>
+<td>Nothing, unless they return output</td>
+<td>Zero</td>
+</tr>
+</tbody>
+</table></div>
+<p>The same page warns that too much loaded context also makes Claude worse: skills trigger wrongly and conventions get lost. Disable add-ons you do not use.</p>
+<h3>Keeping usage down</h3>
+<ul class="list">
+<li>Start a new chat or <code>/clear</code> when the task changes.</li>
+<li><code>/context</code> shows what is taking space; <code>/compact</code> summarises a long session.</li>
+<li><code>/usage</code> in Claude Code breaks down what is driving your plan limits, including which skills, subagents, plugins and MCP servers.</li>
+<li>Disable plugins and connectors you are not using (<a href="manual-4.html#sec-14">section 14</a>).</li>
+<li>Subagents and <code>-p</code> batch runs each count towards the same limits; test on one file before running on fifty.</li>
+<li>A cheaper model is fine for searching and listing: <code>/model</code> or a subagent's <code>model: haiku</code>.</li>
+</ul>
+<h3>Checking the output</h3>
+<p>Check these before you submit or rely on the output:</p>
+<ul class="list">
+<li>Citations: open the source and find the passage.</li>
+<li>Numbers: rerun the script or recompute by hand on a small sample.</li>
+<li>Code: read the diff (<code>/diff</code> or <code>git diff</code>), and run it.</li>
+<li>Claims about current facts: ask for the source link and open it.</li>
+</ul>
+
+  </section>
+  <section class="panel" id="sec-18" data-ref="FM-1800 &#183; REV B" data-sector="Troubleshooting">
+    <p class="sub">SECTION 18</p>
+    <h2>Troubleshooting</h2>
+<p>Most failures come from five causes: a program not on PATH, invalid JSON, a file in the wrong folder, a session started before a change, or something switched off for that chat. Fixes below come from the Anthropic and tool documentation cited in <a href="manual-6.html#sec-21">section 21</a> unless marked otherwise.</p>
+<h3>Diagnostic commands</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claude doctor</code> (terminal)</td>
+<td>Install health, settings-file errors, update status</td>
+</tr>
+<tr>
+<td><code>/doctor</code> (in a session)</td>
+<td>Setup checkup that offers fixes</td>
+</tr>
+<tr>
+<td><code>/status</code></td>
+<td>Version, account, model, which settings files loaded</td>
+</tr>
+<tr>
+<td><code>/context</code></td>
+<td>What is filling context, including which CLAUDE.md files loaded</td>
+</tr>
+<tr>
+<td><code>/mcp</code></td>
+<td>Each MCP server's status and tool count</td>
+</tr>
+<tr>
+<td><code>/hooks</code></td>
+<td>Every configured hook and where it came from</td>
+</tr>
+<tr>
+<td><code>/plugin</code>, Errors tab</td>
+<td>Plugins that failed to load, and why</td>
+</tr>
+<tr>
+<td><code>claude --debug-file &lt;path&gt;</code></td>
+<td>Full log of hooks, MCP and skill loading</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Symptoms and fixes</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'claude' is not recognized</code></td>
+<td>Install folder not on PATH</td>
+<td>PATH lines in <a href="manual-4.html#sec-9">section 9</a>, then a new window</td>
+</tr>
+<tr>
+<td><code>'irm' is not recognized</code></td>
+<td>You are in CMD</td>
+<td>Open PowerShell</td>
+</tr>
+<tr>
+<td><code>running scripts is disabled on this system</code> (npx)</td>
+<td>PowerShell script policy</td>
+<td><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> (Microsoft's about_Execution_Policies page)</td>
+</tr>
+<tr>
+<td>Claude Code cannot find Git Bash</td>
+<td>Unusual Git install path</td>
+<td>Set <code>CLAUDE_CODE_GIT_BASH_PATH</code> in the <code>env</code> block of settings, as in <a href="manual-2.html#sec-5">section 5</a>'s example</td>
+</tr>
+<tr>
+<td>"Settings Error" dialog at startup</td>
+<td>Invalid JSON in a settings file</td>
+<td><code>jq . &lt;file&gt;</code>; look for trailing commas and comments</td>
+</tr>
+<tr>
+<td>A setting seems ignored</td>
+<td>A higher-precedence file or flag sets it</td>
+<td><code>/status</code>, then <code>claude doctor</code></td>
+</tr>
+<tr>
+<td>Skill never triggers</td>
+<td>Vague description, or YAML that fails to parse</td>
+<td>Add the words requests use; invoke with <code>/name</code>; check that <code>/skills</code> lists it and that <code>---</code> is the file's first line</td>
+</tr>
+<tr>
+<td>claude.ai rejects a skill upload: "Unexpected key(s)"</td>
+<td>Claude Code-only frontmatter field</td>
+<td>Keep to name, description, license, compatibility, metadata, allowed-tools</td>
+</tr>
+<tr>
+<td>Uploaded skill never used in chat</td>
+<td>Toggle off, or code execution off</td>
+<td>Customize &gt; Skills toggle; Settings &gt; Capabilities</td>
+</tr>
+<tr>
+<td>New subagent not found</td>
+<td><code>agents</code> folder created after the session started</td>
+<td>Restart Claude Code</td>
+</tr>
+<tr>
+<td>MCP server "Failed to connect"</td>
+<td>Server command fails on its own</td>
+<td><code>claude mcp get &lt;name&gt;</code> for the Issue line; run the command by hand; <code>$env:MCP_TIMEOUT = "60000"</code> for slow first downloads</td>
+</tr>
+<tr>
+<td>MCP server "Pending approval"</td>
+<td>Project <code>.mcp.json</code> server not yet approved</td>
+<td>Run <code>claude</code> interactively in that folder and approve it</td>
+</tr>
+<tr>
+<td>MCP output cut short with a warning</td>
+<td>Over the 25,000-token default</td>
+<td>Raise <code>MAX_MCP_OUTPUT_TOKENS</code>, or ask for less output</td>
+</tr>
+<tr>
+<td>MCP Inspector will not start</td>
+<td>Node older than 22.19.0</td>
+<td><code>winget upgrade --id OpenJS.NodeJS.LTS</code> (ID tested) or install a newer Node</td>
+</tr>
+<tr>
+<td>Connector unavailable in a chat</td>
+<td>Toggled off for that chat, or signed out</td>
+<td>"+" &gt; Connectors in the chat; reconnect in Customize &gt; Connectors</td>
+</tr>
+<tr>
+<td>Custom connector times out</td>
+<td>Server not reachable from the public internet</td>
+<td>Host it publicly, or use a local MCP server instead</td>
+</tr>
+<tr>
+<td>Desktop app ignores a config change</td>
+<td>App still running in the tray</td>
+<td>Quit from the system tray, then reopen</td>
+</tr>
+<tr>
+<td>Hook never fires</td>
+<td>Wrong event, matcher case, or untrusted folder</td>
+<td><code>/hooks</code>; matchers are case-sensitive; accept the trust prompt</td>
+</tr>
+<tr>
+<td>Hook shows an error notice</td>
+<td>Script exits non-zero or cannot start</td>
+<td>Pipe sample JSON into it by hand and check <code>$LASTEXITCODE</code></td>
+</tr>
+<tr>
+<td>Hook JSON has no effect</td>
+<td>Extra text before the JSON, or a field at the wrong level</td>
+<td>Make the script print only JSON; check field nesting in the hooks reference</td>
+</tr>
+<tr>
+<td>Plugin installed but its skills are missing</td>
+<td>Not reloaded, or <code>skills/</code> inside <code>.claude-plugin/</code></td>
+<td><code>/reload-plugins</code>; check the Errors tab; move <code>skills/</code> to the plugin root</td>
+</tr>
+<tr>
+<td>Auto mode blocks routine work</td>
+<td>Classifier lacks context</td>
+<td><code>/permissions</code> &gt; Recently denied, press <code>r</code> to retry with approval; or use Manual mode for that task</td>
+</tr>
+<tr>
+<td>Claude stops following earlier instructions</td>
+<td>Long session compacted them away</td>
+<td>Start fresh; move lasting instructions into CLAUDE.md or Project instructions</td>
+</tr>
+<tr>
+<td>Answers slow down or lose track</td>
+<td>Context nearly full</td>
+<td><code>/compact</code>, <code>/clear</code>, or a new chat</td>
+</tr>
+</tbody>
+</table></div>
+
+  </section>
+  <section class="panel" id="sec-19" data-ref="FM-1900 &#183; REV B" data-sector="Four weeks">
+    <p class="sub">SECTION 19</p>
+    <h2>Four-week learning plan</h2>
+<p>This plan takes you from the claude.ai features you already use to a guarded Claude Code project with your own skill, subagent, hook and MCP server. Each week ends with a check you can verify.</p>
+<h3>Week 1: tighten what you already use (claude.ai, no terminal)</h3>
+<ul class="fm-tasks">
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-7">Exercise 7</a>: instructions and well-named files in each course Project</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-8">Exercises 8</a> and 9: use the Drive connector on purpose; set write tools to Needs approval</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#sec-14">Section 14</a>: disable the plugins you do not use</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-10">Exercise 10</a>: upload the lecture-notes skill and test it on a real transcript</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: a new chat in each course Project names the file and page it answers from</li>
+</ul>
+<h3>Week 2: terminal and install</h3>
+<ul class="fm-tasks">
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-2.html#ex-1">Exercises 1</a> to 3: PowerShell basics, practice folder, Python through uv</li>
+<li><span aria-hidden="true" class="fm-box"></span>Install Git, Node.js, uv, jq and VS Code with winget, and confirm each version</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-2.html#ex-4">Exercises 4</a> to 6: JSON and jq</li>
+<li><span aria-hidden="true" class="fm-box"></span>Git: the throwaway-folder test in <a href="manual-2.html#sec-4">section 4</a></li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-12">Exercises 12</a> and 13: install Claude Code and run a first session in Manual mode</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: <code>claude --version</code> and <code>claude doctor</code> both run cleanly</li>
+</ul>
+<h3>Week 3: Claude Code core</h3>
+<ul class="fm-tasks">
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-14">Exercise 14</a>: the guarded analysis project (CLAUDE.md plus a deny rule)</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-11">Exercise 11</a>: the lecture-notes skill locally, visible in <code>/skills</code></li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-18">Exercise 18</a>: the citation-checker subagent on a test draft</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-19">Exercises 19</a> and 20: notification hook and the recursive-delete block</li>
+<li><span aria-hidden="true" class="fm-box"></span>Use plan mode for one real change, and <code>/rewind</code> once to see how undo works</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: Claude refuses to edit <code>data/raw/</code> and the hook blocks a recursive delete</li>
+</ul>
+<h3>Week 4: connect and automate</h3>
+<ul class="fm-tasks">
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-15">Exercises 15</a> and 16: add a ready-made MCP server and inspect it</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-17">Exercise 17</a>: build and register the study-tools server</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-22">Exercises 22</a> and 23: install skill-creator; package the study kit</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-24">Exercises 24</a> and 25: one-shot JSON run, then the batch notes script on two files</li>
+<li><span aria-hidden="true" class="fm-box"></span>Apply <a href="#recipe-4">Recipe 4</a> or <a href="#recipe-6">Recipe 6</a> from <a href="#sec-16">section 16</a> to a real project</li>
+<li><span aria-hidden="true" class="fm-box"></span>Run the agent-ready routine at the end of <a href="manual-4.html#sec-15">section 15</a> on one app you use</li>
+<li><span aria-hidden="true" class="fm-box"></span>Set up <a href="#recipe-7">Recipe 7</a> for one real write-up and resume it once from progress.md</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: <code>/mcp</code> shows study-tools connected and the batch script produced readable notes</li>
+</ul>
+<h3>Further learning from Anthropic</h3>
+<ul class="list">
+<li><code>/powerup</code> inside Claude Code runs short interactive lessons with demos, per the commands reference.</li>
+<li>Claude Code 101 and other free courses at academy.claude.com, linked from the quickstart.</li>
+<li>The Claude Code docs index at code.claude.com/docs; most pages used in this guide are listed in <a href="manual-6.html#sec-21">section 21</a>.</li>
+</ul>
+
+  </section>
+  <section class="panel" id="sec-20" data-ref="FM-2000 &#183; REV B" data-sector="Reference">
+    <p class="sub">SECTION 20</p>
+    <h2>Quick reference</h2>
+<p>The terms, file locations and commands from this guide on one page.</p>
+<h3>Glossary</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent</td>
+<td>Model plus tools plus a loop of act, observe, decide</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Agent-ready app</td>
+<td>An app that can be driven by a CLI, a JSON channel or an MCP server</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Artifact</td>
+<td>A page Claude publishes to your claude.ai gallery, private until shared</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Auto memory</td>
+<td>Notes Claude Code writes itself, per project</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Auto mode</td>
+<td>Permission mode where a second model reviews risky actions</td>
+<td>10</td>
+</tr>
+<tr>
+<td>CLAUDE.md</td>
+<td>Standing instructions file Claude Code reads every session</td>
+<td>10</td>
+</tr>
+<tr>
+<td>CLI</td>
+<td>A program controlled by typed commands</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Compaction</td>
+<td>Summarising older conversation to free context</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Connector</td>
+<td>claude.ai's name for an MCP server it connects to for you</td>
+<td>7</td>
+</tr>
+<tr>
+<td>Context window</td>
+<td>Everything the model can see on one turn</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Deny rule</td>
+<td>Settings entry that blocks a tool or path in every mode</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Environment (surface)</td>
+<td>Where the agent runs and what it can touch</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Exit code</td>
+<td>Number a program returns: 0 success; 2 blocks in hooks</td>
+<td>4, 13</td>
+</tr>
+<tr>
+<td>Fork</td>
+<td>Subagent that inherits the whole conversation</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Git</td>
+<td>Version history for a folder; each saved snapshot is a commit</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Frontmatter</td>
+<td>YAML settings block between <code>---</code> lines at the top of a file</td>
+<td>5, 8</td>
+</tr>
+<tr>
+<td>Headless (<code>-p</code>)</td>
+<td>Running Claude Code once from a command, no session</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Hook</td>
+<td>Command run automatically at a lifecycle event</td>
+<td>13</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Text format for configs and messages</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Marketplace</td>
+<td>Catalogue of plugins</td>
+<td>14</td>
+</tr>
+<tr>
+<td>MCP</td>
+<td>Open standard connecting AI clients to tool servers</td>
+<td>11</td>
+</tr>
+<tr>
+<td>MCP Inspector</td>
+<td>Tool for testing an MCP server without AI</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>The language model itself</td>
+<td>2</td>
+</tr>
+<tr>
+<td>PATH</td>
+<td>List of folders Windows searches for programs</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Permission mode</td>
+<td>How much Claude may do without asking</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plan mode</td>
+<td>Claude researches and proposes before changing anything</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plugin</td>
+<td>Package of skills, subagents, hooks and MCP servers</td>
+<td>14</td>
+</tr>
+<tr>
+<td>Project (claude.ai)</td>
+<td>Workspace with its own files and instructions</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Prompt injection</td>
+<td>Hidden instructions in content an agent reads</td>
+<td>17</td>
+</tr>
+<tr>
+<td>Research</td>
+<td>claude.ai mode that runs many searches and tool calls before answering</td>
+<td>7</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Who a setting, server or plugin applies to: user, project, local</td>
+<td>10, 11, 14</td>
+</tr>
+<tr>
+<td>Skill</td>
+<td>Folder with a SKILL.md of instructions for a repeated task</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Slash command</td>
+<td><code>/name</code> typed to run a command or skill</td>
+<td>10</td>
+</tr>
+<tr>
+<td>stdio / HTTP transport</td>
+<td>Local process versus remote server for MCP</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td>Separate Claude with its own context that returns a summary</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Token</td>
+<td>Unit the model counts text in (about 3 to 4 characters of English, depending on the model)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Tool</td>
+<td>One named action the model can request</td>
+<td>2</td>
+</tr>
+</tbody>
+</table></div>
+<h3>File locations on Windows</h3>
+<p>Type these into File Explorer's address bar. In PowerShell, write <code>$HOME</code> in place of <code>%USERPROFILE%</code> and <code>$env:APPDATA</code> in place of <code>%APPDATA%</code>.</p>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User settings</td>
+<td><code>%USERPROFILE%\.claude\settings.json</code></td>
+</tr>
+<tr>
+<td>Project settings (shared, local)</td>
+<td><code>&lt;project&gt;\.claude\settings.json</code>, <code>&lt;project&gt;\.claude\settings.local.json</code></td>
+</tr>
+<tr>
+<td>User CLAUDE.md</td>
+<td><code>%USERPROFILE%\.claude\CLAUDE.md</code></td>
+</tr>
+<tr>
+<td>Project CLAUDE.md</td>
+<td><code>&lt;project&gt;\CLAUDE.md</code> or <code>&lt;project&gt;\.claude\CLAUDE.md</code></td>
+</tr>
+<tr>
+<td>Personal skills</td>
+<td><code>%USERPROFILE%\.claude\skills\&lt;name&gt;\SKILL.md</code></td>
+</tr>
+<tr>
+<td>Project skills</td>
+<td><code>&lt;project&gt;\.claude\skills\&lt;name&gt;\SKILL.md</code></td>
+</tr>
+<tr>
+<td>Personal subagents</td>
+<td><code>%USERPROFILE%\.claude\agents\&lt;name&gt;.md</code></td>
+</tr>
+<tr>
+<td>Project subagents</td>
+<td><code>&lt;project&gt;\.claude\agents\&lt;name&gt;.md</code></td>
+</tr>
+<tr>
+<td>MCP servers, local and user scope</td>
+<td><code>%USERPROFILE%\.claude.json</code></td>
+</tr>
+<tr>
+<td>MCP servers, project scope</td>
+<td><code>&lt;project&gt;\.mcp.json</code></td>
+</tr>
+<tr>
+<td>Auto memory</td>
+<td><code>%USERPROFILE%\.claude\projects\&lt;project&gt;\memory\</code></td>
+</tr>
+<tr>
+<td>Claude desktop app MCP config</td>
+<td><code>%APPDATA%\Claude\claude_desktop_config.json</code></td>
+</tr>
+<tr>
+<td>Claude Code program</td>
+<td><code>%USERPROFILE%\.local\bin\claude.exe</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>PowerShell essentials</h3>
+<div class="fm-code" id="c-72"><div class="fm-code-head"><span>POWERSHELL · C-72</span><button aria-label="Copy code block 72" class="copy" type="button">COPY</button></div><pre><code><span class="nb">Get-Location</span><span class="p">;</span> <span class="nb">Get-ChildItem</span><span class="p">;</span> <span class="nb">cd </span><span class="p">&lt;</span><span class="n">path</span><span class="p">&gt;;</span> <span class="nb">cd </span><span class="p">..;</span> <span class="n">mkdir</span> <span class="p">&lt;</span><span class="n">name</span><span class="p">&gt;</span>
+<span class="nb">Get-Content</span> <span class="p">&lt;</span><span class="n">file</span><span class="p">&gt;;</span> <span class="nb">Set-Content</span> <span class="p">&lt;</span><span class="n">file</span><span class="p">&gt;</span> <span class="s2">"&lt;text&gt;"</span><span class="p">;</span> <span class="nb">Copy-Item</span> <span class="p">&lt;</span><span class="n">a</span><span class="p">&gt;</span> <span class="p">&lt;</span><span class="n">b</span><span class="p">&gt;</span>
+<span class="nv">$LASTEXITCODE</span>
+<span class="nv">$env:PATH</span> <span class="n">-split</span> <span class="s1">';'</span>
+<span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span> <span class="p">&lt;</span><span class="n">id</span><span class="p">&gt;</span> <span class="n">-e</span>
+<span class="p">&lt;</span><span class="n">program</span><span class="p">&gt;</span> <span class="p">-</span><span class="n">-help</span></code></pre></div>
+<h3>Claude Code from the terminal</h3>
+<div class="fm-code" id="c-73"><div class="fm-code-head"><span>POWERSHELL · C-73</span><button aria-label="Copy code block 73" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span>                                  <span class="c"># start a session here</span>
+<span class="n">claude</span> <span class="p">-</span><span class="n">-permission-mode</span> <span class="n">manual</span>         <span class="c"># ask before every action</span>
+<span class="n">claude</span> <span class="n">-c</span>                               <span class="c"># continue last conversation</span>
+<span class="n">claude</span> <span class="n">-r</span>                               <span class="c"># pick a conversation to resume</span>
+<span class="n">claude</span> <span class="n">-p</span> <span class="s2">"&lt;task&gt;"</span> <span class="p">-</span><span class="n">-allowedTools</span> <span class="s2">"Read"</span> <span class="c"># one-shot run</span>
+<span class="n">claude</span> <span class="p">-</span><span class="n">-version</span><span class="p">;</span> <span class="n">claude</span> <span class="n">doctor</span><span class="p">;</span> <span class="n">claude</span> <span class="n">update</span>
+<span class="n">claude</span> <span class="n">mcp</span> <span class="n">add</span> <span class="p">&lt;</span><span class="n">name</span><span class="p">&gt;</span> <span class="p">--</span> <span class="p">&lt;</span><span class="n">command</span><span class="p">&gt;</span> <span class="no">[args]</span>
+<span class="n">claude</span> <span class="n">mcp</span> <span class="n">list</span><span class="p">;</span> <span class="n">claude</span> <span class="n">mcp</span> <span class="n">get</span> <span class="p">&lt;</span><span class="n">name</span><span class="p">&gt;;</span> <span class="n">claude</span> <span class="n">mcp</span> <span class="n">remove</span> <span class="p">&lt;</span><span class="n">name</span><span class="p">&gt;</span>
+<span class="n">claude</span> <span class="n">plugin</span> <span class="n">install</span> <span class="p">&lt;</span><span class="n">plugin</span><span class="p">&gt;@&lt;</span><span class="n">marketplace</span><span class="p">&gt;</span> <span class="p">-</span><span class="n">-scope</span> <span class="n">user</span>
+<span class="n">claude</span> <span class="n">plugin</span> <span class="n">list</span><span class="p">;</span> <span class="n">claude</span> <span class="n">plugin</span> <span class="n">validate</span> <span class="p">&lt;</span><span class="n">path</span><span class="p">&gt;</span>
+<span class="n">claude</span> <span class="p">-</span><span class="n">-plugin-dir</span> <span class="p">&lt;</span><span class="n">path</span><span class="p">&gt;</span>              <span class="c"># load a plugin for one session</span></code></pre></div>
+<h3>Inside a Claude Code session</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Keys or command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Esc</td>
+<td>Interrupt</td>
+</tr>
+<tr>
+<td>Shift + Tab</td>
+<td>Cycle permission modes</td>
+</tr>
+<tr>
+<td><code>@&lt;file&gt;</code></td>
+<td>Attach a file</td>
+</tr>
+<tr>
+<td><code>/plan &lt;task&gt;</code></td>
+<td>Plan before changing anything</td>
+</tr>
+<tr>
+<td><code>/init</code>, <code>/memory</code></td>
+<td>Create and edit CLAUDE.md</td>
+</tr>
+<tr>
+<td><code>/context</code>, <code>/compact</code>, <code>/clear</code></td>
+<td>Manage context</td>
+</tr>
+<tr>
+<td><code>/rewind</code></td>
+<td>Undo to a checkpoint</td>
+</tr>
+<tr>
+<td><code>/mcp</code>, <code>/hooks</code>, <code>/plugin</code>, <code>/skills</code></td>
+<td>Inspect add-ons</td>
+</tr>
+<tr>
+<td><code>/permissions</code></td>
+<td>Allow, ask and deny rules</td>
+</tr>
+<tr>
+<td><code>/usage</code>, <code>/status</code>, <code>/doctor</code></td>
+<td>Usage, configuration, checkup</td>
+</tr>
+<tr>
+<td><code>/tasks</code></td>
+<td>Background work, including subagents</td>
+</tr>
+<tr>
+<td><code>/exit</code></td>
+<td>Leave</td>
+</tr>
+</tbody>
+</table></div>
+
+  </section>
+
+  <nav class="fm-pager" aria-label="Manual pages"><a href="manual-4.html">&#9666; Part 4: Claude Code</a><a href="manual-6.html">Sources: Sources &#9656;</a></nav>
+</main>
+
+<p class="sr-only" aria-live="polite" id="fm-live"></p>
+<script src="js/bunnys.js" defer></script>
+<script src="js/pagehud.js" defer></script>
+<script src="js/manual.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
+<script src="js/link.js"></script>
+<title>Foundations, Field manual, Sylas Lyu</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/cockpit.css">
+<link rel="stylesheet" href="css/manual.css">
+</head>
+<!-- generated from the guide's Markdown by gen_manual.py; edit the source, not this file -->
+<body class="page manual" style="--brg: 52">
+
+<nav class="strip" aria-label="Field manual">
+  <a class="ret" href="hangar.html">&#9666; HANGAR</a>
+  <ul>
+    <li><a href="manual.html" title="Field manual">INDEX</a></li>
+    <li><a href="manual-1.html" title="Concepts">P1</a></li>
+    <li><a href="manual-2.html" aria-current="page" title="Foundations">P2</a></li>
+    <li><a href="manual-3.html" title="claude.ai">P3</a></li>
+    <li><a href="manual-4.html" title="Claude Code">P4</a></li>
+    <li><a href="manual-5.html" title="Applying it">P5</a></li>
+    <li><a href="manual-6.html" title="Sources">SRC</a></li>
+  </ul>
+</nav>
+
+<main class="screen">
+  <p class="bar"><span>PART 2</span> <span class="unit">SYLAS LYU &#183; FIELD MANUAL &#183; REV B</span></p>
+  <h1>FOUNDATIONS</h1>
+  <p class="fm-blurb">Terminal and JSON basics, which everything technical depends on.</p>
+  <ul class="rail">
+    <li><b>PART</b><span>P2</span></li>
+    <li><b>SECTIONS</b><span>2</span></li>
+    <li><b>PLATFORM</b><span>WINDOWS 11</span></li>
+    <li><b>REVISION</b><span>B · 7 OCT 2026</span></li>
+  </ul>
+  <section class="panel" id="sec-4" data-ref="FM-0400 &#183; REV B" data-sector="Terminal">
+    <p class="sub">SECTION 04</p>
+    <h2>Terminal and CLI basics on Windows</h2>
+<p>A CLI (command line interface) is a program you control by typing commands instead of clicking. On Windows you type them into PowerShell, and about fifteen commands cover nearly everything in this guide.</p>
+<h3>Opening PowerShell</h3>
+<ul class="list">
+<li>Press Win + X, then choose Terminal or Windows PowerShell.</li>
+<li>PowerShell's prompt looks like <code>PS C:\Users\&lt;you&gt;&gt;</code>. The older CMD prompt has no <code>PS</code>. The two use different commands, so check before pasting anything.</li>
+<li>Pick the entry without "(x86)" in its name; Anthropic's terminal guide notes the x86 one is 32-bit and Claude Code rejects it.</li>
+<li>Paste with Ctrl + V or a right-click. Press Ctrl + C to stop a running command. Up arrow recalls earlier commands. Tab completes file and folder names.</li>
+</ul>
+<h3>How a command is built</h3>
+<div class="fm-code" id="c-1"><div class="fm-code-head"><span>POWERSHELL · C-01</span><button aria-label="Copy code block 1" class="copy" type="button">COPY</button></div><pre><code><span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span> <span class="n">Git</span><span class="p">.</span><span class="n">Git</span> <span class="n">-e</span></code></pre></div>
+<ul class="list">
+<li><code>winget</code> is the program.</li>
+<li><code>install</code> is a subcommand: which job the program should do.</li>
+<li><code>--id Git.Git</code> is a flag with a value. Flags start with <code>-</code> or <code>--</code>.</li>
+<li><code>-e</code> is a flag with no value; for winget it means "exact match".</li>
+</ul>
+<p>Nearly every CLI follows this shape, including <code>claude</code>, <code>git</code>, <code>uv</code> and <code>npx</code>. To see a program's options, add <code>--help</code>: <code>winget --help</code>, <code>git --help</code>, <code>claude --help</code>. For PowerShell's own commands, use <code>Get-Help &lt;command&gt;</code>.</p>
+<div class="fm-ex" id="ex-1"><h3><span class="fm-tag">EX-01</span> Where am I, and what is here?</h3>
+<div class="fm-code" id="c-2"><div class="fm-code-head"><span>POWERSHELL · C-02</span><button aria-label="Copy code block 2" class="copy" type="button">COPY</button></div><pre><code><span class="nb">Get-Location</span>
+<span class="nb">Get-ChildItem</span></code></pre></div>
+<p class="fm-expected">Expected: the first prints your current folder, usually <code>C:\Users\&lt;you&gt;</code>. The second lists the files and folders in it. <code>pwd</code>, <code>ls</code> and <code>dir</code> are short aliases for the same two commands.</p>
+</div><div class="fm-ex" id="ex-2"><h3><span class="fm-tag">EX-02</span> Make a practice folder and a file</h3>
+<div class="fm-code" id="c-3"><div class="fm-code-head"><span>POWERSHELL · C-03</span><button aria-label="Copy code block 3" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~</span>
+<span class="n">mkdir</span> <span class="n">claude-practice</span>
+<span class="nb">cd </span><span class="n">claude-practice</span>
+<span class="nb">Set-Content</span> <span class="n">-Path</span> <span class="n">hello</span><span class="p">.</span><span class="n">txt</span> <span class="n">-Value</span> <span class="s2">"first line"</span>
+<span class="nb">Add-Content</span> <span class="n">-Path</span> <span class="n">hello</span><span class="p">.</span><span class="n">txt</span> <span class="n">-Value</span> <span class="s2">"second line"</span>
+<span class="nb">Get-Content</span> <span class="n">hello</span><span class="p">.</span><span class="n">txt</span></code></pre></div>
+<p class="fm-expected">Expected: <code>first line</code> and <code>second line</code> printed on two lines. You will reuse this folder for later exercises.</p>
+</div><h3>Everyday commands</h3>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Task</th>
+<th>PowerShell command</th>
+<th>Short alias</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Show current folder</td>
+<td><code>Get-Location</code></td>
+<td><code>pwd</code></td>
+</tr>
+<tr>
+<td>List contents</td>
+<td><code>Get-ChildItem</code></td>
+<td><code>ls</code>, <code>dir</code></td>
+</tr>
+<tr>
+<td>Change folder</td>
+<td><code>Set-Location &lt;path&gt;</code></td>
+<td><code>cd &lt;path&gt;</code></td>
+</tr>
+<tr>
+<td>Go up one level</td>
+<td><code>cd ..</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Go home</td>
+<td><code>cd ~</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Make a folder</td>
+<td><code>New-Item -ItemType Directory &lt;name&gt;</code></td>
+<td><code>mkdir &lt;name&gt;</code></td>
+</tr>
+<tr>
+<td>Show a file</td>
+<td><code>Get-Content &lt;file&gt;</code></td>
+<td><code>cat &lt;file&gt;</code></td>
+</tr>
+<tr>
+<td>Write a file</td>
+<td><code>Set-Content &lt;file&gt; "&lt;text&gt;"</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Copy</td>
+<td><code>Copy-Item &lt;from&gt; &lt;to&gt;</code></td>
+<td><code>cp</code></td>
+</tr>
+<tr>
+<td>Move or rename</td>
+<td><code>Move-Item &lt;from&gt; &lt;to&gt;</code></td>
+<td><code>mv</code></td>
+</tr>
+<tr>
+<td>Delete (no Recycle Bin)</td>
+<td><code>Remove-Item &lt;path&gt;</code></td>
+<td><code>rm</code></td>
+</tr>
+<tr>
+<td>Find where a program lives</td>
+<td><code>Get-Command &lt;name&gt;</code></td>
+<td><code>gcm</code></td>
+</tr>
+<tr>
+<td>Clear the screen</td>
+<td><code>Clear-Host</code></td>
+<td><code>cls</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>Remove-Item</code> skips the Recycle Bin. Check the path before pressing Enter.</p>
+<h3>Paths</h3>
+<ul class="list">
+<li>Absolute path: the full address, such as <code>C:\Users\&lt;you&gt;\claude-practice\hello.txt</code>.</li>
+<li>Relative path: from where you are now. <code>.\hello.txt</code> is "hello.txt in this folder"; <code>..\</code> is the folder above.</li>
+<li>Home: <code>~</code>, <code>$HOME</code> or <code>$env:USERPROFILE</code> in PowerShell. Some programs started from PowerShell, such as <code>code</code>, do not understand <code>~</code>, so this guide writes <code>$HOME</code> in those commands. <code>%USERPROFILE%</code> means the same folder in File Explorer's address bar and in CMD, but not in PowerShell.</li>
+<li>Paths with spaces need quotes: <code>cd "C:\Users\&lt;you&gt;\OneDrive\Class Notes"</code>.</li>
+</ul>
+<h3>Installing the tools this guide uses</h3>
+<p>winget is Windows' built-in package manager. Run <code>winget --version</code> first; any version number means it works.</p>
+<div class="fm-code" id="c-4"><div class="fm-code-head"><span>POWERSHELL · C-04</span><button aria-label="Copy code block 4" class="copy" type="button">COPY</button></div><pre><code><span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span> <span class="n">Git</span><span class="p">.</span><span class="n">Git</span> <span class="n">-e</span> <span class="p">-</span><span class="n">-source</span> <span class="n">winget</span>
+<span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span> <span class="n">OpenJS</span><span class="p">.</span><span class="n">NodeJS</span><span class="p">.</span><span class="n">LTS</span> <span class="n">-e</span>
+<span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span><span class="p">=</span><span class="n">astral-sh</span><span class="p">.</span><span class="n">uv</span> <span class="n">-e</span>
+<span class="n">winget</span> <span class="n">install</span> <span class="n">jqlang</span><span class="p">.</span><span class="n">jq</span>
+<span class="n">winget</span> <span class="n">install</span> <span class="p">-</span><span class="n">-id</span> <span class="n">Microsoft</span><span class="p">.</span><span class="n">VisualStudioCode</span> <span class="n">-e</span></code></pre></div>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Why you want it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Git for Windows</td>
+<td>Version history for code; also provides Git Bash, which Claude Code uses for its Bash tool (optional per Anthropic's docs; without it Claude Code uses PowerShell)</td>
+</tr>
+<tr>
+<td>Node.js LTS</td>
+<td>Provides <code>npx</code>, which runs many MCP servers and the MCP Inspector</td>
+</tr>
+<tr>
+<td>uv</td>
+<td>Installs Python and runs Python scripts and Python MCP servers</td>
+</tr>
+<tr>
+<td>jq</td>
+<td>Reads and filters JSON on the command line; used in hook scripts</td>
+</tr>
+<tr>
+<td>VS Code</td>
+<td>Code editor; optional, but the easiest way to edit config files</td>
+</tr>
+</tbody>
+</table></div>
+<p>Close PowerShell, open a new window, then confirm each one:</p>
+<div class="fm-code" id="c-5"><div class="fm-code-head"><span>POWERSHELL · C-05</span><button aria-label="Copy code block 5" class="copy" type="button">COPY</button></div><pre><code><span class="n">git</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">node</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">npx</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">uv</span> <span class="p">-</span><span class="n">-version</span>
+<span class="n">jq</span> <span class="p">-</span><span class="n">-version</span></code></pre></div>
+<p class="fm-expected">Expected: a version number from each. The Git and jq IDs above come from git-scm.com's and jqlang.org's install pages, uv's from Astral's docs. <span class="fm-tested">Tested</span>: <code>winget show</code> found every ID above, plus <code>Microsoft.PowerShell</code> (PowerShell 7) and <code>Anthropic.ClaudeCode</code>, with winget 1.29. If an ID ever stops working, <code>winget search &lt;name&gt;</code> lists the current one.</p>
+<p>If <code>npx</code> fails with "running scripts is disabled on this system", PowerShell's script policy is blocking npm's launcher. Microsoft's documentation gives Restricted as the default policy on Windows client computers, which blocks all scripts. Check the policy in force with <code>Get-ExecutionPolicy</code> (tested: the PC this guide was checked on returned RemoteSigned, set for LocalMachine, so nothing needed changing). If it says Restricted or AllSigned, run this once:</p>
+<div class="fm-code" id="c-6"><div class="fm-code-head"><span>POWERSHELL · C-06</span><button aria-label="Copy code block 6" class="copy" type="button">COPY</button></div><pre><code><span class="nb">Set-ExecutionPolicy</span> <span class="n">-Scope</span> <span class="n">CurrentUser</span> <span class="n">RemoteSigned</span></code></pre></div>
+<h3>Exit codes</h3>
+<p>Every program reports a number when it finishes. 0 means success; anything else means failure. Hooks in <a href="manual-4.html#sec-13">section 13</a> rely on this, since exit code 2 tells Claude Code to block an action.</p>
+<div class="fm-code" id="c-7"><div class="fm-code-head"><span>POWERSHELL · C-07</span><button aria-label="Copy code block 7" class="copy" type="button">COPY</button></div><pre><code><span class="n">git</span> <span class="p">-</span><span class="n">-version</span>
+<span class="nv">$LASTEXITCODE</span>
+<span class="n">git</span> <span class="n">notarealcommand</span>
+<span class="nv">$LASTEXITCODE</span></code></pre></div>
+<p class="fm-expected">Expected: <code>0</code> after the first command and <code>1</code> after the second (git also prints an error). This uses Git, installed in the previous step.</p>
+<h3>Pipes and redirection</h3>
+<p>A pipe <code>|</code> passes one command's output into the next. <code>&gt;</code> writes output to a file; <code>&gt;&gt;</code> appends.</p>
+<div class="fm-code" id="c-8"><div class="fm-code-head"><span>POWERSHELL · C-08</span><button aria-label="Copy code block 8" class="copy" type="button">COPY</button></div><pre><code><span class="nb">Get-ChildItem</span> <span class="p">~</span> <span class="p">|</span> <span class="nb">Sort-Object</span> <span class="n">LastWriteTime</span> <span class="n">-Descending</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">5</span>
+<span class="nb">Get-ChildItem</span> <span class="p">~</span> <span class="p">&gt;</span> <span class="n">listing</span><span class="p">.</span><span class="n">txt</span></code></pre></div>
+<p class="fm-expected">Expected: the five most recently changed items in your home folder, then a new <code>listing.txt</code> holding the full list.</p>
+<h3>Environment variables and PATH</h3>
+<p>Environment variables are named settings that programs read. PATH is the list of folders Windows searches when you type a program's name. The error "is not recognized as the name of a cmdlet" almost always means the program's folder is not on PATH, or the window was opened before the install finished.</p>
+<div class="fm-code" id="c-9"><div class="fm-code-head"><span>POWERSHELL · C-09</span><button aria-label="Copy code block 9" class="copy" type="button">COPY</button></div><pre><code><span class="nv">$env:PATH</span> <span class="n">-split</span> <span class="s1">';'</span>
+<span class="nv">$env:GREETING</span> <span class="p">=</span> <span class="s2">"hello"</span>
+<span class="nv">$env:GREETING</span></code></pre></div>
+<p class="fm-expected">Expected: one folder per line, then <code>hello</code>. A variable set this way lasts until you close the window. To keep one permanently:</p>
+<div class="fm-code" id="c-10"><div class="fm-code-head"><span>POWERSHELL · C-10</span><button aria-label="Copy code block 10" class="copy" type="button">COPY</button></div><pre><code><span class="no">[Environment]</span><span class="p">::</span><span class="n">SetEnvironmentVariable</span><span class="p">(</span><span class="s1">'GREETING'</span><span class="p">,</span> <span class="s1">'hello'</span><span class="p">,</span> <span class="s1">'User'</span><span class="p">)</span></code></pre></div>
+<div class="fm-ex" id="ex-3"><h3><span class="fm-tag">EX-03</span> Run Python without installing it by hand</h3>
+<div class="fm-code" id="c-11"><div class="fm-code-head"><span>POWERSHELL · C-11</span><button aria-label="Copy code block 11" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
+<span class="n">uv</span> <span class="n">python</span> <span class="n">install</span>
+<span class="nb">Set-Content</span> <span class="n">hello</span><span class="p">.</span><span class="n">py</span> <span class="s1">'print("Hello from Python")'</span>
+<span class="n">uv</span> <span class="n">run</span> <span class="n">hello</span><span class="p">.</span><span class="n">py</span></code></pre></div>
+<p class="fm-expected">Expected: uv downloads a Python version if needed, then prints <code>Hello from Python</code>.</p>
+</div><h3>Git Bash and WSL</h3>
+<ul class="list">
+<li>Git Bash comes with Git for Windows and understands Linux-style commands (<code>ls -la</code>, <code>cat</code>, <code>grep</code>). Claude Code uses it behind the scenes when present.</li>
+<li>WSL (Windows Subsystem for Linux) runs a full Linux system inside Windows. Anthropic lists it as the route for sandboxed command execution. Not needed for anything in this guide.</li>
+</ul>
+<h3>Git in a few commands</h3>
+<p>Git keeps a history of a folder, so any saved state can be brought back. <a href="manual-5.html#recipe-6">Recipe 6</a>, <code>/rewind</code> and the safety table in <a href="manual-5.html#sec-17">section 17</a> lean on it. Once per computer, tell Git who you are:</p>
+<div class="fm-code" id="c-12"><div class="fm-code-head"><span>POWERSHELL · C-12</span><button aria-label="Copy code block 12" class="copy" type="button">COPY</button></div><pre><code><span class="n">git</span> <span class="n">config</span> <span class="p">-</span><span class="n">-global</span> <span class="n">user</span><span class="p">.</span><span class="n">name</span> <span class="s2">"Your Name"</span>
+<span class="n">git</span> <span class="n">config</span> <span class="p">-</span><span class="n">-global</span> <span class="n">user</span><span class="p">.</span><span class="n">email</span> <span class="s2">"you@example.com"</span></code></pre></div>
+<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git init</code></td>
+<td>Start tracking the current folder (once per project)</td>
+</tr>
+<tr>
+<td><code>git status</code></td>
+<td>Show what changed since the last snapshot</td>
+</tr>
+<tr>
+<td><code>git add .</code></td>
+<td>Stage every change for the next snapshot</td>
+</tr>
+<tr>
+<td><code>git commit -m "&lt;message&gt;"</code></td>
+<td>Save a snapshot (a commit) with a description</td>
+</tr>
+<tr>
+<td><code>git log --oneline</code></td>
+<td>List snapshots, newest first</td>
+</tr>
+<tr>
+<td><code>git diff</code></td>
+<td>Show unsaved changes line by line</td>
+</tr>
+<tr>
+<td><code>git restore &lt;file&gt;</code></td>
+<td>Throw away unsaved changes to one file</td>
+</tr>
+</tbody>
+</table></div>
+<p>Try it in a throwaway folder:</p>
+<div class="fm-code" id="c-13"><div class="fm-code-head"><span>POWERSHELL · C-13</span><button aria-label="Copy code block 13" class="copy" type="button">COPY</button></div><pre><code><span class="n">mkdir</span> <span class="p">~\</span><span class="n">claude-practice</span><span class="p">\</span><span class="n">git-test</span>
+<span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span><span class="p">\</span><span class="n">git-test</span>
+<span class="nb">Set-Content</span> <span class="n">notes</span><span class="p">.</span><span class="n">txt</span> <span class="s2">"version one"</span>
+<span class="n">git</span> <span class="n">init</span>
+<span class="n">git</span> <span class="n">add</span> <span class="p">.</span>
+<span class="n">git</span> <span class="n">commit</span> <span class="n">-m</span> <span class="s2">"First snapshot"</span>
+<span class="nb">Set-Content</span> <span class="n">notes</span><span class="p">.</span><span class="n">txt</span> <span class="s2">"version two"</span>
+<span class="n">git</span> <span class="nb">diff</span>
+<span class="n">git</span> <span class="n">restore</span> <span class="n">notes</span><span class="p">.</span><span class="n">txt</span>
+<span class="nb">Get-Content</span> <span class="n">notes</span><span class="p">.</span><span class="n">txt</span></code></pre></div>
+<p class="fm-expected">Expected: an "Initialized empty Git repository" line, a one-file commit summary, a diff showing <code>-version one</code> and <code>+version two</code>, and finally <code>version one</code>, because <code>git restore</code> brought back the committed text.</p>
+
+  </section>
+  <section class="panel" id="sec-5" data-ref="FM-0500 &#183; REV B" data-sector="JSON">
+    <p class="sub">SECTION 05</p>
+    <h2>JSON basics</h2>
+<p>JSON is the text format behind almost every config file in this guide: <code>settings.json</code>, <code>.mcp.json</code>, <code>plugin.json</code>, the data a hook receives, and the messages MCP servers exchange. Six rules cover it.</p>
+<ol class="list">
+<li>An object sits in curly braces and holds <code>"key": value</code> pairs separated by commas.</li>
+<li>A list (array) sits in square brackets: <code>["PSY", "COM"]</code>.</li>
+<li>Keys and text values use double quotes. Single quotes are invalid.</li>
+<li>A value is text, a number, <code>true</code>, <code>false</code>, <code>null</code>, an object or a list.</li>
+<li>No comma after the last item, and no comments. Claude Code's hooks troubleshooting page lists both as reasons a settings file silently fails to load.</li>
+<li>Backslashes in Windows paths are doubled: <code>"C:\\Program Files\\Git\\bin\\bash.exe"</code>.</li>
+</ol>
+<p>A real example, the shape Anthropic's setup page uses to point Claude Code at Git Bash:</p>
+<div class="fm-code" id="c-14"><div class="fm-code-head"><span>JSON · C-14</span><button aria-label="Copy code block 14" class="copy" type="button">COPY</button></div><pre><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"env"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"CLAUDE_CODE_GIT_BASH_PATH"</span><span class="p">:</span><span class="w"> </span><span class="s2">"C:\\Program Files\\Git\\bin\\bash.exe"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"GREETING"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hello"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+<p>The outer object has one key, <code>env</code>, whose value is another object holding two <code>"key": "text"</code> pairs separated by a comma. The <code>GREETING</code> line is only there to show the comma rule; leave it out of a real settings file.</p>
+<div class="fm-ex" id="ex-4"><h3><span class="fm-tag">EX-04</span> Read JSON with jq</h3>
+<div class="fm-code" id="c-15"><div class="fm-code-head"><span>POWERSHELL · C-15</span><button aria-label="Copy code block 15" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
+<span class="nb">Set-Content</span> <span class="n">good</span><span class="p">.</span><span class="n">json</span> <span class="s1">'{"name": "test", "courses": ["PSY", "COM"], "junior": true}'</span>
+<span class="n">jq</span> <span class="p">.</span> <span class="n">good</span><span class="p">.</span><span class="n">json</span>
+<span class="n">jq</span> <span class="s1">'.name'</span> <span class="n">good</span><span class="p">.</span><span class="n">json</span>
+<span class="n">jq</span> <span class="n">-r</span> <span class="s1">'.courses[]'</span> <span class="n">good</span><span class="p">.</span><span class="n">json</span>
+<span class="n">jq</span> <span class="s1">'.courses | length'</span> <span class="n">good</span><span class="p">.</span><span class="n">json</span></code></pre></div>
+<p class="fm-expected">Expected, in order: the object printed with indentation; <code>"test"</code>; <code>PSY</code> and <code>COM</code> on separate lines (<code>-r</code> removes the quotes); <code>2</code>.</p>
+<p>The outer single quotes matter in PowerShell. They pass the text through unchanged, double quotes included.</p>
+</div><div class="fm-ex" id="ex-5"><h3><span class="fm-tag">EX-05</span> Break it on purpose</h3>
+<div class="fm-code" id="c-16"><div class="fm-code-head"><span>POWERSHELL · C-16</span><button aria-label="Copy code block 16" class="copy" type="button">COPY</button></div><pre><code><span class="nb">Set-Content</span> <span class="n">bad1</span><span class="p">.</span><span class="n">json</span> <span class="s1">'{"name": "test",}'</span>
+<span class="nb">Set-Content</span> <span class="n">bad2</span><span class="p">.</span><span class="n">json</span> <span class="s1">'{name: "test"}'</span>
+<span class="n">jq</span> <span class="p">.</span> <span class="n">bad1</span><span class="p">.</span><span class="n">json</span>
+<span class="n">jq</span> <span class="p">.</span> <span class="n">bad2</span><span class="p">.</span><span class="n">json</span></code></pre></div>
+<p class="fm-expected">Expected: both print a <code>jq: error</code> parse message. The first has a trailing comma; the second has an unquoted key. When a config file "does nothing", running <code>jq . &lt;file&gt;</code> is the fastest check.</p>
+</div><div class="fm-ex" id="ex-6"><h3><span class="fm-tag">EX-06</span> Parse the kind of JSON a hook receives</h3>
+<p>Claude Code sends hooks a JSON object on standard input. This sample has the same shape as the one in Anthropic's hooks guide:</p>
+<div class="fm-code" id="c-17"><div class="fm-code-head"><span>POWERSHELL · C-17</span><button aria-label="Copy code block 17" class="copy" type="button">COPY</button></div><pre><code><span class="s1">'{"tool_name":"Bash","tool_input":{"command":"npm test"}}'</span> <span class="p">|</span> <span class="n">jq</span> <span class="n">-r</span> <span class="s1">'.tool_input.command'</span></code></pre></div>
+<p class="fm-expected">Expected: <code>npm test</code>. <a href="manual-4.html#sec-13">Section 13</a> uses exactly this pattern.</p>
+</div><h3>JSON messages as a control channel</h3>
+<p>The "JSON control channel" from the product blurb that started this conversation is a general pattern: a program accepts commands written as JSON objects and answers in JSON. MCP works this way. It uses JSON-RPC 2.0 messages, so a client asking a server to list its tools sends an object shaped like this (illustrative):</p>
+<div class="fm-code" id="c-18"><div class="fm-code-head"><span>JSON · C-18</span><button aria-label="Copy code block 18" class="copy" type="button">COPY</button></div><pre><code><span class="p">{</span><span class="nt">"jsonrpc"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2.0"</span><span class="p">,</span><span class="w"> </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tools/list"</span><span class="p">}</span></code></pre></div>
+<p>You never type these by hand in normal use. The MCP Inspector in <a href="manual-4.html#sec-11">section 11</a> shows them going back and forth, and the end of <a href="manual-4.html#sec-15">section 15</a> gives a routine for getting to know any app that offers a CLI, a JSON channel or an MCP server.</p>
+<h3>YAML, briefly</h3>
+<p>Skill and subagent files start with YAML frontmatter instead of JSON. YAML uses <code>key: value</code> lines, no braces, and indentation for nesting:</p>
+<div class="fm-code" id="c-19"><div class="fm-code-head"><span>YAML · C-19</span><button aria-label="Copy code block 19" class="copy" type="button">COPY</button></div><pre><code><span class="nn">---</span>
+<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quiz-helper</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Answers practice quiz questions from assigned chapters</span>
+<span class="nn">---</span></code></pre></div>
+<p>The <code>---</code> lines mark where the frontmatter starts and ends. Claude Code's skills page notes that the opening <code>---</code> has to be the file's first line.</p>
+
+  </section>
+
+  <nav class="fm-pager" aria-label="Manual pages"><a href="manual-1.html">&#9666; Part 1: Concepts</a><a href="manual-3.html">Part 3: claude.ai &#9656;</a></nav>
+</main>
+
+<p class="sr-only" aria-live="polite" id="fm-live"></p>
+<script src="js/bunnys.js" defer></script>
+<script src="js/pagehud.js" defer></script>
+<script src="js/manual.js" defer></script>
+</body>
+</html>

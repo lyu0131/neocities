@@ -382,3 +382,19 @@ drift against anything, so it keeps its `steps(1, end)` square wave.
   label back toward the sphere, so they stand `STANDOFF` px forward of the surface (capped
   at `R * 0.22`) with a compensating `scale()`; drop the standoff and the panorama paints
   over the label.
+
+## Field manual (manual*.html, added 2026-10-07)
+Seven reading pages generated from `docs/field-manual.md` (the Windows guide to Claude's agents, MCP, skills, hooks and
+plugins) by `python tools/gen_manual.py docs/field-manual.md .` (needs `markdown-it-py`, `pygments` and `beautifulsoup4`).
+Edit the Markdown and regenerate; never hand-edit the pages.
+- `body.page.manual`, `--brg: 52` (they hang off HANGAR; `hangar.html`'s last panel links `manual.html`). One `.panel` per
+  guide section, so pagehud.js builds the ladder as usual. They are not cockpit contacts: pagehud.js reads any page named
+  `manual*` as its own unit (`MAN`, FIELD MANUAL, bearing 052) and shows all three contact pages on the scope as links.
+  link.js leaves them alone (not in `OWN`), so clicks between manual pages are plain navigation.
+- `css/manual.css`: code blocks (`.fm-code`, recessed glass, never wrapped so a copy pastes exactly, token colours from
+  the palette), tables that scroll in their own box, exercises (`.fm-ex`), cautions (amber outline, no stripes), best
+  practice (`.fm-best`), Expected (`.fm-expected`), Unverified and Tested tags. The content pages' hover magnify is off here.
+- `js/manual.js`: the COPY buttons (clipboard API, textarea fallback, `#fm-live` announcement). No globals.
+- Code blocks carry ids `c-1`..`c-N` in guide order; the PDF edition links to them as `manual-N.html#c-K`.
+- `tests/manual.test.js` (in `run.js`): overflow at 375/768/1366/1920, one h1, a rung per panel, COPY copies the exact
+  text, every in-manual link and fragment resolves, hangar links the manual, no JS errors.
