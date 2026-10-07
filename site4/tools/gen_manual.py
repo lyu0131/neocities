@@ -276,7 +276,7 @@ def page(p, panels_html, prev_p, next_p, total_ex):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
 <script src="js/link.js"></script>
-<title>{html.escape(p["title"])}, Field manual, Sylas Lyu</title>
+<title>{html.escape(p["title"]) + ", " if p["title"] != "Field manual" else ""}Field manual, Sylas Lyu</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
