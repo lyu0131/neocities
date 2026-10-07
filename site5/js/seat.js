@@ -262,7 +262,7 @@
     '  vec3 zen = vec3(.020, .036, .068), hor = vec3(.105, .175, .228), sea = vec3(.20, .27, .34);',
     '  vec3 c = w.y > 0. ? mix(hor, zen, sqrt(w.y)) : mix(hor, sea, sqrt(-w.y));',
     '  c *= 1. + .6 * pow(max(dot(normalize(vec3(w.x, -abs(w.y), w.z)), normalize(vec3(MOON.x, -MOON.y, MOON.z))), 0.), 3.);',
-    '  return mix(vec3(dot(c, vec3(.3, .59, .11))), c, .6);',   // the seat takes the picture's light a little greyer than it looks
+    '  return pow(mix(vec3(dot(c, vec3(.3, .59, .11))), c, .6), vec3(2.2));',   // as light (linear), a little greyer than it looks
     '}',
     'vec3 irradiance(vec3 w) { return screen(w) * .8 + .1 * (screen(vec3(0., 1., 0.)) + screen(vec3(0., -1., 0.))); }',
     'void main() {',
@@ -300,8 +300,9 @@
     // the moon: a GGX highlight
     '  vec3 hv = normalize(MOON + vw); float NoH = max(dot(w, hv), 0.), NoL = max(dot(w, MOON), 0.), a2 = pow(rough, 4.);',
     '  float Dg = a2 / (3.14159 * pow(NoH * NoH * (a2 - 1.) + 1., 2.));',
-    '  vec3 moon = ((1. - F) * (1. - metal) * alb * .3 + F * Dg * .02) * NoL * vec3(.55, .6, .7);',
-    '  vec3 c = (diff * 5. + F * env * 5. + moon) * vO + vec3(.7, .8, 1.) * uFlash * 1.6 * alb + vE;',
+    '  vec3 moon = ((1. - F) * (1. - metal) * alb * .02 + F * Dg * .002) * NoL * vec3(.55, .6, .7);',   // a small, far moon
+    // no boost: a surface lit by the screen all round can only send back a share of the screen's own light
+    '  vec3 c = (diff + F * env + moon) * vO + vec3(.7, .8, 1.) * uFlash * 1.6 * alb + vE;',
     '  o = vec4(pow(c, vec3(1. / 2.2)), 1.);',
     '}'].join('\n');
   function shader(type, src) {
