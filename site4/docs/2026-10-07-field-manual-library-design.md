@@ -93,6 +93,34 @@ humanizer. A short "Adding a field manual" section in the repo's CLAUDE.md state
 - COPY copies exact text (one block per manual).
 The full suite (`node tests/run.js`) passes, and pages are checked by screenshot at 375, 1920 and 2560.
 
+## Motion (GSAP)
+The owner wants the manuals to feel more alive without the page layout changing. One library, vendored:
+`js/vendor/` holds GSAP 3.13.0 core, ScrollTrigger, ScrambleTextPlugin, DrawSVGPlugin and SplitText (140 KB,
+56 KB gzipped; checked byte-identical on jsDelivr and unpkg; GSAP standard licence, free since 2025). Only the
+library and manual pages load them, `defer`, before one new file `js/manual-fx.js`; the cockpit and portfolio
+pages don't change.
+
+Effects, each played once, none looping while someone reads:
+- Library: each volume panel boots in as it enters the view: its corner frame draws (DrawSVG on an SVG
+  outline the generator adds), then its title decodes (ScrambleText, HUD glyph set), then the stats fade up.
+  Hover runs one scanline sweep across the panel (CSS, no GSAP). Opening a volume uses the existing shutter
+  handover.
+- The h1 on the library and each manual index splits into characters (SplitText) and decodes left to right.
+- Inside a manual: each section's h2 decodes once when it scrolls into view (ScrollTrigger, `once: true`).
+  The agent-loop diagram draws its lines in. COPY confirms with a short TRANSMITTED pulse on the button.
+
+Rules:
+- Content is visible without JS: manual-fx.js adds `html.fx` before hiding anything, and only hides what it
+  is about to animate in the same frame. If GSAP fails to load, nothing stays hidden.
+- `prefers-reduced-motion: reduce`: manual-fx.js does nothing (gsap.matchMedia), and the CSS sweep is off.
+- Screen readers read the real text: ScrambleText runs on a visual copy or restores the text node, and
+  SplitText's `aria` option keeps the heading's accessible name whole.
+- Cost: no animation on scroll other than one-shot triggers; ScrollTrigger instances are killed after
+  firing. The page must still score no JS errors and no sideways scroll in every test size, and the
+  big-screen `zoom` must not offset trigger points (checked at 2560).
+- Tests: a run with reduced motion shows every heading's full text immediately; a normal run, after
+  scrolling to the end, leaves every heading's text identical to its source.
+
 ## Out of scope
 Search, tags and categories on the library (worth it at about ten manuals); per-manual PDFs; cross-links between
 manuals.
