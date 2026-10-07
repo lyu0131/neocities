@@ -20,18 +20,23 @@
   var gl = canvas && canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true, depth: true });
   if (!gl) return;
 
-  // ---- materials: albedo, specular, emission ----
+  // ---- materials: albedo, roughness, metalness, emission, and a surface kind for the shader's fine detail:
+  //   0 smooth (glossy plastic), 1 rubber (a fine stipple), 2 machined metal (brushed streaks), 3 woven fabric,
+  //   4 painted metal (orange peel, worn to bare metal on the corners), 5 bead-blasted polymer ----
   var MAT = {
-    shell: { a: [0.17, 0.165, 0.16], s: 0.35 },         // the painted composite of the shell and consoles, a warm gunmetal
-    pad: { a: [0.075, 0.074, 0.074], s: 0.05 },         // padding
-    dark: { a: [0.06, 0.062, 0.066], s: 0.30 },         // mechanism
-    metal: { a: [0.36, 0.37, 0.39], s: 0.8 },           // joints, collars, bolts
-    hose: { a: [0.19, 0.17, 0.15], s: 0.15 },           // rubber hoses, a little warm, as in #31
-    grip: { a: [0.13, 0.13, 0.14], s: 0.25 },
-    yellow: { a: [0.80, 0.60, 0.12], s: 0.30 },         // the suit's colours, on the grips
-    teal: { a: [0.12, 0.52, 0.58], s: 0.30 },
-    lamp: { a: [0.2, 0.02, 0.04], s: 0.2, e: [1.6, 0.16, 0.24] },   // the red lamps
-    trim: { a: [0.2, 0.05, 0.1], s: 0.2, e: [0.85, 0.22, 0.45] }    // the pink trim along the consoles
+    shell: { a: [0.17, 0.165, 0.16], r: 0.55, m: 0, k: 4 },          // the painted shell and consoles, a warm gunmetal
+    pad: { a: [0.075, 0.074, 0.074], r: 0.95, m: 0, k: 3 },          // padding
+    dark: { a: [0.07, 0.072, 0.078], r: 0.42, m: 0.7, k: 2 },        // dark anodised mechanism
+    metal: { a: [0.56, 0.57, 0.58], r: 0.3, m: 1, k: 2 },            // steel joints, collars, bolts
+    hose: { a: [0.19, 0.17, 0.15], r: 0.72, m: 0, k: 1 },            // rubber hoses, a little warm, as in #31
+    grip: { a: [0.045, 0.045, 0.05], r: 0.85, m: 0, k: 1 },          // the grip's rubber handle
+    boot: { a: [0.035, 0.035, 0.038], r: 0.6, m: 0, k: 1 },          // its bellows boot, a shinier rubber
+    cap: { a: [0.12, 0.12, 0.125], r: 0.5, m: 0, k: 5 },             // the head cap, bead-blasted polymer
+    button: { a: [0.025, 0.025, 0.028], r: 0.22, m: 0, k: 0 },       // glossy thumb buttons
+    yellow: { a: [0.80, 0.60, 0.12], r: 0.3, m: 0, k: 0 },           // the suit's colours, on the grips
+    teal: { a: [0.12, 0.52, 0.58], r: 0.3, m: 0, k: 0 },
+    lamp: { a: [0.2, 0.02, 0.04], r: 0.3, m: 0, k: 0, e: [1.6, 0.16, 0.24] },   // the red lamps
+    trim: { a: [0.2, 0.05, 0.1], r: 0.3, m: 0, k: 0, e: [0.85, 0.22, 0.45] }    // the pink trim along the consoles
   };
 
   // ---- geometry: triangles of {p, n, m, id}, the parts as ray occluders, sample points per group ----
@@ -55,7 +60,8 @@
     var ax = [0, 1, 2].map(function (k) { var a = h[k] - r; return [-h[k], -a - r * 0.66, -a - r * 0.33, -a, a, a + r * 0.33, a + r * 0.66, h[k]]; });
     var at = function (q) {
       var inner = q.map(function (v, k) { return m.clamp(v, -(h[k] - r), h[k] - r); }), n = m.norm(sub(q, inner));
-      return { p: add(c, R([inner[0] + n[0] * r, inner[1] + n[1] * r, inner[2] + n[2] * r])), n: R(n), m: mat, id: id };
+      var edge = q.filter(function (v, k) { return Math.abs(v) > h[k] - r + 1e-9; }).length > 1 ? 1 : 0;   // on a rounded edge
+      return { p: add(c, R([inner[0] + n[0] * r, inner[1] + n[1] * r, inner[2] + n[2] * r])), n: R(n), m: mat, id: id, edge: edge };
     };
     for (var f = 0; f < 3; f++) for (var sg = -1; sg <= 1; sg += 2) {
       var u = (f + 1) % 3, v = (f + 2) % 3, U = ax[u], W = ax[v], grid = [];   // each grid vertex made once, shared by its quads
@@ -136,11 +142,11 @@
     // the grip: a hinge housing, a forward-leaning stick in a ribbed boot, a head cap with thumb buttons, a trigger
     rbox([X, -0.405, 0.405], [0.022, 0.012, 0.022], 0.006, MAT.dark, 'grip');
     rbox([X + sd * 0.02, -0.405, 0.385], [0.004, 0.006, 0.012], 0.002, G, 'grip');
-    tube([[X, -0.4, 0.4], [X, -0.33, 0.415]], 0.017, MAT.grip, 'grip', 14);
-    for (var k = 0; k < 6; k++) { var y = -0.392 + k * 0.009, z = 0.4 + (y + 0.4) * 0.2143; tube([[X, y, z], [X, y + 0.003, z + 0.0006]], 0.0186, MAT.dark, 'grip', 14); }
-    rbox([X, -0.317, 0.418], [0.026, 0.014, 0.03], 0.012, MAT.shell, 'grip', rotX(-10));
-    [[-0.01, 0.41], [0.01, 0.41], [0, 0.428]].forEach(function (b, i) { tube([[X + b[0], -0.304, b[1]], [X + b[0], -0.3, b[1]]], 0.0062, i === 2 ? G : MAT.dark, 'grip', 10); });
-    rbox([X, -0.35, 0.435], [0.006, 0.013, 0.007], 0.003, MAT.dark, 'grip');
+    tube([[X, -0.4, 0.4], [X, -0.33, 0.415]], 0.017, MAT.grip, 'grip', 18);
+    for (var k = 0; k < 6; k++) { var y = -0.392 + k * 0.009, z = 0.4 + (y + 0.4) * 0.2143; tube([[X, y, z], [X, y + 0.003, z + 0.0006]], 0.0186, MAT.boot, 'grip', 18); }
+    rbox([X, -0.317, 0.418], [0.026, 0.014, 0.03], 0.012, MAT.cap, 'grip', rotX(-10));
+    [[-0.01, 0.41], [0.01, 0.41], [0, 0.428]].forEach(function (b, i) { tube([[X + b[0], -0.304, b[1]], [X + b[0], -0.3, b[1]]], 0.0062, i === 2 ? G : MAT.button, 'grip', 14); });
+    rbox([X, -0.35, 0.435], [0.006, 0.013, 0.007], 0.003, MAT.button, 'grip');
   });
 
   // what the seat hangs on: a pedestal, the legs' cross members, hoses, and the boom arm to the ball wall
@@ -208,16 +214,16 @@
     });
     return (v.ao = 1 - 0.9 * occ / DIRS.length);
   }
-  var STRIDE = 14, V = new Float32Array(TRI.length * STRIDE);
+  var STRIDE = 17, V = new Float32Array(TRI.length * STRIDE);
   TRI.forEach(function (v, i) {
     var e = v.m.e || [0, 0, 0], o = i * STRIDE;
-    V.set([v.p[0], v.p[1], v.p[2], v.n[0], v.n[1], v.n[2], v.m.a[0], v.m.a[1], v.m.a[2], e[0], e[1], e[2], v.m.s, 1], o);
+    V.set([v.p[0], v.p[1], v.p[2], v.n[0], v.n[1], v.n[2], v.m.a[0], v.m.a[1], v.m.a[2], e[0], e[1], e[2], v.m.r, v.m.m, v.m.k, v.edge || 0, 1], o);
   });
   // The occlusion is worked out after load, a slice at a time while the browser is idle, then uploaded: the seat
   // sits under the view at rest, so it's in long before anyone looks down.
   function occlude(from) {
     var t0 = Date.now(), i = from;
-    for (; i < TRI.length && Date.now() - t0 < 12; i++) V[i * STRIDE + 13] = ao(TRI[i]);
+    for (; i < TRI.length && Date.now() - t0 < 12; i++) V[i * STRIDE + 16] = ao(TRI[i]);
     if (i < TRI.length) return later(function () { occlude(i); });
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, V, gl.STATIC_DRAW);
     S.parts.seatAO = true;
@@ -226,19 +232,22 @@
 
   // ---- GL ----
   var VS = ['#version 300 es',
-    'in vec3 aP, aN, aA, aE; in float aS, aO;',
+    'in vec3 aP, aN, aA, aE; in float aR, aM, aK, aG, aO;',
     'uniform mat3 uView; uniform vec2 uTan; uniform float uKX, uLift;',
-    'out vec3 vN, vA, vE, vP, vW; out float vS, vO;',
+    'out vec3 vN, vA, vE, vP, vW; out float vR, vM, vK, vG, vO;',
     'void main() {',
     '  vec3 p = vec3(aP.x * uKX, aP.y + uLift, aP.z), e = uView * p;',
-    '  vP = p; vW = aP; vN = normalize(vec3(aN.x / uKX, aN.y, aN.z)); vA = aA; vE = aE; vS = aS; vO = aO;',
+    '  vP = p; vW = aP; vN = normalize(vec3(aN.x / uKX, aN.y, aN.z)); vA = aA; vE = aE; vR = aR; vM = aM; vK = aK; vG = aG; vO = aO;',
     '  float n = .01, f = 4.;',
     '  gl_Position = vec4(e.x / uTan.x, e.y / uTan.y, e.z * (f + n) / (f - n) - 2. * f * n / (f - n), e.z);',
     '}'].join('\n');
-  // The light is the panoramic monitor: what it shows in each world direction (the sky above, the cloud sea below,
-  // brightest where the moon lights it), read through the suit's attitude; plus the moon, the flash, a reflection.
+  // Physically based: the light is the panoramic monitor -- what it shows in each world direction (the sky above,
+  // the cloud sea below, brightest where the moon lights it), read through the suit's attitude -- plus the moon and
+  // the flash. Diffuse takes the screen's light round the normal; the reflection takes it round the mirror direction,
+  // blurred toward the diffuse as the surface roughens; Fresnel (Schlick, roughness-aware) splits the two, and
+  // metals tint their reflection. Each surface kind adds its own fine relief (normal and roughness), in seat space.
   var FS = ['#version 300 es', 'precision highp float;',
-    'in vec3 vN, vA, vE, vP, vW; in float vS, vO;',
+    'in vec3 vN, vA, vE, vP, vW; in float vR, vM, vK, vG, vO;',
     'uniform mat3 uSuit; uniform float uFlash;',
     'out vec4 o;',
     'const vec3 MOON = normalize(vec3(-.45, .30, .84));',
@@ -246,24 +255,53 @@
     'float n3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);',
     '  return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),',
     '             mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z); }',
+    'vec3 grad(vec3 p) { return vec3(n3(p + vec3(31., 0, 0)), n3(p + vec3(0, 47., 0)), n3(p + vec3(0, 0, 59.))) - .5; }',   // a cheap bump direction
+    // how much of a pattern at frequency f survives at this pixel's size: fine relief fades out rather than sparkling
+    'float keep(vec3 p, float f) { return clamp(1.5 - length(fwidth(p * f)) * 1.5, 0., 1.); }',
     'vec3 screen(vec3 w) {',
     '  vec3 zen = vec3(.020, .036, .068), hor = vec3(.105, .175, .228), sea = vec3(.20, .27, .34);',
     '  vec3 c = w.y > 0. ? mix(hor, zen, sqrt(w.y)) : mix(hor, sea, sqrt(-w.y));',
     '  c *= 1. + .6 * pow(max(dot(normalize(vec3(w.x, -abs(w.y), w.z)), normalize(vec3(MOON.x, -MOON.y, MOON.z))), 0.), 3.);',
     '  return mix(vec3(dot(c, vec3(.3, .59, .11))), c, .6);',   // the seat takes the picture's light a little greyer than it looks
     '}',
+    'vec3 irradiance(vec3 w) { return screen(w) * .8 + .1 * (screen(vec3(0., 1., 0.)) + screen(vec3(0., -1., 0.))); }',
     'void main() {',
-    '  vec3 n = normalize(vN), v = normalize(-vP);',
+    '  vec3 n = normalize(vN), v = normalize(-vP), P = vW;',
     '  if (dot(n, v) < 0.) n = -n;',
-    '  vec3 w = uSuit * n;',
-    '  vec3 irr = screen(w) * .8 + .1 * (screen(vec3(0., 1., 0.)) + screen(vec3(0., -1., 0.)));',
-    '  float moon = max(dot(w, MOON), 0.);',
-    '  vec3 light = (irr * 5. + vec3(.5, .55, .62) * moon * .25) * vO + vec3(.7, .8, 1.) * uFlash * 1.6;',
-    '  vec3 r = uSuit * reflect(-v, n);',
-    '  float fr = .04 + .96 * pow(1. - max(dot(n, v), 0.), 5.);',
-    '  vec3 spec = (screen(r) * 1.6 * (.15 + .85 * fr) + vec3(.8, .85, 1.) * pow(max(dot(r, MOON), 0.), 60.) * .5) * vS * vO;',
-    '  float grain = .9 + .14 * n3(vW * 140.) + .06 * n3(vW * 31.);',   // wear in the paint and the fabric
-    '  vec3 c = vA * grain * light + spec + vE;',
+    '  vec3 alb = vA; float rough = vR, metal = vM, k = vK + .5;',
+    '  if (k < 1.) {',                                             // glossy plastic: a faint ripple from the mould
+    '    rough += .04 * (n3(P * 600.) - .5);',
+    '  } else if (k < 2.) {',                                      // rubber: a fine stipple, matte with tiny glints
+    '    float st = n3(P * 700.), kp = keep(P, 700.);',
+    '    n = normalize(n + .45 * kp * grad(P * 700.));', '    st = mix(.5, st, kp);',
+    '    rough = clamp(rough + .15 * (st - .5), .3, 1.); alb *= .85 + .3 * st;',
+    '  } else if (k < 3.) {',                                      // machined metal: brushed streaks, a little scuffing
+    '    float kp = keep(P, 900.), br = mix(.5, n3(vec3(P.x * 900., P.y * 900., P.z * 40.)), kp) * .6 + n3(P * 200.) * .4;',
+    '    n = normalize(n + .1 * kp * grad(vec3(P.x * 900., P.y * 900., P.z * 40.)));',
+    '    rough = clamp(rough * (.7 + .6 * br), .08, 1.); alb *= .9 + .2 * br;',
+    '  } else if (k < 4.) {',                                      // woven fabric: a cross weave, very rough
+    '    float kp = keep(P, 700.), wv = mix(.6, abs(sin(P.x * 700.) * sin(P.z * 700. + P.y * 700.)), kp);',
+    '    n = normalize(n + .2 * kp * grad(P * 600.)); alb *= .78 + .4 * wv; rough = .97;',
+    '  } else if (k < 5.) {',                                      // painted metal: orange peel; worn to bare metal on the corners
+    '    n = normalize(n + .06 * grad(P * 260.));',
+    '    float wear = smoothstep(.75, 1., vG) * smoothstep(.62, .85, n3(P * 160.) * .75 + n3(P * 500.) * .25 * keep(P, 500.)) * .8;',
+    '    alb = mix(alb * (.92 + .16 * n3(P * 60.)), vec3(.30, .30, .31), wear); metal = mix(metal, 1., wear); rough = mix(rough, .4, wear);',
+    '    rough += .08 * (n3(P * 40.) - .5);',                      // handling marks
+    '  } else {',                                                  // bead-blasted polymer: an even fine tooth
+    '    float kp = keep(P, 900.); n = normalize(n + .16 * kp * grad(P * 900.)); rough = clamp(rough + .1 * kp * (n3(P * 900.) - .5), .3, 1.);',
+    '  }',
+    '  rough = clamp(rough, .05, 1.);',
+    '  vec3 w = uSuit * n, vw = uSuit * v, rw = reflect(-vw, w);',
+    '  float NoV = max(dot(w, vw), 1e-3);',
+    '  vec3 F0 = mix(vec3(.04), alb, metal);',
+    '  vec3 F = F0 + (max(vec3(1. - rough), F0) - F0) * pow(1. - NoV, 5.);',
+    '  vec3 env = mix(screen(rw), irradiance(rw), rough * rough);',          // a rough surface blurs what it reflects
+    '  vec3 diff = (1. - F) * (1. - metal) * alb * irradiance(w);',
+    // the moon: a GGX highlight
+    '  vec3 hv = normalize(MOON + vw); float NoH = max(dot(w, hv), 0.), NoL = max(dot(w, MOON), 0.), a2 = pow(rough, 4.);',
+    '  float Dg = a2 / (3.14159 * pow(NoH * NoH * (a2 - 1.) + 1., 2.));',
+    '  vec3 moon = ((1. - F) * (1. - metal) * alb * .3 + F * Dg * .02) * NoL * vec3(.55, .6, .7);',
+    '  vec3 c = (diff * 5. + F * env * 5. + moon) * vO + vec3(.7, .8, 1.) * uFlash * 1.6 * alb + vE;',
     '  o = vec4(pow(c, vec3(1. / 2.2)), 1.);',
     '}'].join('\n');
   function shader(type, src) {
@@ -278,7 +316,7 @@
   var vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, V, gl.STATIC_DRAW);
   later(function () { occlude(0); });
   var COUNT = TRI.length;
-  [['aP', 3, 0], ['aN', 3, 3], ['aA', 3, 6], ['aE', 3, 9], ['aS', 1, 12], ['aO', 1, 13]].forEach(function (a) {
+  [['aP', 3, 0], ['aN', 3, 3], ['aA', 3, 6], ['aE', 3, 9], ['aR', 1, 12], ['aM', 1, 13], ['aK', 1, 14], ['aG', 1, 15], ['aO', 1, 16]].forEach(function (a) {
     var loc = gl.getAttribLocation(prog, a[0]); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, a[1], gl.FLOAT, false, STRIDE * 4, a[2] * 4);
   });
   var U = {}; ['uView', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });

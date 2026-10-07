@@ -129,7 +129,10 @@ wings), the armrest consoles (arm pad, inlaid panels, pink trim, vented head wit
 strip), the grips (ribbed boot, head cap, thumb buttons, trigger) and what the seat hangs on (pedestal, cross
 members, hoses, the boom arm). Rounded boxes and tubes in the seat frame. Lit by the panoramic monitor itself (sky
 above, moonlit cloud sea below, in world directions through the suit's attitude, so the light moves as it banks),
-plus the near-miss flash; contact shading (ambient occlusion, the unseen pilot's helmet and torso included) is
+plus the near-miss flash. Physically based materials (roughness, metalness, roughness-aware Fresnel; a rough
+surface blurs what it reflects), each with its own fine relief: stippled rubber on the grip and its boot, bead-blasted
+cap, glossy buttons, brushed machined metal, woven pads, painted metal with orange peel and wear on its sharpest
+corners; relief finer than a pixel fades out instead of sparkling. Contact shading (ambient occlusion, the unseen pilot's helmet and torso included) is
 worked out after load in idle slices. Only the head turning moves it. The back behind the head is left open (the
 pilot's body would hide it) and there are no tablets (no panels). Narrow screens draw the consoles closer (`KX`).
 
