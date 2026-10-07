@@ -14,10 +14,10 @@
     // number keys and the shutter labels read. index.html's .target data-yaw/data-label must match
     // (tests/hub.test.js holds them together).
     contacts: [
-      { id: 't-pilot', page: 'pilot', code: 'STU', label: 'STUDIO', yaw: -52, rng: '0.4 KM' },
-      { id: 't-missions', page: 'missions', code: 'SVC', label: 'SERVICES', yaw: 0, rng: '1.2 KM' },
-      { id: 't-hangar', page: 'hangar', code: 'TLS', label: 'TOOLS', yaw: 52, rng: '0.1 KM' },
-      { id: 't-unknown', page: null, code: 'CON', label: 'CONTACT', yaw: 180 }
+      { id: 't-pilot', page: 'pilot', code: 'PIL', label: 'PILOT', yaw: -52, rng: '0.4 KM' },
+      { id: 't-missions', page: 'missions', code: 'MIS', label: 'MISSIONS', yaw: 0, rng: '1.2 KM' },
+      { id: 't-hangar', page: 'hangar', code: 'HGR', label: 'HANGAR', yaw: 52, rng: '0.1 KM' },
+      { id: 't-unknown', page: null, code: 'UNK', label: 'UNKNOWN', yaw: 180 }
     ],
     // Whether a keydown is the page's to handle: no modifier, nobody handled it, not typing.
     keyable: function (e) {

@@ -227,5 +227,3 @@
   .unknown.is-tearing .uk-codec { animation: none; }
   .uk-drawer, .uk-intro, .uk-bar i, .uk-port { transition: none; }
 }
-.uk-addr a { color: var(--ice); text-decoration: none; overflow-wrap: anywhere; text-align: right; }
-.uk-addr a:hover, .uk-addr a:focus-visible { color: #fff; text-decoration: underline; }

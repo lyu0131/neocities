@@ -1,14 +1,10 @@
 # site4 BUNNYS: agent contract
 
-**Since 2026-10-07 this is Woundwort's company site.** The words follow
-`docs/2026-10-07-woundwort-company-site.md` (contacts STUDIO, SERVICES, TOOLS, CONTACT; `HX_DATA` is the contact card;
-the codec carries Woundwort's channels); the look and mechanics below are unchanged. Where this contract or the spec
-still names PILOT, MISSIONS, HANGAR, UNKNOWN or the hostile unit, read the new contact in its place.
-
 **Read the full spec first:** `docs/2026-09-24-bunnys-cockpit-design.md`. This page is only the short list of names every file must agree on. The plan and progress are in `docs/plan.md`.
 
 ## Rules
 - The suit is the RX-124 Gundam TR-6 [Woundwort] (mechanical design Kenki Fujioka, credited on the hangar), callsign "BUNNyS", with the owner as its pilot; the hangar's 3D mesh is the owner's own STL. No Gundam logos, names or official suits, and no franchise terms ("Minovsky", "Newtype") — **in the artwork** (every SVG; svg.test.js enforces it). The hangar's 3D render of the owner's STL and its supplied write-up are the owner's chosen exception. Every SVG stays original and `tests/svg.test.js` enforces it.
+- **One deliberate exception.** The hostile contact at bearing 180 is identified in the HUD by its real designation, and its spec and armament text is the owner's own, supplied verbatim. That is their decision for their own site, taken after the trademark position was put to them. It lives only in `HX_DATA` in `js/hud.js`; do not let it spread into the artwork or the site's own unit.
 - No orange-and-black hazard stripes. Cautions are amber text or outline chevrons.
 - Use only the content in spec section 9. Plain static site: no build, no dependencies, relative paths.
 - JS is `'use strict'` IIFEs; the only global is `window.BUNNYS`.

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
 <script src="js/link.js"></script>
-<title>Contact, Woundwort</title>
+<title>Unregistered carrier</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,18 +17,18 @@
 <link rel="stylesheet" href="css/unknown.css">
 </head>
 <body class="unknown">
-<!-- The CONTACT channel. Deliberately not a sub-page: no nav strip, no panels, the
+<!-- The UNKNOWN contact's channel. Deliberately not a sub-page: no nav strip, no panels, the
      enemy's red instead of the cockpit's green. js/unknown.js runs it. -->
 <canvas id="grain" aria-hidden="true"></canvas>
 
 <header class="uk-top">
   <a class="uk-exit" href="index.html" aria-keyshortcuts="Escape">&#9666; DISCONNECT <kbd aria-hidden="true">ESC</kbd></a>
-  <p class="uk-carrier"><i aria-hidden="true"></i>WOUNDWORT &#183; OPEN CHANNEL &#183; BEARING 180</p>
+  <p class="uk-carrier"><i aria-hidden="true"></i>UNREGISTERED CARRIER &#183; BEARING 180</p>
   <p class="uk-clock" id="r-time">--:--:--</p>
 </header>
 
 <main class="uk-codec" id="codec">
-  <h1 class="sr-only">Contact Woundwort: email yutinglyu@woundwort.xyz</h1>
+  <h1 class="sr-only">Open channel: the unknown contact at bearing 180</h1>
   <div class="uk-rig">
     <figure class="uk-port" id="port-l">
       <!-- portrait placeholder: the art goes here later -->
@@ -79,8 +79,6 @@
   <!-- the contact: a scope, and how close the trace has got -->
   <section class="uk-hud uk-panel uk-tr" aria-label="Contact">
     <p class="uk-cap">CONTACT <span>BRG 180</span></p>
-    <p class="uk-row uk-addr"><b>MAIL</b><a href="mailto:yutinglyu@woundwort.xyz">YUTINGLYU@WOUNDWORT.XYZ</a></p>
-    <p class="uk-row uk-addr"><b>LINKEDIN</b><a href="https://www.linkedin.com/in/sylas-lyu-73815525/">SYLAS LYU</a></p>
     <div class="uk-scope"><canvas id="scope" aria-hidden="true"></canvas></div>
     <p class="uk-row"><b>RNG</b><span id="r-rng">1.42 KM</span></p>
     <p class="uk-row"><b>STATUS</b><span id="r-status">HOLDING</span></p>
