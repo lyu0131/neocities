@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_manual import layout, parse_header, short, split_sections  # noqa: E402
+from gen_manual import build_manual, layout, parse_header, short, split_sections  # noqa: E402
 
 
 def raises(fn, *a):
@@ -57,6 +57,15 @@ assert [p["nav"] for p in pp] == ["INDEX", "P1", "P2"] and pp[1]["title"] == "Tw
 assert raises(layout, dict(meta, parts=[("A", "a", [2, 3]), ("B", "b", [3])]), secs, "x.md")
 assert raises(layout, dict(meta, parts=[("A", "a", [2, 9])]), {1: ("", ""), 2: ("", "")}, "x.md")
 
-assert short("Terminal and CLI basics on Windows") == "Terminal and CLI"
+assert short("Terminal and CLI basics on Windows") == "Terminal"
+assert short("Mental model and core vocabulary") == "Mental model"
+assert short("Installing Claude Code on Windows") == "Installing Claude Code"
+assert short("claude.ai features") == "claude.ai features"
 assert short("Skills") == "Skills"
+# plain Markdown: no parts, no exercises -> an index and a page per section, no Exercises panel
+pm, pb = parse_header("---\ntitle: X\nblurb: Y.\ndate: 2026-10-08\n---\n## 1. A\na\n## 2. B\nb\n## 3. C\nc\n", "x.md")
+files, summary = build_manual("x", pm, split_sections(pb, "x.md"), 2)
+assert sorted(files) == ["manual-x-1.html", "manual-x-2.html", "manual-x.html"], sorted(files)
+assert "Exercises" not in files["manual-x.html"] and summary["exercises"] == 0 and summary["parts"] == 2
+assert 'href="manual.html"' in files["manual-x-1.html"]   # ALL MANUALS
 print("ok")

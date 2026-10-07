@@ -1,3 +1,19 @@
+---
+title: Claude agents, tools and workflow
+blurb: A Windows-first guide to Claude's agents, MCP, skills, hooks and plugins.
+revision: B
+date: 2026-10-07
+platform: Windows 11
+code_blocks: 73
+legacy: manual
+parts:
+  - Concepts | What the pieces are and how they fit together. | 2-3
+  - Foundations | Terminal and JSON basics, which everything technical depends on. | 4-5
+  - claude.ai | Projects, connectors and skills in the chat app. | 6-8
+  - Claude Code | Installing it, then MCP, subagents, hooks, plugins and automation. | 9-15
+  - Applying it | Workflow recipes, safety, troubleshooting, a four-week plan and a cheat sheet. | 16-20
+  - Sources | Every page used, what was tested on Windows, and what could not be verified. | 21
+---
 # Claude Agents, Tools and Workflow: A Practical Guide
 
 Written 6 October 2026; reviewed, tested on Windows and extended 7 October 2026.
@@ -15,6 +31,8 @@ Parts:
 - Part 5, applying it: sections 16 to 20. Workflow recipes, safety, troubleshooting, a four-week plan and a cheat sheet.
 
 Shortcut if you only use Claude for writing and research: read 2, 3, 6, 7, 8 and 16. Add Part 2 and Part 4 when you start working with code or data files.
+
+The four-week plan in section 19 puts the exercises in order. Section and exercise numbers match the PDF edition.
 
 A common product claim, "drive every app from a CLI, a JSON control channel or an MCP server", is explained at the end of section 15, under "Agent-ready apps: three ways to drive one". It makes most sense after sections 4, 5 and 11.
 

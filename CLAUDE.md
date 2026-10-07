@@ -16,6 +16,15 @@ Each site has a `DESIGN.md` that works as the contract its pages, CSS and JS fol
 ## Continuing site4
 Read `site4/docs/2026-09-24-bunnys-cockpit-design.md` (the approved spec), then `site4/docs/plan.md`. Resume at the first unticked task, and tick tasks off as they finish. Before starting a task, check the files on disk, since an earlier session may have partly done it. Execute with `superpowers:subagent-driven-development` when it's available.
 
+## Adding a field manual (site4)
+1. Put the guide in `site4/docs/manuals/<slug>.md` (lowercase, digits, hyphens; starts with a letter). Sections are
+   `## 1. Title`, `## 2. Title` ...; section 1 is the manual's front page.
+2. Start it with a header between `---` lines: `title`, `blurb`, `date: YYYY-MM-DD`, optional `revision`, `platform`
+   and `parts:` lines `  - Title | Blurb | 2-3` (see `site4/DESIGN.md`, Field manuals).
+3. From `site4/`: `python tools/gen_manual.py`, then `node tests/run.js`, then check it at 375px and desktop.
+4. Manuals are general guides: no personal details, none of the owner's courses, research, own skills, plugins or
+   accounts, no references to the chat they came from. Put the copy through the humanizer.
+
 ## The owner's standing preferences
 - Their name on the sites is **Sylas Lyu**. Their LinkedIn URL is `https://www.linkedin.com/in/sylas-lyu-73815525/` (changed 2026-09-30 from the old steven-lyu one). Never invent facts about them beyond what the site already states.
 - Keep separate pages rather than one long page.

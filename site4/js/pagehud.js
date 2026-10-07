@@ -26,8 +26,9 @@
   // (copies, so the scope's DOM nodes don't land on the shared table)
   var CONTACTS = BUNNYS.contacts.map(function (c) { return Object.assign({ brg: BUNNYS.wrap360(c.yaw) }, c); });
   var PAGES = BUNNYS.contacts.filter(function (c) { return c.page; }).map(function (c) { return c.page; });
-  // the field manual's parts (manual-1..6.html) read as the FIELD MANUAL contact
-  var here = document.documentElement.dataset.page.replace(/-\d+$/, '');
+  // the library and every manual's pages (manual-<slug>[-n].html) read as the FIELD MANUAL contact
+  var here = document.documentElement.dataset.page;
+  if (/^manual/.test(here)) here = 'manual';
   var me = CONTACTS.filter(function (c) { return c.page === here; })[0] || CONTACTS[0];
 
   function el(tag, cls, text) {

@@ -1,10 +1,10 @@
-"""Generate site4's field manual pages from the guide's Markdown.
+"""Generate site4's field manual library from docs/manuals/*.md.
 
-Usage: python3 gen_manual.py <guide.md> <site4 dir>
-Writes manual.html and manual-1..6.html, plus code_map.json (code block number -> page) next to this script.
+Usage, from site4/: python tools/gen_manual.py
+Each manual <slug>.md becomes manual-<slug>.html (its index) and manual-<slug>-<n>.html (its parts); manual.html
+lists them all. A header error in any file stops the build before anything is written. See DESIGN.md.
 """
 import html
-import json
 import re
 import sys
 from pathlib import Path
@@ -16,34 +16,9 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import TextLexer, get_lexer_by_name
 
 HERE = Path(__file__).resolve().parent
-REV = "REV B"
-DATE = "7 OCT 2026"
-
-PAGES = [
-    dict(file="manual.html", nav="INDEX", code="IDX", title="Field manual", kicker="FIELD MANUAL", h1="FIELD MANUAL",
-         sections=[1], blurb="A Windows-first guide to Claude's agents, tools and workflow."),
-    dict(file="manual-1.html", nav="P1", code="P1", title="Concepts", kicker="PART 1", h1="CONCEPTS",
-         sections=[2, 3], blurb="What the pieces are and how they fit together."),
-    dict(file="manual-2.html", nav="P2", code="P2", title="Foundations", kicker="PART 2", h1="FOUNDATIONS",
-         sections=[4, 5], blurb="Terminal and JSON basics, which everything technical depends on."),
-    dict(file="manual-3.html", nav="P3", code="P3", title="claude.ai", kicker="PART 3", h1="CLAUDE.AI",
-         sections=[6, 7, 8], blurb="Projects, connectors and skills in the chat app."),
-    dict(file="manual-4.html", nav="P4", code="P4", title="Claude Code", kicker="PART 4", h1="CLAUDE CODE",
-         sections=[9, 10, 11, 12, 13, 14, 15], blurb="Installing it, then MCP, subagents, hooks, plugins and automation."),
-    dict(file="manual-5.html", nav="P5", code="P5", title="Applying it", kicker="PART 5", h1="APPLYING IT",
-         sections=[16, 17, 18, 19, 20], blurb="Workflow recipes, safety, troubleshooting, a four-week plan and a cheat sheet."),
-    dict(file="manual-6.html", nav="SRC", code="SRC", title="Sources", kicker="SOURCES", h1="SOURCES",
-         sections=[21], blurb="Every page used, what was tested on Windows, and what could not be verified."),
-]
-SEC_PAGE = {s: p["file"] for p in PAGES for s in p["sections"]}
-SHORT = {1: "Using it", 2: "Vocabulary", 3: "Surfaces", 4: "Terminal", 5: "JSON", 6: "claude.ai", 7: "Connectors",
-         8: "Skills", 9: "Install", 10: "Essentials", 11: "MCP", 12: "Subagents", 13: "Hooks", 14: "Plugins",
-         15: "Automation", 16: "Playbook", 17: "Safety", 18: "Troubleshooting", 19: "Four weeks", 20: "Reference",
-         21: "Sources"}
 LANG = {"powershell": "POWERSHELL", "json": "JSON", "python": "PYTHON", "markdown": "MARKDOWN", "yaml": "YAML",
         "text": "TEXT", "bash": "BASH", "": "TEXT"}
 
-counter = {"code": 0}
 
 
 def hl(code, lang, attrs):
@@ -95,11 +70,6 @@ DIAGRAM = """
   <figcaption class="meta">THE AGENT LOOP, AND WHERE EACH ADD-ON ATTACHES</figcaption>
 </figure>
 """
-
-
-def link_for_section(n):
-    return f"{SEC_PAGE[n]}#sec-{n}"
-
 
 
 REF_RE = re.compile(r"\b(Sections?|sections?) (\d{1,2})\b|\b(Exercises?) (\d{1,2})\b|\b(Recipe) (\d)\b")
@@ -166,13 +136,13 @@ def layout(meta, sections, name):
 
 
 def short(title):
-    """A section's ladder label: the heading's first three words."""
-    return " ".join(title.split()[:3])
+    """A section's ladder label: the heading up to its first 'and', comma or colon, at most three words."""
+    return " ".join(re.split(r" and |[,:]", title)[0].split()[:3])
 
 
 
-def render_section(n, page_file):
-    title, body = sections[n]
+def render_section(st, n, page_file):
+    title, body = st["sections"][n]
     soup = BeautifulSoup(md.render(body), "html.parser")
     # diagram
     for p in soup.find_all("p"):
@@ -180,9 +150,8 @@ def render_section(n, page_file):
             p.replace_with(BeautifulSoup(DIAGRAM, "html.parser"))
     # code blocks
     for pre in soup.find_all("pre"):
-        counter["code"] += 1
-        k = counter["code"]
-        CODE_MAP[k] = page_file
+        st["code"] += 1
+        k = st["code"]
         lang = pre.get("data-lang", "TEXT")
         del pre["data-lang"]
         box = soup.new_tag("div", attrs={"class": "fm-code", "id": f"c-{k}"})
@@ -285,18 +254,18 @@ def render_section(n, page_file):
         def ref(mm):
             if mm.group(2):
                 num = int(mm.group(2))
-                if num in SEC_PAGE:
-                    tgt = (f"#sec-{num}" if SEC_PAGE[num] == page_file else link_for_section(num))
+                if num in st["sec"]:
+                    tgt = f"#sec-{num}" if st["sec"][num] == page_file else f"{st['sec'][num]}#sec-{num}"
                     return f'<a href="{tgt}">{mm.group(1)} {num}</a>'
             if mm.group(4):
                 num = int(mm.group(4))
-                if num in EX_PAGE:
-                    tgt = f"#ex-{num}" if EX_PAGE[num] == page_file else f"{EX_PAGE[num]}#ex-{num}"
+                if num in st["ex"]:
+                    tgt = f"#ex-{num}" if st["ex"][num] == page_file else f"{st['ex'][num]}#ex-{num}"
                     return f'<a href="{tgt}">{mm.group(3)} {num}</a>'
             if mm.group(6):
                 num = int(mm.group(6))
-                if num in REC_PAGE:
-                    tgt = f"#recipe-{num}" if REC_PAGE[num] == page_file else f"{REC_PAGE[num]}#recipe-{num}"
+                if num in st["rec"]:
+                    tgt = f"#recipe-{num}" if st["rec"][num] == page_file else f"{st['rec'][num]}#recipe-{num}"
                     return f'<a href="{tgt}">{mm.group(5)} {num}</a>'
             return mm.group(0)
 
@@ -305,7 +274,7 @@ def render_section(n, page_file):
         esc = re.sub(r"\b(Tested)\b", r'<span class="fm-tested">\1</span>', esc)
         node.replace_with(BeautifulSoup(esc, "html.parser"))
     # sources: show the address under each link
-    if n == 21:
+    if title == "Sources":
         for a in soup.find_all("a"):
             if a.get("href", "").startswith("http"):
                 u = soup.new_tag("span", attrs={"class": "fm-url"})
@@ -314,30 +283,23 @@ def render_section(n, page_file):
     return title, str(soup)
 
 
-CODE_MAP = {}
+MONTHS = "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC".split()
+FONTS = "https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap"
 
 
-def nav(cur):
-    items = []
-    for p in PAGES:
-        lab = html.escape(p["nav"])
-        attr = ' aria-current="page"' if p["file"] == cur else ""
-        items.append(f'    <li><a href="{p["file"]}"{attr} title="{html.escape(p["title"])}">{lab}</a></li>')
-    return "\n".join(items)
+def stamp(date):
+    """2026-10-07 -> 7 OCT 2026"""
+    y, mo, d = date.split("-")
+    return f"{int(d)} {MONTHS[int(mo) - 1]} {y}"
 
 
-def page(p, panels_html, prev_p, next_p, total_ex):
-    nsec = len(p["sections"])
-    rail = [("PART", p["code"]), ("SECTIONS", str(nsec)), ("PLATFORM", "WINDOWS 11"), ("REVISION", f"{REV[-1]} · {DATE}")]
-    if p["file"] == "manual.html":
-        rail = [("PARTS", "5"), ("EXERCISES", str(total_ex)), ("PLATFORM", "WINDOWS 11"), ("REVISION", f"{REV[-1]} · {DATE}")]
+def fname(slug, n):
+    return f"manual-{slug}.html" if n == 0 else f"manual-{slug}-{n}.html"
+
+
+def shell(title, strip, main, bar_unit, kicker, h1, blurb, rail):
+    """One sub-page: the cockpit's strip, the screen, the HUD scripts."""
     rail_html = "\n".join(f"    <li><b>{k}</b><span>{html.escape(v)}</span></li>" for k, v in rail)
-    foot = []
-    if prev_p:
-        foot.append(f'<a href="{prev_p["file"]}">&#9666; {html.escape(prev_p["kicker"].title() if prev_p["kicker"] != "FIELD MANUAL" else "Index")}: {html.escape(prev_p["title"])}</a>')
-    if next_p:
-        foot.append(f'<a href="{next_p["file"]}">{html.escape(next_p["kicker"].title())}: {html.escape(next_p["title"])} &#9656;</a>')
-    foot_html = f'  <nav class="fm-pager" aria-label="Manual pages">{"".join(foot)}</nav>\n' if foot else ""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -345,35 +307,31 @@ def page(p, panels_html, prev_p, next_p, total_ex):
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
 <script src="js/link.js"></script>
-<title>{html.escape(p["title"]) + ", " if p["title"] != "Field manual" else ""}Field manual, Sylas Lyu</title>
+<title>{html.escape(title)}</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="{FONTS}" rel="stylesheet">
 <link rel="stylesheet" href="css/cockpit.css">
 <link rel="stylesheet" href="css/manual.css">
 </head>
-<!-- generated from the guide's Markdown by gen_manual.py; edit the source, not this file -->
+<!-- generated by tools/gen_manual.py from docs/manuals/*.md; edit the source, not this file -->
 <body class="page manual" style="--brg: 104">
 
 <nav class="strip" aria-label="Field manual">
-  <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
-  <ul>
-{nav(p["file"])}
-  </ul>
+{strip}
 </nav>
 
 <main class="screen">
-  <p class="bar"><span>{html.escape(p["kicker"])}</span> <span class="unit">SYLAS LYU &#183; FIELD MANUAL &#183; {REV}</span></p>
-  <h1>{html.escape(p["h1"])}</h1>
-  <p class="fm-blurb">{html.escape(p["blurb"])}</p>
+  <p class="bar"><span>{html.escape(kicker)}</span> <span class="unit">{bar_unit}</span></p>
+  <h1>{html.escape(h1)}</h1>
+  <p class="fm-blurb">{html.escape(blurb)}</p>
   <ul class="rail">
 {rail_html}
   </ul>
-{panels_html}
-{foot_html}</main>
+{main}</main>
 
 <p class="sr-only" aria-live="polite" id="fm-live"></p>
 <script src="js/bunnys.js" defer></script>
@@ -384,62 +342,136 @@ def page(p, panels_html, prev_p, next_p, total_ex):
 """
 
 
-def panel(n, title, body, code):
-    return (f'  <section class="panel" id="sec-{n}" data-ref="FM-{n:02d}00 &#183; {REV}" data-sector="{html.escape(SHORT[n])}">\n'
-            f'    <p class="sub">SECTION {n:02d}</p>\n'
-            f'    <h2>{html.escape(title)}</h2>\n{body}\n  </section>\n')
+def build_manual(slug, meta, sections, vol):
+    """One manual's pages {filename: html} and its summary for the library. Cross-references resolve inside it."""
+    pages = layout(meta, sections, slug + ".md")
+    for p in pages:
+        p["file"] = fname(slug, p["slug_n"])
+    rev = f"REV {meta['revision']}"
+    st = dict(sections=sections, code=0, sec={s: p["file"] for p in pages for s in p["sections"]}, ex={}, rec={})
+    for n, (_, body) in sections.items():
+        for x in re.finditer(r"(?m)^### Exercise (\d+)", body):
+            st["ex"][int(x.group(1))] = st["sec"][n]
+        for x in re.finditer(r"(?m)^### Recipe (\d+)", body):
+            st["rec"][int(x.group(1))] = st["sec"][n]
+    exercises = [(int(x.group(1)), x.group(3)[0].upper() + x.group(3)[1:], n)
+                 for n, (_, body) in sections.items() for x in re.finditer(r"(?m)^### Exercise (\d+)(.*?):\s*(.*)$", body)]
+    rendered = {n: render_section(st, n, p["file"]) for p in pages for n in p["sections"]}
+
+    cur = ' aria-current="page"'
+    unit = f"SYLAS LYU &#183; FM-{vol:02d} &#183; {rev}"
+    files = {}
+    for i, p in enumerate(pages):
+        body = ""
+        if p["slug_n"] == 0:
+            rows = []
+            for q in pages[1:]:
+                secs = "".join(f'<li><a href="{q["file"]}#sec-{s}">{s:02d} {html.escape(sections[s][0])}</a></li>' for s in q["sections"])
+                rows.append(f'<dt><a href="{q["file"]}">{html.escape(q["kicker"])}</a></dt><dd>{html.escape(q["title"])}<ul class="list">{secs}</ul></dd>')
+            if rows:
+                body += (f'  <section class="panel" data-ref="FM-{vol:02d}A0 &#183; {rev}" data-sector="Contents">\n'
+                         '    <p class="sub">INDEX</p>\n    <h2>Contents</h2>\n'
+                         '    <p>Every code block has a COPY button, so commands paste exactly as written.</p>\n'
+                         f'    <dl class="rows">{"".join(rows)}</dl>\n  </section>\n')
+            if exercises:
+                exl = "".join(f'<li><a href="{st["ex"][e]}#ex-{e}">EX-{e:02d} {html.escape(t)}</a> <span class="meta">SEC {s:02d}</span></li>' for e, t, s in exercises)
+                body += (f'  <section class="panel" data-ref="FM-{vol:02d}B0 &#183; {rev}" data-sector="Exercises">\n'
+                         '    <p class="sub">TRAINING</p>\n    <h2>Exercises</h2>\n'
+                         '    <p>Each exercise says what output to expect.</p>\n'
+                         f'    <ul class="list fm-exlist">{exl}</ul>\n  </section>\n')
+        for n in p["sections"]:
+            title, html_ = rendered[n]
+            body += (f'  <section class="panel" id="sec-{n}" data-ref="FM-{vol:02d}{n:02d} &#183; {rev}" data-sector="{html.escape(short(title))}">\n'
+                     f'    <p class="sub">SECTION {n:02d}</p>\n'
+                     f'    <h2>{html.escape(title)}</h2>\n{html_}\n  </section>\n')
+        foot = []
+        if i > 0:
+            q = pages[i - 1]
+            foot.append(f'<a href="{q["file"]}">&#9666; {"Index" if q["slug_n"] == 0 else html.escape(q["kicker"].title())}: {html.escape(q["title"])}</a>')
+        if i + 1 < len(pages):
+            q = pages[i + 1]
+            foot.append(f'<a href="{q["file"]}">{html.escape(q["kicker"].title())}: {html.escape(q["title"])} &#9656;</a>')
+        if foot:
+            body += f'  <nav class="fm-pager" aria-label="Manual pages">{"".join(foot)}</nav>\n'
+        if p["slug_n"] == 0:
+            rail = [("PARTS", str(len(pages) - 1))] + ([("EXERCISES", str(len(exercises)))] if exercises else [])
+        else:
+            rail = [("PART", p["nav"]), ("SECTIONS", str(len(p["sections"])))]
+        rail += ([("PLATFORM", meta["platform"].upper())] if meta["platform"] else []) + [("REVISION", f"{meta['revision']} · {stamp(meta['date'])}")]
+        strip = ('  <a class="ret" href="manual.html">&#9666; ALL MANUALS</a>\n  <ul>\n'
+                 + "\n".join(f'    <li><a href="{q["file"]}"{cur if q is p else ""} title="{html.escape(q["title"])}">{q["nav"]}</a></li>'
+                             for q in pages) + "\n  </ul>")
+        title = meta["title"] if p["slug_n"] == 0 else f'{p["title"]}, {meta["title"]}'
+        files[p["file"]] = shell(f"{title}, Sylas Lyu", strip, body, unit, p["kicker"], p["h1"], p["blurb"], rail)
+    summary = dict(slug=slug, title=meta["title"], blurb=meta["blurb"], date=meta["date"], revision=meta["revision"],
+                   vol=vol, parts=len(pages) - 1, sections=len(sections), exercises=len(exercises), code=st["code"],
+                   pages=pages)
+    return files, summary
+
+
+def library(summaries):
+    """manual.html: one panel per manual, newest first."""
+    body = ""
+    for s in sorted(summaries, key=lambda s: (s["date"], s["slug"]), reverse=True):
+        rail = [("PARTS", str(s["parts"]))] + ([("EXERCISES", str(s["exercises"]))] if s["exercises"] else []) + \
+               [("REVISION", f"{s['revision']} · {stamp(s['date'])}")]
+        rail_html = "".join(f"<li><b>{k}</b><span>{html.escape(v)}</span></li>" for k, v in rail)
+        body += (f'  <section class="panel fm-vol" id="fm-{s["vol"]:02d}" data-ref="FM-{s["vol"]:02d}00 &#183; REV {s["revision"]}" data-sector="{html.escape(short(s["title"]))}">\n'
+                 f'    <p class="sub">FM-{s["vol"]:02d}</p>\n'
+                 f'    <h2>{html.escape(s["title"])}</h2>\n'
+                 f'    <p class="fm-blurb">{html.escape(s["blurb"])}</p>\n'
+                 f'    <ul class="rail">{rail_html}</ul>\n'
+                 f'    <p><a class="fm-open" href="{fname(s["slug"], 0)}">Open {html.escape(s["title"])}</a></p>\n  </section>\n')
+    strip = '  <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>'
+    rail = [("VOLUMES", str(len(summaries))), ("EXERCISES", str(sum(s["exercises"] for s in summaries)))]
+    return shell("Field manuals, Sylas Lyu", strip, body, "SYLAS LYU &#183; FIELD MANUALS", "LIBRARY",
+                 "FIELD MANUALS", "General guides, each one complete on its own.", rail)
+
+
+def stub(target):
+    """An old URL that forwards to its new page, #fragment and all (the guide's PDF links manual-N.html#c-K)."""
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Moved</title>
+<script>location.replace('{target}' + location.hash)</script>
+</head>
+<body><p>This page moved: <a href="{target}">{target}</a></p></body>
+</html>
+"""
+
+
+def main(site):
+    """Build every docs/manuals/*.md: check them all first, then write. Returns an exit code."""
+    srcs = sorted((site / "docs" / "manuals").glob("*.md"))
+    try:
+        found = []
+        for f in srcs:
+            if not re.fullmatch(r"[a-z][a-z0-9-]*", f.stem):
+                raise ValueError(f"{f.name}: a file name is lowercase letters, digits and hyphens, starting with a letter")
+            meta, body = parse_header(f.read_text(encoding="utf-8"), f.name)
+            found.append((f.stem, meta, split_sections(body, f.name)))
+        found.sort(key=lambda t: (t[1]["date"], t[0]))
+        built = [build_manual(slug, meta, secs, vol) for vol, (slug, meta, secs) in enumerate(found, 1)]
+        for (slug, meta, _), (_, s) in zip(found, built):
+            if meta["code_blocks"] is not None and meta["code_blocks"] != s["code"]:
+                raise ValueError(f"{slug}.md: {s['code']} code blocks, the header pins {meta['code_blocks']} "
+                                 f"(old links point at their numbers)")
+    except ValueError as e:
+        print("gen_manual:", e, file=sys.stderr)
+        return 1
+    for (slug, meta, _), (files, s) in zip(found, built):
+        for name, page in files.items():
+            (site / name).write_text(page, encoding="utf-8")
+        if meta["legacy"]:
+            for p in s["pages"][1:]:
+                (site / f'{meta["legacy"]}-{p["slug_n"]}.html').write_text(stub(p["file"]), encoding="utf-8")
+        print(f'{slug}: {len(files)} pages, {s["code"]} code blocks, {s["exercises"]} exercises')
+    (site / "manual.html").write_text(library([s for _, s in built]), encoding="utf-8")
+    return 0
 
 
 if __name__ == "__main__":
-    SRC = Path(sys.argv[1])
-    SITE = Path(sys.argv[2])
-    text = SRC.read_text(encoding="utf-8")
-
-    # split into sections
-    parts = re.split(r"(?m)^## (\d+)\. (.+)$", text)
-    sections = {}
-    for i in range(1, len(parts), 3):
-        sections[int(parts[i])] = (parts[i + 1].strip(), parts[i + 2])
-    EX_PAGE = {}
-    REC_PAGE = {}
-    for n, (title, body) in sections.items():
-        for m in re.finditer(r"(?m)^### Exercise (\d+)", body):
-            EX_PAGE[int(m.group(1))] = SEC_PAGE[n]
-        for m in re.finditer(r"(?m)^### Recipe (\d+)", body):
-            REC_PAGE[int(m.group(1))] = SEC_PAGE[n]
-    exercises = []
-    for n, (title, body) in sections.items():
-        for m in re.finditer(r"(?m)^### Exercise (\d+)(.*?):\s*(.*)$", body):
-            exercises.append((int(m.group(1)), m.group(3)[0].upper() + m.group(3)[1:], n))
-
-    rendered = {}
-    for p in PAGES:
-        for n in p["sections"]:
-            rendered[n] = render_section(n, p["file"])
-
-    for i, p in enumerate(PAGES):
-        panels = ""
-        if p["file"] == "manual.html":
-            rows = []
-            for q in PAGES[1:]:
-                secs = "".join(f'<li><a href="{q["file"]}#sec-{s}">{s:02d} {html.escape(sections[s][0])}</a></li>' for s in q["sections"])
-                rows.append(f'<dt><a href="{q["file"]}">{html.escape(q["kicker"])}</a></dt><dd>{html.escape(q["title"])}<ul class="list">{secs}</ul></dd>')
-            panels += ('  <section class="panel" data-ref="FM-0001 &#183; ' + REV + '" data-sector="Contents">\n'
-                       '    <p class="sub">INDEX</p>\n    <h2>Contents</h2>\n'
-                       '    <p>Every code block has a COPY button, so commands paste exactly as written. Section and exercise numbers match the PDF edition.</p>\n'
-                       f'    <dl class="rows">{"".join(rows)}</dl>\n  </section>\n')
-            exl = "".join(f'<li><a href="{EX_PAGE[e]}#ex-{e}">EX-{e:02d} {html.escape(t)}</a> <span class="meta">SEC {s:02d}</span></li>' for e, t, s in exercises)
-            panels += ('  <section class="panel" data-ref="FM-0002 &#183; ' + REV + '" data-sector="Exercises">\n'
-                       '    <p class="sub">TRAINING</p>\n    <h2>Exercises</h2>\n'
-                       '    <p>Each exercise says what output to expect. The four-week plan in <a href="manual-5.html#sec-19">section 19</a> puts them in order.</p>\n'
-                       f'    <ul class="list fm-exlist">{exl}</ul>\n  </section>\n')
-        for n in p["sections"]:
-            title, body = rendered[n]
-            panels += panel(n, title, body, p["code"])
-        prev_p = PAGES[i - 1] if i > 0 else None
-        next_p = PAGES[i + 1] if i + 1 < len(PAGES) else None
-        (SITE / p["file"]).write_text(page(p, panels, prev_p, next_p, len(exercises)), encoding="utf-8")
-        print("wrote", p["file"])
-
-    (HERE / "code_map.json").write_text(json.dumps(CODE_MAP), encoding="utf-8")
-    print("code blocks", counter["code"], "exercises", len(exercises))
+    sys.exit(main(HERE.parent))

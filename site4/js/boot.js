@@ -134,7 +134,7 @@
   // the intro on a plain reload from an external referrer.
   // link.js marks a page reached through the canopy shutters, which holds even where no
   // referrer is sent (file://, a strict referrer policy).
-  var fromInside = /\/(pilot|missions|hangar|manual(?:-\d+)?|index)\.html/.test(document.referrer || '') ||
+  var fromInside = /\/(pilot|missions|hangar|manual(?:-[a-z0-9-]+)?|index)\.html/.test(document.referrer || '') ||
     document.documentElement.classList.contains('linked');
   try { already = fromInside && sessionStorage.getItem('bunnys-booted') === '1'; } catch (e) {}
   if (BUNNYS.reduce || already) { finish(true); return; }

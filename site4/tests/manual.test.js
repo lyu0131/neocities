@@ -3,10 +3,12 @@
 // COPY control puts a block's exact text on the clipboard. Screenshots go to tests/out/.
 const fs = require('fs'), path = require('path');
 const { launch, check, SITE } = require('./cdp');
-const PAGES = fs.readdirSync(SITE).filter(f => /^manual(-\d+)?\.html$/.test(f)).sort();
+// the library, and every manual's pages (manual-<slug>[-n].html); the old manual-<n>.html are redirect stubs
+const PAGES = fs.readdirSync(SITE).filter(f => /^manual(-[a-z][a-z0-9-]*(-\d+)?)?\.html$/.test(f)).sort();
+const SOURCES = fs.readdirSync(path.join(SITE, 'docs/manuals')).filter(f => f.endsWith('.md')).map(f => f.slice(0, -3));
 const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
 (async () => {
-  check('manual pages exist', PAGES.length === 7, PAGES.join(','));
+  check('library and manual pages exist', PAGES.includes('manual.html') && SOURCES.every(s => PAGES.includes(`manual-${s}.html`)), PAGES.join(','));
   const p = await launch({ width: 1440, height: 900 });
   const ids = {};
   for (const pg of PAGES) {
@@ -19,7 +21,7 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
     check(`${pg} has one h1`, await p.eval("document.querySelectorAll('h1').length === 1"));
     check(`${pg} body.page`, await p.eval("document.body.classList.contains('page')"));
     check(`${pg} lang="en"`, await p.eval("document.documentElement.lang === 'en'"));
-    check(`${pg} nav marks current page`, await p.eval(`!!document.querySelector('.strip a[aria-current="page"][href="${pg}"]')`));
+    if (pg !== 'manual.html') check(`${pg} nav marks current page`, await p.eval(`!!document.querySelector('.strip a[aria-current="page"][href="${pg}"]')`));
     check(`${pg} HUD has a rung per panel`, await p.eval("document.querySelectorAll('.phud-ladder li').length === document.querySelectorAll('.screen .panel').length"));
     check(`${pg} scope reads FIELD MANUAL`, /FIELD MANUAL/.test(await p.eval("document.querySelector('.phud-status').textContent")));
     const dups = await p.eval("(()=>{const s=new Set(),d=new Set();document.querySelectorAll('[id]').forEach(e=>s.has(e.id)?d.add(e.id):s.add(e.id));return [...d].join(',')})()");
@@ -47,8 +49,14 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
     }
   }
   check('manual links all resolve', bad.length === 0, bad.slice(0, 8).join(' | '));
-  await p.goto('hangar.html', 900);
-  check('hangar links the field manual', await p.eval("!!document.querySelector('a[href=\"manual.html\"]')"));
+  await p.goto('manual.html', 900);
+  const vols = await p.eval("[...document.querySelectorAll('.fm-vol a.fm-open')].map(a => a.getAttribute('href'))");
+  check('library lists every source', vols.length === SOURCES.length && SOURCES.every(s => vols.includes(`manual-${s}.html`)), vols.join(','));
+  // the guide's PDF links manual-N.html#c-K: the stub forwards and keeps the fragment
+  await p.goto('manual-4.html#c-12', 1200);
+  check('stub keeps the fragment', /manual-claude-4\.html$/.test(await p.eval('location.pathname')) && await p.eval('location.hash') === '#c-12');
+  await p.goto('pilot.html', 900);
+  check('cockpit strip links the library', await p.eval("!!document.querySelector('.strip a[href=\"manual.html\"]')"));
   check('no JS errors on manual pages', p.errors.length === 0, p.errors.join(' | '));
   p.close();
 })();

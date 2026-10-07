@@ -383,14 +383,21 @@ drift against anything, so it keeps its `steps(1, end)` square wave.
   at `R * 0.22`) with a compensating `scale()`; drop the standoff and the panorama paints
   over the label.
 
-## Field manual (manual*.html, added 2026-10-07)
-Seven reading pages generated from `docs/field-manual.md` (the Windows guide to Claude's agents, MCP, skills, hooks and
-plugins) by `python tools/gen_manual.py docs/field-manual.md .` (needs `markdown-it-py`, `pygments` and `beautifulsoup4`).
-Edit the Markdown and regenerate; never hand-edit the pages.
+## Field manuals (manual*.html, added 2026-10-07; a library since the same day)
+A library of general guides, each one Markdown file `docs/manuals/<slug>.md`, built by `python tools/gen_manual.py`
+run from `site4/` (needs `markdown-it-py`, `pygments` and `beautifulsoup4`; `python tools/test_gen_manual.py` is its
+self-check). Edit the Markdown and regenerate; never hand-edit the pages. Design: `docs/2026-10-07-field-manual-library-design.md`.
+- Files: `manual.html` the library (one `.fm-vol` panel per manual, newest first, FM-01.. numbered by date oldest first);
+  `manual-<slug>.html` a manual's index (section 1, Contents, Exercises if any); `manual-<slug>-<n>.html` its parts.
+  The guide `claude.md` has `legacy: manual`, so `manual-1..6.html` are redirect stubs keeping `#c-K` for its PDF.
+- Header (between `---` lines at the top): `title`, `blurb`, `date` (YYYY-MM-DD) required; `revision` (A), `platform`,
+  `code_blocks` (pins the count: old links use the numbers), `legacy`, and `parts:` lines `  - Title | Blurb | 2-3`.
+  No parts: every section after 1 is its own page. Any header error stops the build before a file is written.
+- Section ladder labels: the heading up to its first "and", comma or colon, at most three words.
 - FIELD MANUAL is the cockpit's fifth contact (`t-manual`, `MAN`, yaw 104, key 4; UNKNOWN moved to key 5), so the
   pages carry `body.page.manual`, `--brg: 104`. Its SLEW button reads MANUAL (FIELD MANUAL wraps and breaks the pod's
   level with SENSOR ARRAY); the slew buttons are 3px/8px padded at the 24px floor for the same reason. pagehud.js
-  reads `manual-N` as the manual contact. `manual.html` is in link.js's `OWN` (the shutter handover from the cockpit);
+  reads any `manual*` page as the manual contact. `manual.html` is in link.js's `OWN` (the shutter handover from the cockpit);
   the parts aren't, so clicks between them are plain navigation. One `.panel` per guide section, so the ladder works
   as usual.
 - `css/manual.css`: code blocks (`.fm-code`, recessed glass, never wrapped so a copy pastes exactly, token colours from
@@ -399,9 +406,10 @@ Edit the Markdown and regenerate; never hand-edit the pages.
 - gen_manual.py bolds a lead-in before a colon ("Expected:", "Client:"): every one in a list where most items have
   one, otherwise only lead-ins of five words or fewer. The guide is general: no personal courses, skills or research.
 - `js/manual.js`: the COPY buttons (clipboard API, textarea fallback, `#fm-live` announcement). No globals.
-- Code blocks carry ids `c-1`..`c-N` in guide order; the PDF edition links to them as `manual-N.html#c-K`.
+- Code blocks carry ids `c-1`..`c-N` in each manual's order.
 - `tests/manual.test.js` (in `run.js`): overflow at 375/768/1366/1920, one h1, a rung per panel, COPY copies the exact
-  text, every in-manual link and fragment resolves, the strip links the manual, no JS errors.
+  text, every link and fragment resolves, the library lists every source, the stubs keep the fragment, the cockpit
+  strip links the library, no JS errors.
 
 ## Big screens (added 2026-10-07)
 The sub-pages' reading layer (`.strip`, `.screen`, `.phud-ladder`, `.phud-scope`, `.phud-status`) takes `zoom: var(--z)`:
