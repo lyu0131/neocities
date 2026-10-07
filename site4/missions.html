@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
 <script src="js/link.js"></script>
-<title>Services, Woundwort</title>
+<title>Missions, Sylas Lyu</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -20,82 +20,123 @@
   <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
   <ul aria-keyshortcuts="Q E">
     <li><kbd aria-hidden="true">Q</kbd></li>
-    <li><a href="pilot.html">STUDIO</a></li>
-    <li><a href="missions.html" aria-current="page">SERVICES</a></li>
-    <li><a href="hangar.html">TOOLS</a></li>
+    <li><a href="pilot.html">PILOT</a></li>
+    <li><a href="missions.html" aria-current="page">MISSIONS</a></li>
+    <li><a href="hangar.html">HANGAR</a></li>
     <li><kbd aria-hidden="true">E</kbd></li>
   </ul>
 </nav>
 
 <main class="screen">
-  <p class="bar"><span>SERVICE LOG</span> <span class="unit">WOUNDWORT &#183; WHAT WE DO</span></p>
-  <h1>SERVICES</h1>
+  <p class="bar"><span>MISSION LOG</span> <span class="unit">RX-124 TR-6 [WOUNDWORT] &#183; COMBAT SYSTEM</span></p>
+  <h1>MISSION LOG</h1>
+
   <ul class="rail">
-    <li><b>OPEN</b><span>3</span></li>
-    <li><b>FOCUS</b><span>CLAUDE-ASSISTED UX</span></li>
-    <li><b>FOR</b><span>TEAMS WITH A DESIGN SYSTEM</span></li>
+    <li><b>ACTIVE</b><span>2</span></li>
+    <li><b>COMPLETE</b><span>3</span></li>
+    <li><b>PUBLISHED</b><span>1 PAPER</span></li>
+    <li><b>FLYING SINCE</b><span>2021</span></li>
   </ul>
-  <h2 class="log-head">What we do</h2>
-  <article class="panel reveal" data-ref="SVC-01 &#183; REV A" data-sector="Handoff">
-    <p class="meta">SVC-01 &nbsp;/&nbsp; DESIGN TO BUILD &nbsp; <span class="tag">OPEN</span></p>
-    <h3>Interaction systems that survive handoff</h3>
-    <p class="role"><b>Flows, specs and component libraries</b> that engineers can build without reinterpreting</p>
+
+  <!-- flight record: months from May 2021 (0) to October 2026 (66) -->
+  <figure class="flight" aria-label="Mission timeline, May 2021 to now">
+    <ol>
+      <li><span>MSN-01<small> BrainCo</small></span><b><i style="--a:0;--b:4"></i></b></li>
+      <li><span>MSN-02<small> Antagen</small></span><b><i style="--a:1;--b:13"></i></b></li>
+      <li><span>MSN-03<small> Brown CNTR</small></span><b><i style="--a:10;--b:24"></i></b></li>
+      <li class="is-active"><span>MSN-04<small> HBA Lab</small></span><b><i style="--a:57;--b:66"></i></b></li>
+      <li class="is-active"><span>MSN-05<small> UNC NIcE X</small></span><b><i style="--a:62;--b:66"></i></b></li>
+      <li class="axis" aria-hidden="true"><span></span><b>
+        <em style="--a:0">2021</em><em style="--a:8">2022</em><em style="--a:20">2023</em>
+        <em style="--a:32">2024</em><em style="--a:44">2025</em><em style="--a:56">2026</em>
+      </b></li>
+    </ol>
+  </figure>
+
+  <h2 class="log-head">Active</h2>
+
+  <article class="panel reveal" data-ref="MSN-05 &#183; REV A" data-sector="UNC NIcE X">
+    <p class="meta">MSN-05 &nbsp;/&nbsp; JULY 2026 &ndash; PRESENT &nbsp; <span class="tag">ACTIVE</span></p>
+    <h3>UNC NIcE X Lab</h3>
+    <p class="role"><b>Undergraduate Research Assistant</b>, internship</p>
     <dl class="rows">
-      <dt>YOU GET</dt>
+      <dt>OBJECTIVE</dt>
+      <dd>How everyday smartphone and wearable data can help us understand student mental health,
+      using a multi-year dataset that spans four student cohorts.</dd>
+      <dt>ACTIONS</dt>
       <dd><ul>
-        <li>Annotated flows.</li>
-        <li>Component libraries with every state written down: empty, loading, error, and the odd ones.</li>
-        <li>Decision tables that say which variant shows when.</li>
+        <li>Tested whether large language models can translate behavioural and self-report data
+        into established mental health measures.</li>
+        <li>Built Python tools to check data quality and coverage across cohorts.</li>
+        <li>Made visualisations comparing groups.</li>
+        <li>Reviewed lab manuscripts and presented at lab meetings.</li>
+      </ul></dd>
+      <dt>OUTCOME</dt>
+      <dd>Co-wrote the paper through three rounds of review to publication.</dd>
+    </dl>
+  </article>
+
+  <article class="panel reveal" data-ref="MSN-04 &#183; REV A" data-sector="HBA Lab">
+    <p class="meta">MSN-04 &nbsp;/&nbsp; FEBRUARY 2026 &ndash; PRESENT &nbsp; <span class="tag">ACTIVE</span></p>
+    <h3>Human Betterment Analytics Research Lab</h3>
+    <p class="role"><b>Undergraduate Research Assistant</b>, Purdue University &#183; West Lafayette, Indiana</p>
+    <dl class="rows">
+      <dt>OBJECTIVE</dt>
+      <dd>Healthcare, data science and decision systems: models that inform clinical decisions,
+      healthcare delivery and public health policy under uncertainty.</dd>
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Support research on data optimization in healthcare and clinical decision making.</li>
+        <li>Assist with literature review, data processing and model implementation.</li>
+        <li>Maintain documentation, reproducible code and version control for ongoing projects.</li>
       </ul></dd>
     </dl>
   </article>
-  <article class="panel reveal" data-ref="SVC-02 &#183; REV A" data-sector="Claude tooling">
-    <p class="meta">SVC-02 &nbsp;/&nbsp; AI TOOLING &nbsp; <span class="tag">OPEN</span></p>
-    <h3>Claude tooling calibrated to your design system</h3>
-    <p class="role"><b>Prompt patterns, critique agents and variant generators</b> that work inside your rules</p>
+
+  <h2 class="log-head">Archive</h2>
+
+  <article class="panel reveal" data-ref="MSN-03 &#183; REV A" data-sector="Brown CNTR">
+    <p class="meta">MSN-03 &nbsp;/&nbsp; MARCH 2022 &ndash; MAY 2023 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>Brown University CNTR</h3>
+    <p class="role"><b>Research Assistant</b>, Center for Technological Responsibility, Reimagination,
+    and Redesign &#183; Providence, Rhode Island</p>
     <dl class="rows">
-      <dt>BOUND BY</dt>
+      <dt>ACTIONS</dt>
       <dd><ul>
-        <li>Your existing tokens and spacing rules.</li>
-        <li>Your WCAG targets.</li>
-        <li>What your research already found.</li>
+        <li>Supported research on responsible AI and technology policy, analysing system impact.</li>
+        <li>Conducted literature reviews on bias, accessibility and fairness in technology design.</li>
+        <li>Synthesized research findings into structured summaries for projects.</li>
       </ul></dd>
     </dl>
   </article>
-  <article class="panel reveal" data-ref="SVC-03 &#183; REV A" data-sector="Prototypes">
-    <p class="meta">SVC-03 &nbsp;/&nbsp; PROTOTYPING &nbsp; <span class="tag">OPEN</span></p>
-    <h3>Fast concept-to-test loops</h3>
-    <p class="role"><b>Sparse briefs become testable prototypes</b>, not mood boards</p>
+
+  <article class="panel reveal" data-ref="MSN-02 &#183; REV A" data-sector="Antagen">
+    <p class="meta">MSN-02 &nbsp;/&nbsp; JUNE 2021 &ndash; JUNE 2022 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>Antagen Biotech</h3>
+    <p class="role"><b>Computational Biology Research Assistant</b> &#183; Boston, Massachusetts</p>
     <dl class="rows">
-      <dt>HOW</dt>
-      <dd>We build something you can put in front of users quickly, and we write down every assumption it
-      rests on, so the test tells you which ones held.</dd>
-    </dl>
-  </article>
-  <h2 class="log-head">Current focus</h2>
-  <article class="panel reveal" data-ref="SVC-04 &#183; REV A" data-sector="Current focus">
-    <p class="meta">FOCUS &nbsp;/&nbsp; NOW &nbsp; <span class="tag is-caution">IN BUILD</span></p>
-    <h3>Claude-assisted UX infrastructure</h3>
-    <p class="role">For product teams that already have a design system and need speed without losing rigor</p>
-    <dl class="rows">
-      <dt>BUILDING</dt>
+      <dt>ACTIONS</dt>
       <dd><ul>
-        <li>Agents that turn job stories into mid-fi flows.</li>
-        <li>Variants proposed with accessibility already worked in.</li>
-        <li>Screen critique against your own heuristics, not a generic checklist.</li>
+        <li>Contributed to a computational biology project applying AlphaFold for protein prediction.</li>
+        <li>Ran models on GPU-based systems and analysed the 3D structural outputs.</li>
       </ul></dd>
-      <dt>MORE</dt><dd><a href="hangar.html">The tools, one by one</a></dd>
     </dl>
   </article>
-  <article class="panel reveal" data-ref="SVC-05 &#183; REV A" data-sector="Start">
-    <p class="meta">START &nbsp;/&nbsp; ANY TIME &nbsp; <span class="tag">OPEN</span></p>
-    <h3>Starting a project</h3>
-    <p>Send us the brief, whatever state it&rsquo;s in, along with the design system you already have.
-    We&rsquo;ll come back with what we&rsquo;d build first and the assumptions behind it.</p>
+
+  <article class="panel reveal" data-ref="MSN-01 &#183; REV A" data-sector="BrainCo">
+    <p class="meta">MSN-01 &nbsp;/&nbsp; MAY 2021 &ndash; SEPTEMBER 2021 &nbsp; <span class="tag is-done">COMPLETE</span></p>
+    <h3>BrainCo Inc.</h3>
+    <p class="role"><b>Technology, Media and Telecommunications Intern</b> &#183; Somerville, Massachusetts</p>
     <dl class="rows">
-      <dt>EMAIL</dt><dd><a href="mailto:yutinglyu@woundwort.xyz">yutinglyu@woundwort.xyz</a></dd>
+      <dt>ACTIONS</dt>
+      <dd><ul>
+        <li>Developed investor-facing presentation materials for live Q&amp;A sessions.</li>
+        <li>Conducted competitive analysis on market positioning and product differentiation.</li>
+        <li>Structured and managed a client data room, organizing stakeholder documents.</li>
+      </ul></dd>
     </dl>
   </article>
+
 </main>
 
 <script src="js/bunnys.js" defer></script>

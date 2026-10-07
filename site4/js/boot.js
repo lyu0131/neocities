@@ -562,18 +562,18 @@
     // the emblem comes up on the lit centre screen (the CSS .is-on runs its flicker-on, turn, hold
     // and fade across T.emblem), with the unit's name under it, and stays for PILOT ID
     at(T.emblem[0], function () { if (emblemEl) emblemEl.classList.add('is-on'); });
-    at(T.emblem[0] + 200, function () { swap(titleEl, 'WOUNDWORT'); });
-    at(T.emblem[0] + 800, function () { swap(noteEl, 'STUDIO VERIFIED', 'hud'); log('STUDIO ........... VERIFIED'); });
+    at(T.emblem[0] + 200, function () { swap(titleEl, 'RX-124 TR-6 [WOUNDWORT]'); });
+    at(T.emblem[0] + 800, function () { swap(noteEl, 'UNIT VERIFIED', 'hud'); log('UNIT ............. VERIFIED'); });
 
     at(T.glitch[0], function () {
-      stage(3, 'STUDIO ID');
+      stage(3, 'PILOT ID');
       swap(titleEl, ''); swap(noteEl, 'IDENTIFYING', 'amber');
       log('IFF .............. INTERROGATING');
     });
     at(T.friend, function () {
-      swap(noteEl, 'CHANNEL OPEN', 'hud');
-      decode(titleEl, 'UX SYSTEMS', 520);
-      log('PRACTICE ......... UX SYSTEMS');
+      swap(noteEl, 'PILOT CONNECTED', 'hud');
+      decode(titleEl, 'SYLAS LYU', 520);
+      log('PILOT ............ SYLAS LYU');
     });
 
     at(T.cut[0], function () {

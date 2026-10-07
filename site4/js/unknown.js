@@ -1,10 +1,11 @@
-/* unknown.js: the CONTACT channel (unknown.html). Its own page, not a sub-page.
+/* unknown.js: the UNKNOWN contact's channel (unknown.html). Its own page, not a sub-page.
    The channel takes the screen (INCOMING), the tuner starts off frequency in static; tune it
    yourself (arrows, wheel, drag, or a memory channel) and the signal climbs, and at a channel the
-   call opens. 180.07 is Woundwort's own line at bearing 180: the studio and its desk notice someone
-   listening, the call turns two-way, holds the tuner (REMOTE LOCK) and ends on the address. The other
-   bands carry the services, the tools, the approach, and a numbers station nobody admits to.
-   Everything heard goes in the LOG. Leave the tab and its title asks you not to. */
+   call opens. It's the Gryps War, and BUNNyS flew the RX-124 TR-6 out of a Titans test hangar:
+   180.07 is the Zeon remnant patrol at bearing 180, whose call degrades, tears, turns two-way,
+   holds the tuner (REMOTE LOCK) and traces you while it closes on the scope. The other bands are
+   the test team hunting their prototype, a civil news broadcast, the suit's own linear seat and
+   a numbers station. Everything heard goes in the LOG. Leave the tab and its title asks you not to. */
 (function () {
   'use strict';
 
@@ -20,61 +21,65 @@
      tone: zeon (red), titans (amber), civil (white), seat (the cockpit's green), ghost (violet).
      ========================================================================= */
 
-  // 180.07: Woundwort's own line, at bearing 180. The main event.
+  // 180.07: the Zeon remnant patrol at bearing 180. The main event.
   var SCRIPT = [
-    { who: "DESK", text: "Studio, someone's on the open channel. Bearing one-eight-zero. They've been sitting there a while." },
-    { who: "STUDIO", text: "Looking for work, or just looking around?" },
-    { who: "DESK", text: "Hard to say. They read the services page twice." },
-    { who: "STUDIO", text: "Then they probably have a design system already, and a deadline that isn't moving." },
-    { who: "DESK", text: "That's most of the people who end up out here." },
-    { who: "STUDIO", text: "Good. That's who the ~6 are for. Flows, specs, the tooling." },
+    { who: "COMMAND", text: "Patrol 3, you're past the old perimeter. Talk to me. What are you looking at out there?" },
+    { who: "PILOT", text: "One mobile suit, bearing one-eight-zero. No transponder, no escort. It's just standing in the rain like it's waiting for someone to pick it up." },
+    { who: "COMMAND", text: "Federation?" },
+    { who: "PILOT", text: "Titans paint, under the scorch marks. But the Titans never send one of anything. They send twelve, and a press release." },
+    { who: "COMMAND", text: "Then why is this one alone?" },
+    { who: "PILOT", text: "I keep asking myself that. Two long antennae on the head. Honestly, from here it looks like a ~6." },
     { fx: "decrypt", to: 48 },
-    { who: "DESK", text: "Studio, ~4 is breaking ~9 up. Repeat your last." },
+    { who: "COMMAND", text: "Patrol 3, ~4 is breaking ~9 up. Repeat your last." },
     { fx: "static", side: "R", ms: 1400 },
-    { who: "STUDIO", text: "Desk? ...Fine. I'll say it to them myself." },
+    { who: "PILOT", text: "Command? ...Fine. I'll say it to the static, then. I don't think it's hunting us. I think it ran from them, and it's been running for days." },
+    { who: "PILOT", text: "Eight years we've been the ones nobody wanted back. Strange, finding someone else out here with the same problem." },
     { fx: "decrypt", to: 23 },
-    { who: "STUDIO", text: "Hold on. There's a third carrier on this channel. Somebody's listening and keeping very quiet about it." },
+    { who: "PILOT", text: "Hold on. There's a third carrier on this channel. Somebody's sitting on our frequency and keeping very quiet about it." },
     { fx: "turn" },
-    { who: "STUDIO", text: "Hi. Yes, you." },
-    { who: "STUDIO", text: "If you've got a product, a design system, and screens that keep drifting away from it, send us the brief." },
-    { who: "STUDIO", text: "It can be thin. We'll write down what we're assuming and put it in front of users." },
-    { who: "STUDIO", text: "The address is yutinglyu@woundwort.xyz. Sylas Lyu is on LinkedIn too." },
+    { who: "PILOT", text: "BUNNyS. That's the name you painted over their serial number, isn't it? Bold of you." },
+    { who: "PILOT", text: "You took the best thing they ever built and flew it straight into the one place they're scared to follow. I almost respect that." },
+    { who: "PILOT", text: "And you, reading this. You tuned into an enemy band in the middle of a war. What did you honestly expect to hear?" },
+    { who: "PILOT", text: "Don't bother tuning away. We already know where you're sitting." },
     { fx: "lost" }
   ];
   var RETURN = [
-    { who: "STUDIO", text: "You came back. The address hasn't changed: yutinglyu@woundwort.xyz." }
+    { who: "PILOT", text: "You came back. Most people only make that mistake once." }
   ];
 
   var CHANNELS = [
-    { f: 180.07, name: "WOUNDWORT", tone: "zeon", tag: "OPEN", main: true, L: "STUDIO", R: "DESK",
-      capL: "STUDIO · WOUNDWORT", capR: "DESK · INBOX", script: SCRIPT },
+    { f: 180.07, name: "ZEON REMNANT", tone: "zeon", tag: "HOSTILE", main: true, L: "PILOT", R: "COMMAND",
+      capL: "PILOT · PATROL 3", capR: "COMMAND · REMNANT", script: SCRIPT },
 
-    // the services, as a handoff
-    { f: 157.40, name: "SERVICES", tone: "titans", tag: "OPEN", L: "LEAD", R: "ENGINEER",
-      capL: "LEAD · DESIGN", capR: "ENGINEER · BUILD", script: [
-      { who: "ENGINEER", text: "This spec has every state in it. Empty, loading, error, even the one where the session times out halfway through the form." },
-      { who: "LEAD", text: "That's the point. Any state we leave out, you end up designing at two in the morning without us." },
-      { who: "ENGINEER", text: "And the decision table?" },
-      { who: "LEAD", text: "That tells you which variant shows when. You shouldn't have to guess at anything." },
-      { who: "ENGINEER", text: "So I build it as written." },
-      { who: "LEAD", text: "Build it as written. If something's wrong, it's wrong in the spec, and we fix the spec." }] },
+    // the test team the suit was taken from
+    { f: 157.40, name: "TITANS · T3", tone: "titans", tag: "HOSTILE", L: "TEST LEAD", R: "DECK CHIEF",
+      capL: "TEST LEAD · T3", capR: "DECK CHIEF · BAY 4", script: [
+      { who: "DECK CHIEF", text: "Bay four is empty. Restraints cut, umbilicals torn out, and somebody left the canopy recorder running the whole time." },
+      { who: "TEST LEAD", text: "That airframe hasn't finished trials. Half its flight software is still my handwriting. Who signed it out?" },
+      { who: "DECK CHIEF", text: "Nobody signed anything. It launched at zero three hundred on a heading we don't fly, and the transponder came up as BUNNyS." },
+      { who: "TEST LEAD", text: "BUNNyS. Of course. Someone steals a prototype and still finds the time to be cute about it." },
+      { who: "DECK CHIEF", text: "Orders from above are to recover the unit intact. Nobody said a word about the pilot." },
+      { who: "TEST LEAD", text: "They never do. We build these things to outlive whoever's inside them, then act surprised when it works." },
+      { who: "DECK CHIEF", text: "Last contact puts it at bearing one-eight-zero, Lieutenant. That's remnant territory." },
+      { who: "TEST LEAD", text: "Good. Let Zeon find it first. Whoever's still standing in the morning, we collect." }] },
 
-    // the tools, as a bulletin
-    { f: 162.30, name: "TOOL BAY", tone: "civil", tag: "IN BUILD", L: "BULLETIN", R: "STUDIO",
-      capL: "BULLETIN · TOOL BAY", capR: "STUDIO · NO VIDEO", script: [
-      { who: "BULLETIN", text: "Three tools are in build at Woundwort, all of them running on Claude." },
-      { who: "BULLETIN", text: "The flow generator turns research notes or job stories into annotated wireframes and mid-fi prototypes." },
-      { who: "BULLETIN", text: "The design-system assistant writes component specs, states and accessibility notes that match the library a team already has." },
-      { who: "BULLETIN", text: "The critique agent checks screens against usability heuristics, WCAG and the team's own guidelines, then suggests specific fixes." },
-      { who: "BULLETIN", text: "The point is shorter concept-to-test cycles on client work, without the rigor slipping." }] },
+    // a civil broadcast, the war from the outside
+    { f: 162.30, name: "CIVIL BAND", tone: "civil", tag: "PUBLIC", L: "ANCHOR", R: "STUDIO",
+      capL: "ANCHOR · CIVIL BAND", capR: "STUDIO · NO VIDEO", script: [
+      { who: "ANCHOR", text: "...and fighting carried on overnight as Titans forces pushed further along the colony routes. Casualty figures have not been released." },
+      { who: "ANCHOR", text: "Residents near the old Zeon defensive line say a single mobile suit passed low over the reservoir just after three this morning." },
+      { who: "ANCHOR", text: "A Federation spokesperson declined to comment on reports that an experimental unit is missing from a Titans test facility." },
+      { who: "ANCHOR", text: "We asked a retired pilot what makes a person steal a war machine. He laughed. He said it's the same thing that makes anyone run: wanting to be somewhere that isn't here." },
+      { who: "ANCHOR", text: "Stay tuned, stay indoors, and if you see that suit, maybe don't wave." }] },
 
-    // the approach, from the cockpit's own seat
-    { f: 152.80, name: "APPROACH", tone: "seat", tag: "OWN UNIT", L: "LINEAR SEAT", R: "WOUNDWORT",
-      capL: "LINEAR SEAT · STUDIO", capR: "WOUNDWORT · APPROACH", script: [
-      { who: "LINEAR SEAT", text: "Every interface is a set of decisions made under constraint." },
-      { who: "LINEAR SEAT", text: "Research, technical limits, brand rules, user context. None of those are soft inputs. Together they are the brief." },
-      { who: "LINEAR SEAT", text: "The job is the smallest set of interfaces that solves the problem. Nothing decorative on top." },
-      { who: "LINEAR SEAT", text: "Woundwort is the working name for the practice. The work is the product." }] },
+    // the suit itself
+    { f: 152.80, name: "LINEAR SEAT", tone: "seat", tag: "OWN UNIT", L: "LINEAR SEAT", R: "BUNNyS",
+      capL: "LINEAR SEAT · RX-124", capR: "BUNNyS · PILOT", script: [
+      { who: "LINEAR SEAT", text: "Pilot biometrics do not match the registered test pilot. Heart rate elevated. Grip pressure well above the recorded baseline." },
+      { who: "LINEAR SEAT", text: "Override accepted. Callsign registered as BUNNyS. The previous pilot's name has been deleted, as requested." },
+      { who: "LINEAR SEAT", text: "Cockpit pressure holding. Frame integrity at eighty-four percent. Two of four hardpoints answering." },
+      { who: "LINEAR SEAT", text: "This unit was built for someone who would always be told where to go. I am still adjusting to a pilot who decides." },
+      { who: "LINEAR SEAT", text: "Advisory: you are being listened to on at least two hostile bands. I would not answer either of them." }] },
 
     // nobody admits to this one
     { f: 171.11, name: "???", tone: "ghost", tag: "UNKNOWN", L: "VOICE", R: "???",
@@ -86,7 +91,7 @@
       { who: "VOICE", text: "Woundwort." },
       { who: "VOICE", text: "Seven. Three. Zero. One." }] }
   ];
-  var TITLE = 'Contact, Woundwort', TITLE_TURNED = 'We can hear you', TITLE_AWAY = 'Don’t go.', TITLE_BACK = 'You came back.';
+  var TITLE = 'Unregistered carrier', TITLE_TURNED = 'They can hear you', TITLE_AWAY = 'Don’t go.', TITLE_BACK = 'You came back.';
 
   var BUNNYS = window.BUNNYS || {};
   var reduce = !!BUNNYS.reduce;
@@ -174,7 +179,7 @@
     }
     var p = progress[c.name] || (progress[c.name] = { i: -1, ended: false, beats: c.main && seen ? RETURN.concat(c.script.slice(1)) : c.script });
     caps.L.textContent = c.capL; caps.R.textContent = c.capR;
-    tag.textContent = c.main ? (turned ? 'TWO-WAY · WE CAN HEAR YOU' : 'OPEN CHANNEL · BEARING 180') : (c.tag === 'HOSTILE' ? 'INTERCEPT · ' : 'CHANNEL · ') + c.name;
+    tag.textContent = c.main ? (turned ? 'TWO-WAY · THEY CAN HEAR YOU' : 'INTERCEPT · BEARING 180') : (c.tag === 'HOSTILE' ? 'INTERCEPT · ' : 'CHANNEL · ') + c.name;
     $('r-dec').textContent = c.main ? (decrypt == null ? (decrypt = 61) : decrypt) + '%' : c.tone === 'ghost' ? '??' : 'CLEAR';
     if (p.ended) { who.textContent = c.name; line.innerHTML = '<span class="uk-x">— carrier only —</span>'; return; }
     who.textContent = ''; line.innerHTML = '<span class="uk-x">CHANNEL OPEN</span>';
@@ -288,7 +293,7 @@
       body.classList.add('is-turned');
       document.title = TITLE_TURNED;
       caps.R.textContent = tuned.capR.split(' · ')[0] + ' · NO SIGNAL';
-      tag.textContent = 'TWO-WAY · WE CAN HEAR YOU';
+      tag.textContent = 'TWO-WAY · THEY CAN HEAR YOU';
       $('tune-lbl').textContent = 'REMOTE LOCK';
       paintPorts(); tear();
       return advance();
