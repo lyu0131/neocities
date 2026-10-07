@@ -12,6 +12,10 @@ rest place, tagged with the group that says what moves it:
   trigger, paddle, dial, toggle, cover   controls that turn about a pivot (`pivots`)
   key0-3, thumb, armbtn              controls that press in
   rollP_a, rollP_b, hingeP_a, ...    pistons: _a rides mount a and aims at mount b, _b the other way (`pistons`)
+  boost, wheel, rocker, gauge0-4     the left hand's own controls (twist: the grip, turning on its axis)
+The site mirrors the model for the left hand. Parts tagged `side` R (the targeting controls, the R lettering) are the
+right hand's only, `side` L (collection HandRing_left: the thrust controls, lettering authored mirrored) the left's;
+`lgroup` names a part's group on the left hand where it differs (the twist grip).
 Contact shading is baked into each vertex at rest, with the clamshell shut and the ARM cover down.
 """
 import bpy, os, base64, struct, json
@@ -35,7 +39,8 @@ def frame_of(o):
     return FRAMES[p.name]
 
 CONTROL = {'trigger': 'trigger', 'trigger_tip': 'trigger', 'pinky_paddle': 'paddle', 'thumb_dome': 'thumb',
-           'toggle_bat': 'toggle', 'guard_cover': 'cover', 'guard_btn': 'armbtn'}
+           'toggle_bat': 'toggle', 'guard_cover': 'cover', 'guard_btn': 'armbtn',
+           'boost_lever': 'boost', 'boost_tip': 'boost', 'wheel': 'wheel', 'wheel_notch': 'wheel', 'rocker': 'rocker', 'rocker_mark': 'rocker'}
 for i, sfx in enumerate(('', '.001', '.002', '.003')):
     CONTROL['key' + sfx] = CONTROL['key_glow' + sfx] = 'key%d' % i
 
@@ -44,14 +49,18 @@ def group_of(o):
         return CONTROL[o.name]
     if o.name.startswith('dial') and not o.name.startswith('dial_tick'):
         return 'dial'
+    if o.name.startswith('wheel_rib'):
+        return 'wheel'
+    if o.name.startswith('gauge') and o.name != 'gauge_bezel':
+        return o.name
     if o.type == 'FONT':
         return 'label'
     if any(c.type == 'DAMPED_TRACK' for c in o.constraints):
         return o.name.split('_')[0] + ('_a' if o.parent.name.endswith('mountA') else '_b')
     return frame_of(o)
 
-src = [o for c in ('HandRing', 'HandRing_detail') for o in bpy.data.collections[c].all_objects
-       if not o.hide_render and o.type in ('MESH', 'CURVE', 'FONT')]
+src = [o for c in ('HandRing', 'HandRing_detail', 'HandRing_left') for o in bpy.data.collections[c].all_objects
+       if (not o.hide_render or o.get('side') == 'L') and o.type in ('MESH', 'CURVE', 'FONT')]   # the left's parts hide in the .blend's renders
 for o in src:   # the Bolt Factory screws come in at ~3k triangles each: a few hundred is plenty at this size
     if 'screw' in o.name:
         d = o.modifiers.new('lod', 'DECIMATE'); d.ratio = 0.12
@@ -65,7 +74,7 @@ for o in src:
     me = bpy.data.meshes.new_from_object(o.evaluated_get(dg), depsgraph=dg)
     me.transform(o.matrix_world)
     c = bpy.data.objects.new(o.name + '_x', me); work.objects.link(c)
-    c['group'] = group_of(o); c['mat'] = o.active_material.name
+    c['group'] = group_of(o); c['mat'] = o.active_material.name; c['side'] = o.get('side', ''); c['lgroup'] = o.get('lgroup', '')
     me.color_attributes.new('ao', 'FLOAT_COLOR', 'POINT'); me.color_attributes.active_color = me.color_attributes['ao']
     copies.append(c)
 for o in src:
@@ -96,13 +105,16 @@ for c in copies:
             n = norms[li].vector
             N += [round(n.x * 127), round(n.z * 127), round(n.y * 127)]
             A.append(round(max(0.0, min(1.0, ao[vi].color[0])) * 255))
-    parts.append({'group': c['group'], 'mat': c['mat'], 'pos': b64('f', P), 'nrm': b64('b', N), 'ao': b64('B', A), 'count': len(A)})
+    tags = {k: v for k, v in (('side', c['side']), ('lg', c['lgroup'])) if v}
+    parts.append({'group': c['group'], **tags, 'mat': c['mat'], 'pos': b64('f', P), 'nrm': b64('b', N), 'ao': b64('B', A), 'count': len(A)})
 
 wl = lambda n: O[n].matrix_world.translation
 meta = {
     'hinge': site(wl('hingeE')),
     'pivots': {'trigger': site(Vector((-0.016, 0.155, -0.012))), 'paddle': site(Vector((0.028, 0.155, -0.012))),
-               'dial': site(wl('dial')), 'toggle': site(wl('toggle_bat')), 'cover': site(wl('cover_hinge'))},
+               'dial': site(wl('dial')), 'toggle': site(wl('toggle_bat')), 'cover': site(wl('cover_hinge')),
+               'boost': site(Vector((-0.016, 0.155, -0.012))), 'wheel': site(wl('wheel')), 'twist': site(Vector((0, 0.155, -0.012))),
+               'rocker': site(wl('rocker') - Vector((0, 0, 0.0015)))},
     'pistons': {p: {'a': site(wl(p + '_mountA')), 'b': site(wl(p + '_mountB')),
                     'fa': frame_of(O[p + '_mountA']), 'fb': frame_of(O[p + '_mountB'])} for p in ('rollP', 'hingeP')},
     'parts': parts,

@@ -103,8 +103,8 @@ within 2.5% of where that frame has them, on a 16:9 screen in the still (reduced
 The eye sits 0.4 ball radii behind the centre (`EYE0`), as the reference camera does: from the exact centre every
 great circle would look straight; from behind it, everything on the ball curves the way the inside of a dome does.
 The view rests on the nose (it was 7 deg below, as the frame is shot). The eye distance, a 78-deg width and that tilt were fitted together so the
-measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, so it runs at 87 deg across
-(64 tall on a portrait screen) and the layout test scales the frame's positions to match.
+measured layout lands on the frame (rms ~1%); the owner then asked for a wider view, twice, so it runs at 95 deg across
+(70 tall on a portrait screen) and the layout test scales the frame's positions to match.
 
 **Hierarchy** (brightness, opacity and weight only; the colours stay): `tier(n)` before each group.
 1 the triangle sight and the active target: full, the reticle bars and brackets a touch heavier, a sharp core over a
@@ -144,9 +144,12 @@ The right hand's controls (targeting) are worked by the flight: the thumb holds 
 trigger blade under the index finger snaps in on the lock, the red pinky paddle squeezes when a lock breaks; on the
 knuckle, the SEL dial clicks round a position for each new target and the toggle flicks to MANUAL when the pilot
 takes over; once strapped in, the guarded ARM button's flip cover goes up, the button goes in, and the four keys
-ripple through a check (under reduced motion, the cover is simply up). The left hand is the right mirrored, its
-controls at rest and without the lettering, until its own thrust set (twist throttle, boost lever, thumb wheel) is
-built. Re-export after editing the .blend: `blender -b site5/tools/hand_ring.blend -P site5/tools/export_ring.py`. Last, what the seat hangs on (pedestal, cross
+ripple through a check (under reduced motion, the cover is simply up). The left hand is the right mirrored, with its own
+controls for thrust (parts tagged `side` L or R in the .blend; the left's lettering is authored mirrored so it reads
+right): the whole grip is a twist throttle that winds up with how hard the suit manoeuvres (further on boost), an
+amber boost lever under the index finger snaps in on a jink, a hard pull or a near miss, a ribbed thumb wheel in the
+end cap runs with the turn, and on the knuckle a CRUISE / COMBAT rocker tips to COMBAT while a target is held beside
+a five-segment throttle gauge (lit a segment per fifth; it sweeps up once as a check on strap-in). Re-export after editing the .blend: `blender -b site5/tools/hand_ring.blend -P site5/tools/export_ring.py`. Last, what the seat hangs on (pedestal, cross
 members, hoses, the boom arm). Rounded boxes and tubes in the seat frame. Lit by the panoramic monitor itself (sky
 above, moonlit cloud sea below, in world directions through the suit's attitude, so the light moves as it banks),
 plus the near-miss flash. Physically based materials (roughness, metalness, roughness-aware Fresnel; a rough

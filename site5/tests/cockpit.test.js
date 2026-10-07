@@ -19,9 +19,14 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   const open0 = await p.eval('SITE5.parts.ringOpen');
   // the scripted flight turns the suit, and the seat swings inside the ball
   const ctl = () => p.eval('JSON.stringify(SITE5.parts.controls)').then(JSON.parse);
-  const a0 = await pose(p, 's.heading'); let maxSeat = 0, armIn = 0; const keysIn = [0, 0, 0, 0];
+  const ctlL = () => p.eval('JSON.stringify(SITE5.parts.controlsL)').then(JSON.parse);
+  const hands = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.ringGroups)'));
+  check('each hand has its own controls: targeting right, thrust left', ['trigger', 'dial', 'armbtn', 'thumb'].every(g => hands[1].includes(g) && !hands[0].includes(g))
+    && ['boost', 'wheel', 'twist', 'rocker', 'gauge4'].every(g => hands[0].includes(g) && !hands[1].includes(g)), JSON.stringify(hands));
+  const a0 = await pose(p, 's.heading'); let maxSeat = 0, armIn = 0; const keysIn = [0, 0, 0, 0]; let gaugeMax = 0;
   for (let i = 0; i < 60; i++) { await p.sleep(50); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)'));
-    const c = await ctl(); armIn = Math.max(armIn, c.arm); c.keys.forEach((k, j) => { keysIn[j] = Math.max(keysIn[j], k); }); }
+    const c = await ctl(); armIn = Math.max(armIn, c.arm); c.keys.forEach((k, j) => { keysIn[j] = Math.max(keysIn[j], k); }); gaugeMax = Math.max(gaugeMax, (await ctlL()).gauge); }
+  check('the throttle gauge sweeps up once on strap-in', gaugeMax > 0.95, gaugeMax.toFixed(2));
   check('AUTO flies: the heading changes', Math.abs(((await pose(p, 's.heading')) - a0 + 540) % 360 - 180) > 3);
   check('AUTO says so', (await pose(p, 's.mode')) === 'AUTO');
   check('the seat sways inside the ball', maxSeat > 0.003 && maxSeat < 0.3, maxSeat.toFixed(4));
@@ -34,7 +39,10 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   const cl = () => p.eval('JSON.stringify(SITE5.parts.cluster)').then(JSON.parse);
   const dash0 = (await cl()).dash;
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
-  const h0 = await pose(p, 's.heading'); await p.sleep(900);
+  const h0 = await pose(p, 's.heading'), L0 = await ctlL(); await p.sleep(900);
+  const L1 = await ctlL();
+  check('turning winds the throttle and runs the thumb wheel', L1.twist > 0.6 && Math.abs(L1.wheel - L0.wheel) > 20, JSON.stringify({ twist: L1.twist, wheel: [L0.wheel, L1.wheel] }));
+  check('a hard turn snaps the boost lever in', L1.boost > 0.5, L1.boost.toFixed(2));
   const turning = await cl(), tiltTurn = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.ringTurn || null)')); await p.sleep(300);
   check('turning left rolls the hand rings left', !!tiltTurn && tiltTurn.roll < -5, JSON.stringify(tiltTurn));
   check('turning left lights the left turn tabs only', turning.tabs[0] > 0.3 && turning.tabs[1] < 0.05, JSON.stringify(turning.tabs));
@@ -98,13 +106,13 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // the triangle sight is always up, and the coffin cells glow in turn (a lit run that moves on)
   // the sight: faint at idle, closing in (and jittering) while a lock builds, full and blinking on lock
   // (E: springs open and closes in, clunks into the lock; brackets and V follow the target; pings while held)
-  const dial0 = (await ctl()).dial; let thumbIn = 0, triggerIn = 0;
+  const dial0 = (await ctl()).dial; let thumbIn = 0, triggerIn = 0, combat = 0;
   const seen = {}; let maxK = 1, minK = 9, follow = null, pinged = false, onFor = 0, railPulsed = false, cascaded = false, triPink = false, caretOff = false;
   const sightNow = () => p.eval('JSON.stringify({ s: SITE5.parts.sightStage, k: SITE5.parts.sightScale, cue: SITE5.parts.sightCue, err: SITE5.parts.sightCueErr, pings: SITE5.parts.sightPings, fly: SITE5.parts.sightFly, sway: SITE5.parts.sightSway })').then(JSON.parse);
   for (let i = 0; i < 500 && !(seen.idle && seen.acquire && seen.blink && seen.on && onFor > 40); i++) {
     const st = await sightNow();
     seen[st.s] = true; if (st.s === 'acquire') maxK = Math.max(maxK, st.k);
-    if (st.s === 'acquire') thumbIn = Math.max(thumbIn, (await ctl()).thumb); if (st.s === 'on') triggerIn = Math.max(triggerIn, (await ctl()).trigger);
+    if (st.s === 'acquire') thumbIn = Math.max(thumbIn, (await ctl()).thumb); if (st.s === 'on') { triggerIn = Math.max(triggerIn, (await ctl()).trigger); combat = Math.max(combat, (await ctlL()).rocker); }
     if (st.s === 'on' || st.s === 'blink') minK = Math.min(minK, st.k);
     if (st.s === 'on' || st.s === 'blink') { const k = await cl(); if (k.railPulse) railPulsed = true; if (k.cascade) cascaded = true; if (k.triPink) triPink = true; if (!k.caret || k.caret !== k.triColor) caretOff = true; }
     if (st.s === 'on') { onFor++; if (st.pings) pinged = true; if (onFor > 25 && st.cue && Math.hypot(st.cue[0], st.cue[1]) > 0.002 && (!follow || st.err < follow.err)) follow = st; }
@@ -121,6 +129,7 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   check('the caret always wears the triangle\'s colour', !caretOff);
   check('the thumb holds the dome in while the lock builds', thumbIn > 0.5, thumbIn.toFixed(2));
   check('the trigger snaps in on the lock', triggerIn > 0.8, triggerIn.toFixed(2));
+  check('the left rocker tips to COMBAT while a target is held', combat > 0.8, combat.toFixed(2));
   check('the SEL dial clicks round for a new target', (await ctl()).dial - dial0 >= 20, dial0 + ' -> ' + (await ctl()).dial);
   // turning hard off the target breaks the lock: the brackets fly apart, and the big triangle sways with the turn
   // (and right next to the bunched contacts a held key still turns at full rate: the aim help never fights it)
@@ -157,9 +166,11 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   // targeting: a lock goes to the contact nearest the boresight, and the HUD marks that one
   let tg = null;
   for (let i = 0; i < 80 && !tg; i++) { await p.sleep(100); tg = await p.eval(`(() => { const s = SITE5.pose; if (!s.locked) return null;
-    const near = s.contacts.reduce((a, b) => b.off < a.off ? b : a); return JSON.stringify({ lockId: s.lockId, near: near.id, off: near.off, marked: SITE5.parts.target }); })()`); }
+    const near = s.contacts.reduce((a, b) => b.off < a.off ? b : a), cur = s.contacts.find(c => c.id === s.lockId);
+    return JSON.stringify({ lockId: s.lockId, near: near.id, nearOff: near.off, off: cur.off, marked: SITE5.parts.target }); })()`); }
   tg = tg && JSON.parse(tg);
-  check('a lock goes to the contact nearest the sight', !!tg && tg.lockId === tg.near && tg.off < 7, JSON.stringify(tg));
+  // (a held lock stays put until another contact is clearly nearer, by 2.5 deg: ball.js keeps it from flickering)
+  check('a lock goes to the contact nearest the sight', !!tg && (tg.lockId === tg.near || tg.off < tg.nearOff + 2.5) && tg.off < 7, JSON.stringify(tg));
   check('and the HUD marks that contact as the target', !!tg && tg.marked === tg.lockId);
   // the hierarchy: only the sight / active target (tier 1) and the rail's core (tier 2) carry a halo
   const halo = await p.eval('JSON.stringify(SITE5.parts.halo)').then(JSON.parse);

@@ -203,11 +203,12 @@
     };
   }
 
-  // the camera: 87 degrees across on a landscape screen, 64 tall on a portrait one. (78 matches the reference frame
-  // exactly with EYE0; the owner asked for it a little wider, 2026-10-05.) S.camRef is that fitted width.
+  // the camera: 95 degrees across on a landscape screen, 70 tall on a portrait one. (78 matches the reference frame
+  // exactly with EYE0; the owner asked for it wider, to 87 on 2026-10-05 and to 95 on 2026-10-07.) S.camRef is
+  // that fitted width.
   function camera(W, H) {
-    if (W >= H) { var tx = 0.95; return { tx: tx, ty: tx * H / W }; }
-    var ty = Math.tan(32 * D); return { tx: ty * W / H, ty: ty };
+    if (W >= H) { var tx = Math.tan(47.5 * D); return { tx: tx, ty: tx * H / W }; }
+    var ty = Math.tan(35 * D); return { tx: ty * W / H, ty: ty };
   }
 
   S.camRef = 0.81;

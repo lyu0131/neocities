@@ -52,6 +52,7 @@
     btn_red: { a: [0.6, 0.02, 0.02], r: 0.18, m: 0, k: 0, e: [0.25, 0.02, 0.01] },   // the ARM button, lit from inside
     cover: { a: [0.12, 0.08, 0.03], r: 0.08, m: 0, k: 0 },          // its smoked flip cover (drawn solid)
     stripe: { a: [0.85, 0.65, 0.1], r: 0.5, m: 0, k: 4 },           // the cover's guard rails
+    amber_anod: { a: [0.8, 0.42, 0.05], r: 0.3, m: 0.8, k: 2 },     // the left hand's boost lever
     led_amber: { a: [0.05, 0.03, 0.01], r: 0.5, m: 0, k: 0, e: [1.2, 0.6, 0.15] }   // the status light
   };
 
@@ -253,7 +254,7 @@
   // metals tint their reflection. Each surface kind adds its own fine relief (normal and roughness), in seat space.
   var FS = ['#version 300 es', 'precision highp float;',
     'in vec3 vN, vA, vE, vP, vW; in float vR, vM, vK, vG, vO;',
-    'uniform mat3 uSuit; uniform float uFlash;',
+    'uniform mat3 uSuit; uniform float uFlash, uGlow;',
     'out vec4 o;',
     'const vec3 MOON = normalize(vec3(-.45, .30, .84));',
     'float h3(vec3 p) { p = fract(p * .3183099 + .1); p *= 17.; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }',
@@ -307,7 +308,7 @@
     '  float Dg = a2 / (3.14159 * pow(NoH * NoH * (a2 - 1.) + 1., 2.));',
     '  vec3 moon = ((1. - F) * (1. - metal) * alb * .02 + F * Dg * .002) * NoL * vec3(.55, .6, .7);',   // a small, far moon
     // no boost: a surface lit by the screen all round can only send back a share of the screen's own light
-    '  vec3 c = (diff + F * env + moon) * vO + vec3(.7, .8, 1.) * uFlash * 1.6 * alb + vE;',
+    '  vec3 c = (diff + F * env + moon) * vO + vec3(.7, .8, 1.) * uFlash * 1.6 * alb + vE * uGlow;',
     '  o = vec4(pow(c, vec3(1. / 2.2)), 1.);',
     '}'].join('\n');
   function shader(type, src) {
@@ -329,25 +330,28 @@
     });
   }
   attribs();
-  var U = {}; ['uView', 'uRot', 'uOrg', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });
+  var U = {}; ['uView', 'uRot', 'uOrg', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash', 'uGlow'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });
 
   // ---- the hand rings: the Blender model (js/ring-data.js, exported from tools/hand_ring.blend), one floating over
   // the front of each console. The forearm goes through the inner ring and the hand closes on the L handbar. The
   // outer track yaws and pitches, the inner ring rolls inside it; the upper halves of both open as a clamshell about
   // one hinge on the outer side, and two pistons work between the frames as they move. The right hand's controls --
   // trigger, finger keys, pinky paddle, thumb dome, and on the knuckle the guarded ARM button, the SEL dial and the
-  // AUTO/MANUAL toggle -- are worked by the flight (see work()). Mirrored for the left hand, its controls at rest
-  // and without the lettering; both rings turn the same way, with the flight ----
+  // AUTO/MANUAL toggle -- are worked by the flight (see work()). The left hand is the model mirrored, with its own
+  // controls for thrust in place of the targeting ones: a twist throttle (the whole grip turns on its axis), an amber
+  // boost lever under the index finger, a thumb wheel in the end cap, and on the knuckle a five-segment throttle gauge
+  // and a CRUISE / COMBAT rocker. Both rings turn the same way, with the flight ----
   var RING_C = [0.275, -0.39, 0.36];                      // the ring's centre, right hand
   var ROLL = 35, PITCH = 18, YAW = 10, OPEN = 115;        // full stick, degrees; the clamshell fully open
   var RING = window.SITE5_RING;
   function decode(b64, Type) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Type(u.buffer); }
-  var ringParts = RING ? RING.parts.map(function (pt) { return { g: pt.group, mt: MAT[pt.mat], n: pt.count, P: decode(pt.pos, Float32Array), N: decode(pt.nrm, Int8Array), A: decode(pt.ao, Uint8Array) }; }) : [];
+  var ringParts = RING ? RING.parts.map(function (pt) { return { g: pt.group, side: pt.side, lg: pt.lg, mt: MAT[pt.mat], n: pt.count, P: decode(pt.pos, Float32Array), N: decode(pt.nrm, Int8Array), A: decode(pt.ao, Uint8Array) }; }) : [];
   var rings = (RING ? [-1, 1] : []).map(function (sd) {
     var X = function (p) { return [sd * p[0], p[1], p[2]]; }, byGroup = {}, total = 0;
     ringParts.forEach(function (pt) {
-      if (sd < 0 && pt.g === 'label') return;   // lettering would read backwards on the mirrored hand
-      (byGroup[pt.g] = byGroup[pt.g] || []).push(pt); total += pt.n;
+      if (pt.side && pt.side !== (sd > 0 ? 'R' : 'L')) return;   // one hand's own parts
+      var g = sd < 0 && pt.lg || pt.g;
+      (byGroup[g] = byGroup[g] || []).push(pt); total += pt.n;
     });
     var buf = new Float32Array(total * STRIDE), at = 0, ranges = {};
     Object.keys(byGroup).forEach(function (g) {
@@ -384,8 +388,11 @@
   // the dome in while a lock builds, the trigger snaps in on the lock, the pinky squeezes its paddle when a lock
   // breaks, the dial clicks round a position for each new target, the toggle flicks to MANUAL when the pilot takes
   // over. Once strapped in, the ARM cover flips up, the button goes in, and the four keys ripple through a check.
+  // The left hand's work the thrust: the throttle winds up with how hard the suit manoeuvres (and further on boost),
+  // the boost lever snaps in on a jink, a hard pull or a near miss, the thumb wheel runs with the turn, the rocker
+  // tips to COMBAT while a target is held, and the gauge reads the throttle (sweeping up once as a check on strap-in).
   var ctl = { thumb: 0, trigger: 0, paddle: 0, dial: 0, toggle: 0, cover: 0, arm: 0, keys: [0, 0, 0, 0] };
-  var REST = { thumb: 0, trigger: 0, paddle: 0, dial: 0, toggle: 0, cover: 0, arm: 0, keys: [0, 0, 0, 0] };
+  var ctlL = { twist: 0, boost: 0, wheel: 0, rocker: 0, gauge: 0 };
   var dialTo = 0, lastId = null, wasLocked = false, letGo = -9, lastT = 0;
   function work(pose) {
     var t = pose.t, dt = S.reduce ? 1 : m.clamp(t - lastT, 0, 0.1); lastT = t;
@@ -401,6 +408,13 @@
     ctl.cover = ease(ctl.cover, S.reduce || t > 2 ? 1 : 0, 6);
     ctl.arm = ease(ctl.arm, on(2.5, 2.75), 25);
     ctl.keys = ctl.keys.map(function (k, i) { return ease(k, on(2.9 + i * 0.12, 3.05 + i * 0.12), 25); });
+    var st = pose.stick || [0, 0], hard = Math.min(1, Math.hypot(st[0], st[1]));
+    var boost = pose.flash > 0.15 || Math.abs(st[1]) > 0.85 || Math.abs(st[0]) > 0.9 ? 1 : 0;
+    ctlL.boost = ease(ctlL.boost, boost, 16);
+    ctlL.twist = ease(ctlL.twist, m.clamp(0.3 + 0.55 * hard + 0.25 * boost, 0, 1), 5);
+    ctlL.wheel += st[0] * 240 * (S.reduce ? 0 : dt);
+    ctlL.rocker = ease(ctlL.rocker, pose.lockId !== null ? 1 : 0, 14);
+    ctlL.gauge = Math.max(ctlL.twist, t > 2.5 && t < 3.3 ? Math.sin(Math.PI * (t - 2.5) / 0.8) : 0);
   }
   var KEY_IN = [0, 0.00046, 0.00064], ARM_IN = [0, -0.0013, 0], THUMB_IN = 0.00086;   // how far each goes in
   gl.enable(gl.DEPTH_TEST);   // no culling: the meshes are closed, and the shader lights a face from whichever side shows
@@ -416,7 +430,7 @@
     gl.viewport(0, 0, cw, ch); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.uniformMatrix3fv(U.uView, false, mat(HQi));
     gl.uniform2f(U.uTan, tx, ty); gl.uniform1f(U.uKX, KX); gl.uniform1f(U.uLift, LIFT);
-    gl.uniformMatrix3fv(U.uSuit, false, mat(pose.suitQ)); gl.uniform1f(U.uFlash, pose.flash);
+    gl.uniformMatrix3fv(U.uSuit, false, mat(pose.suitQ)); gl.uniform1f(U.uFlash, pose.flash); gl.uniform1f(U.uGlow, 1);
     gl.uniformMatrix3fv(U.uRot, false, I3); gl.uniform3f(U.uOrg, 0, 0, 0);
     gl.bindVertexArray(seatVAO); gl.drawArrays(gl.TRIANGLES, 0, COUNT);
     // strapping in: the clamshells start open and swing shut over the first two seconds (closed under reduced motion);
@@ -428,13 +442,17 @@
     rings.forEach(function (rg) {
       // each group's place, as a function of a rest point (about the ring's centre); the clamshell swings about the
       // hinge's axis (the forearm's line): up and over, outward, on either hand
-      var Ho = rotZ(-rg.sd * open), c = rg.sd > 0 ? ctl : REST, pv = rg.piv;
+      var Ho = rotZ(-rg.sd * open), c = ctl, cL = ctlL, pv = rg.piv;
       var push = function (d, k) { return function (p) { return YPR([p[0] + d[0] * k, p[1] + d[1] * k, p[2] + d[2] * k]); }; };
       var F = { track: YP, ring: YPR, label: YPR, trackhatch: about(YP, rg.hinge, Ho), hatch: about(YPR, rg.hinge, Ho),
         trigger: about(YPR, pv.trigger, rotX(20 * c.trigger)), paddle: about(YPR, pv.paddle, rotX(20 * c.paddle)),
         dial: about(YPR, pv.dial, rotY(c.dial)), toggle: about(YPR, pv.toggle, rotX(-50 * c.toggle)),
         cover: about(YPR, pv.cover, rotX(115 * c.cover)), armbtn: push(ARM_IN, c.arm), thumb: push([rg.sd * THUMB_IN, 0, 0], c.thumb) };
       c.keys.forEach(function (k, i) { F['key' + i] = push(KEY_IN, k); });
+      var TW = about(YPR, pv.twist, rotX(-35 * cL.twist));   // the left grip's twist, and what it carries
+      F.twist = TW; F.wheel = about(YPR, pv.wheel, rotX(cL.wheel));
+      F.boost = about(YPR, pv.boost, rotX(20 * cL.boost)); F.rocker = about(YPR, pv.rocker, rotX(12 * (2 * cL.rocker - 1)));
+      for (var gi = 0; gi < 5; gi++) F['gauge' + gi] = YPR;
       // the pistons: each half rides its own mount and points at the other's
       Object.keys(rg.pistons).forEach(function (n) {
         var ps = rg.pistons[n], aw = F[ps.fa](ps.a), bw = F[ps.fb](ps.b), Rm = turnTo(sub(ps.b, ps.a), sub(bw, aw));
@@ -445,11 +463,15 @@
       Object.keys(rg.ranges).forEach(function (g) {
         var f = F[g], o = f([0, 0, 0]), r = rg.ranges[g];
         gl.uniformMatrix3fv(U.uRot, false, cols(function (v) { return sub(f(v), o); }));
-        gl.uniform3fv(U.uOrg, add(rg.c, o)); gl.drawArrays(gl.TRIANGLES, r.first, r.count);
+        gl.uniform3fv(U.uOrg, add(rg.c, o));
+        gl.uniform1f(U.uGlow, g.indexOf('gauge') === 0 ? (cL.gauge * 5 > +g[5] + 0.5 ? 1 : 0.08) : 1);   // a segment per fifth
+        gl.drawArrays(gl.TRIANGLES, r.first, r.count);
       });
+      gl.uniform1f(U.uGlow, 1);
     });
     gl.bindVertexArray(null);
-    S.parts.ringTurn = turn; S.parts.ringOpen = Math.round(open); S.parts.controls = ctl;
+    S.parts.ringTurn = turn; S.parts.ringOpen = Math.round(open); S.parts.controls = ctl; S.parts.controlsL = ctlL;
+    S.parts.ringGroups = rings.map(function (rg) { return Object.keys(rg.ranges); });
     // what shows, per group: how many of its sample points land on the screen (for the tests)
     var drawn = {}, proj = function (p) { var e = m.qrot(HQi, [p[0] * KX, p[1] + LIFT, p[2]]); return e[2] > 0.02 ? [W / 2 + e[0] / e[2] / tx * W / 2, H / 2 - e[1] / e[2] / ty * H / 2] : null; };
     Object.keys(points).forEach(function (g) { drawn[g] = points[g].filter(function (p) { var s = proj(p); return s && s[0] >= 0 && s[0] <= W && s[1] >= 0 && s[1] <= H; }).length; });
