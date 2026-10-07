@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- before the stylesheets: a script after them would wait for Google Fonts to load -->
 <script src="js/link.js"></script>
-<title>Hangar, RX-124 Gundam TR-6 [Woundwort]</title>
+<title>Tools, Woundwort</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -20,31 +20,28 @@
   <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
   <ul aria-keyshortcuts="Q E">
     <li><kbd aria-hidden="true">Q</kbd></li>
-    <li><a href="pilot.html">PILOT</a></li>
-    <li><a href="missions.html">MISSIONS</a></li>
-    <li><a href="hangar.html" aria-current="page">HANGAR</a></li>
+    <li><a href="pilot.html">STUDIO</a></li>
+    <li><a href="missions.html">SERVICES</a></li>
+    <li><a href="hangar.html" aria-current="page">TOOLS</a></li>
     <li><kbd aria-hidden="true">E</kbd></li>
   </ul>
 </nav>
 
 <main class="screen">
-  <p class="bar"><span>HANGAR CONTROL</span> <span class="unit">RX-124 TR-6 [WOUNDWORT] &#183; UNIT DATA</span></p>
-  <h1>RX-124 TR-6 [WOUNDWORT]</h1>
-
+  <p class="bar"><span>TOOL BAY</span> <span class="unit">WOUNDWORT &#183; CLAUDE TOOLS</span></p>
+  <h1>TOOLS</h1>
   <ul class="rail">
-    <li><b>PILOT</b><span><a href="pilot.html">SYLAS LYU</a></span></li>
-    <li><b>MECHANICAL DESIGN</b><span>KENKI FUJIOKA</span></li>
-    <li><b>TYPE</b><span>TRANSFORMABLE MS</span></li>
-    <li><b>FIRST SEEN</b><span>U.C. 0088</span></li>
-    <li><b>OPERATING SYSTEM</b><span>BUNNyS</span></li>
+    <li><b>TOOLS</b><span>3</span></li>
+    <li><b>STATUS</b><span>IN BUILD</span></li>
+    <li><b>RUNS ON</b><span>CLAUDE</span></li>
+    <li><b>GOAL</b><span>FASTER CONCEPT-TO-TEST</span></li>
   </ul>
-
-  <section class="panel" data-ref="HGR-0101 &#183; REV E">
-    <p class="sub">UNIT DATA</p>
+  <section class="panel" data-ref="TLS-0101 &#183; REV A" data-sector="Namesake">
+    <p class="sub">NAMESAKE</p>
     <h2>Turntable</h2>
     <figure class="suit-view">
       <canvas id="suit" tabindex="0" role="img"
-        aria-label="The RX-124 Gundam TR-6 [Woundwort], a 3D model turning in place. Drag or use the arrow keys to turn it."></canvas>
+        aria-label="The RX-124 Gundam TR-6 [Woundwort], the studio's namesake, a 3D model turning in place. Drag or use the arrow keys to turn it."></canvas>
       <p class="suit-hdg" aria-hidden="true">YAW <span class="suit-yaw">000</span></p>
       <p class="suit-nogl" hidden>This browser can&rsquo;t draw the 3D model.</p>
     </figure>
@@ -55,249 +52,51 @@
         <li><button type="button" data-view="180" aria-keyshortcuts="R"><kbd aria-hidden="true">R</kbd>REAR</button></li>
       </ul>
     </div>
+    <p>The studio shares its name with the RX-124 Gundam TR-6 [Woundwort], mechanical design by Kenki
+    Fujioka: a modular core unit built to take on whatever the job needs.</p>
   </section>
-
-  <section class="panel insignia" data-ref="HGR-0108 &#183; REV E" data-sector="Insignia">
-    <p class="sub">UNIT DATA</p>
-    <h2>Unit insignia</h2>
+  <section class="panel insignia" data-ref="TLS-0108 &#183; REV A" data-sector="Insignia">
+    <p class="sub">STUDIO MARK</p>
+    <h2>Insignia</h2>
     <figure>
       <img src="img/emblem.webp" width="560" height="439" decoding="async"
-        alt="The BUNNyS unit insignia: a mecha helmet split white and dark, with a yellow and orange V-fin and cyan and red eyes, framed by a wreath of leaves and purple flowers.">
+        alt="The Woundwort insignia: a mecha helmet split white and dark, with a yellow and orange V-fin and cyan and red eyes, framed by a wreath of leaves and purple flowers.">
     </figure>
   </section>
-
-  <section class="panel" data-ref="HGR-0102 &#183; REV E" data-sector="Profile">
-    <p class="sub">PROFILE</p>
-    <h2>RX-124 Gundam TR-6 [Woundwort]</h2>
-    <p>The RX-124 Gundam TR-6 [Woundwort] is a mobile suit that appears in the <i>Advance of Zeta:
-    The Flag of Titans</i> photo-novel and manga. It is the final product of the Earth Federation
-    Forces&rsquo; next-generation mainstay mobile suit development project known as the TR Plan.
-    Serving as the base unit for all Gundam TR-6 configurations, it can adopt a wide range of
-    capabilities simply by exchanging equipment and parts, allowing it to adapt to any mission. It is
-    also compatible with super-heavy armaments through the Hrududu II, and can transform into a
-    mobile armor form. Thanks to its exceptional thrust, it is even capable of independent flight
-    within the atmosphere.</p>
-    <dl class="rows">
-      <dt>UNIT TYPE</dt><dd>Limited Production Transformable Mobile Suit</dd>
-      <dt>OTHER NAMES</dt><dd>RX-124 Gundam TR-6 [Woundwort] &#183; RMS-124 Gundam TR-6</dd>
-      <dt>DEVELOPED INTO</dt><dd>Gundam Groundsel</dd>
-      <dt>FIRST SEEN</dt><dd>U.C. 0088</dd>
-      <dt>MANUFACTURER</dt><dd>Konpeitoh Arsenal</dd>
-      <dt>OPERATORS</dt><dd>Titans Test Team (Black Otter Team) &#183; Black Hares</dd>
-      <dt>PILOT</dt><dd><a href="pilot.html">Sylas Lyu</a> &#183; callsign BUNNyS</dd>
-      <dt>POWER PLANT</dt><dd>Minovsky Ultracompact Fusion Reactor</dd>
-      <dt>COCKPIT</dt><dd>Pilot in a panoramic monitor / linear seat cockpit in the torso, with a Core
-      Block System using the MP-X87 [Primrose II]</dd>
-      <dt>OPERATING SYSTEM</dt><dd>BUNNyS</dd>
-      <dt>MECHANICAL DESIGNER</dt><dd>Kenki Fujioka</dd>
-      <dt>DEBUT</dt><dd><i>Advance of Zeta: The Flag of Titans</i></dd>
-    </dl>
-  </section>
-
-  <section class="panel" data-ref="HGR-0103 &#183; REV E" data-sector="Technology">
+  <section class="panel" data-ref="TLS-0102 &#183; REV A" data-sector="The tools">
     <p class="sub">SYSTEMS</p>
-    <h2>Technology and combat characteristics</h2>
-    <p>The Gundam TR-6 was developed as the next-generation mainstay mobile suit for the Titans and
-    the Earth Federation Forces. It represents the final and fully realized model of the Titans&rsquo;
-    development initiative for their main MS: the culmination of the &ldquo;TR Plan.&rdquo; Its
-    creation took place during the Gryps Conflict, a period marked by disorganized development efforts
-    in which various MS design bureaus independently pursued incompatible systems. As a result,
-    productivity was disregarded, and many prototype machines with highly specialized and incompatible
-    structures were fielded simultaneously. This chaotic era would later be known as the beginning of
-    the so-called &ldquo;dinosaur evolution&rdquo; of mobile suits.</p>
-    <p>To bring order to this fragmented situation, the &ldquo;Model Integration Plan&rdquo; was
-    initiated, aiming to standardize and consolidate all MS into a unified platform. The TR-6
-    [Woundwort] was the embodiment of this plan. The core of all TR-6 configurations is the TR-6
-    [Woundwort], a compact mobile suit developed with modular adaptability in mind. Central to its
-    design is the Universal Replacement System, a modular parts-exchange system that allows the
-    Woundwort to adapt into various configurations by folding its limbs and equipping dedicated
-    reinforcement units. By equipping specific optional parts, the TR-6 can function as a substitute
-    for virtually any other mobile suit in the Federation Forces&rsquo; lineup. When configured to
-    replace a given unit, its name reflects this role: for example, adopting the name &ldquo;Hazel
-    II&rdquo; when outfitted with parts replacing the TR-1 Hazel. In essence, the Gundam TR-6
-    [Woundwort] is a general-purpose core unit with the potential to evolve into the ultimate weapon,
-    [Inle], through the combination and rearrangement of reinforcement parts.</p>
-    <p>Designed as a &ldquo;Light Armor MS,&rdquo; the Woundwort features a minimally armored frame to
-    prioritize transformation capabilities. Its limbs are equipped with folding mechanisms that allow
-    it to seamlessly switch between various forms. Despite its small size, the Woundwort is powered by
-    a high-output TR-type generator, granting it an exceptional power-to-weight ratio, a signature of
-    compact mobile suits. Its torso, which contains the cockpit, can detach and function independently
-    as a mobile escape pod known as the Primrose II. Thanks to its generator, the Woundwort is also
-    capable of atmospheric flight in its Mobile Armor form.</p>
-    <p>The term &ldquo;Gundam TR-6&rdquo; does not refer to a single mobile suit, but rather to a
-    comprehensive weapon system, or more precisely an operational platform, built around the base unit
-    Woundwort and its core component, the Primrose II. This system was designed with such a vast array
-    of potential configurations through parts replacement that it was often described as having
-    &ldquo;infinite&rdquo; forms. By equipping specialized optional units, the TR-6 platform could
-    theoretically surpass the performance of any other mobile suit, making it arguably the closest to
-    being the &ldquo;strongest MS&rdquo; ever developed.</p>
-    <p>As the culmination of the TR series, the TR-6 incorporates the strengths of multiple
-    experimental units tested by the T3 unit. Although there are some exceptions, the system typically
-    uses Woundwort as its core. Through strategic part replacements, it can adapt to virtually any
-    combat environment: space, atmospheric flight, or ground warfare. Another distinctive aspect of the
-    TR-6 system is its cross-compatibility with existing mobile suit parts, making it easier for pilots
-    to adapt to different units. Equipment can be swapped on the fly, allowing the Woundwort to adjust
-    to rapidly changing battlefield conditions and mission requirements.</p>
-    <p>The TR-6 is essentially a set of components attached to a Drum Frame that serves as the central
-    unit of its transformation mechanisms. The mobile armor form&rsquo;s aerodynamic characteristics
-    are poor, and special option parts are required for atmospheric flight, so this form is mainly for
-    use in space. The rear section of the Woundwort in mobile suit (MS) form, which becomes the nose in
-    mobile armor (MA) form, is equipped with a Boost Pod, an upgraded version of the movable booster pod
-    used on the Hazel, and it includes coolant gas emitters that allow the TR-6 to perform atmospheric
-    entry. This enhanced pod features a built-in generator. In MS form, the thighs are noticeably
-    enlarged to accommodate these internal generators. Aside from this, the Woundwort&rsquo;s overall
-    frame remains slender, especially when compared to most mobile suits of its class, with only
-    landing skids at the ankles.</p>
-    <p>This boost pod can be replaced by other types, including an EWAC radome and a &ldquo;double
-    shield&rdquo; type similar to the multi-connector pod of the RX-121-2A Gundam TR-1 [Advanced Hazel].
-    This double shield version lacks coolant gas emitters, but it includes a mega particle cannon and
-    two shield latches that can hold composite shield boosters.</p>
-  </section>
-
-  <div class="duo">
-    <section class="panel" data-ref="HGR-0104 &#183; REV E">
-      <p class="sub">COMBAT SYSTEM</p>
-      <h2>Armaments</h2>
-      <dl class="rows">
-        <dt>VULCAN GUNS</dt>
-        <dd>Mounted in the head, the pair of shell firing weapons have a high rate of fire but little
-        power and can&rsquo;t damage the armor of a mobile suit, though they can damage lightly armored
-        areas such as the sensors. They are ideal for shooting down small, lightly armored targets such
-        as missiles, attack vehicles, etc.</dd>
-        <dt>LONG BEAM RIFLE / CLAW</dt>
-        <dd>Weaponry attached to the Composite Shield Booster. The claw contains a beam emitter that can
-        be connected to a long rifle barrel. It features Heat Blades on both sides of the barrel.</dd>
-      </dl>
-    </section>
-    <section class="panel" data-ref="HGR-0105 &#183; REV E" data-sector="Equipment">
-      <p class="sub">AUXILIARY BUS</p>
-      <h2>Special equipment and features</h2>
-      <dl class="rows">
-        <dt>SUB-ARM UNIT</dt>
-        <dd>A folding sub-arm unit attached to the waist section.</dd>
-        <dt>COMPOSITE SHIELD BOOSTER</dt>
-        <dd>The main armament of the Woundwort. A multi-functional shield that can be used as both a
-        long beam rifle and a claw for melee combat. It also includes a targeting sensor and an I-field
-        Generator and can function as a winch unit. The winch unit can operate as a Mobile Bit.</dd>
-        <dt>I-FIELD GENERATOR</dt>
-        <dd>An I-Field Generator attached to the Composite Shield Booster. It is capable of bending any
-        beam, and thus defends against beam weapons.</dd>
-        <dt>BUNNyS</dt><dd>The unit&rsquo;s operating system.</dd>
-        <dt>TRANCE-R SYSTEM</dt><dd>&mdash;</dd>
-      </dl>
-    </section>
-  </div>
-
-  <section class="panel" data-ref="HGR-0106 &#183; REV E">
-    <p class="sub">MISSION RECORD</p>
-    <h2>History</h2>
-
+    <h2>The tools</h2>
+    <p>Three tools, all built on Claude, all for client work. Each one is tied to the client&rsquo;s own
+    design system rather than a generic one.</p>
     <details class="log" open>
-      <summary>Advance of Z: Flag of Titans, photo novel</summary>
-      <p>In the photo-novel and novel adaptation, the events unfold in January U.C. 0088, during the
-      final stages of the Gryps Conflict. A prototype unit, the Gundam TR-6 [Woundwort], is stationed
-      aboard the Titans Test Team (T3) Unit&rsquo;s mothership, Aswan, in its Kehaar II form.</p>
-      <p>By February, Lieutenant Eliard Hunter is officially assigned as the unit&rsquo;s test pilot,
-      undergoing simulator training. That same month, during the final battle surrounding the Colony
-      Laser Gryps 2, the Aswan receives direct orders from Titans headquarters to deploy the Woundwort
-      into combat. However, with the war&rsquo;s outcome all but decided, any further fighting would
-      only result in meaningless losses. The fear is that deploying a &ldquo;Gundam&rdquo; unit could
-      prolong the conflict by reigniting the Titans&rsquo; morale. Recognizing this, Aswan&rsquo;s
-      commanding officer, Colonel Otto Pedersen, gives Eliard a different order: sortie in the
-      Woundwort and destroy it without engaging in combat.</p>
-      <p>Following launch in its Haze&rsquo;n-thley II form, Eliard heads toward a shoal zone away from
-      the front lines, as instructed. However, he is soon detected and pursued by Gabriel Zola of the
-      AEUG, piloting a Rick Dias [Stutzer]. On the way, Eliard briefly encounters an AEUG unit and,
-      demonstrating the capabilities of the TR-6, destroys three Nemos in an instant and deals a
-      critical blow to a Salamis-class cruiser, forcing the surviving Nemos to retreat.</p>
-      <p>Awaiting his own end, Eliard holds position, intending for Zola to destroy both him and the
-      unit. But Zola, aware of the greater implications, confronts Eliard and tells him, &ldquo;You have
-      a duty to see the Gundam completely destroyed.&rdquo; He then brings Eliard into his cockpit.
-      Together, they press their thumbs down on the trigger of Zola&rsquo;s mega particle cannon,
-      obliterating the TR-6 just before AEUG fires the seized Colony Laser.</p>
-      <p>The TR-6 was originally intended to sortie in its RX-124 Gundam TR-6 [Inle] form, but the
-      conversion was incomplete. Instead, the Fiver II unit was mounted onto Lieutenant Carl
-      Matsubara&rsquo;s Gundam TR-1 [Hazel Owsla]. After the destruction of the Woundwort, Carl recovers
-      Eliard and initiates a self-destruct sequence aboard the Hazel Owsla, escaping with Eliard via the
-      Primrose escape pod. The remaining TR-6 units met the same fate as the sinking Aswan.</p>
+      <summary>TL-01 &nbsp;Flow generator</summary>
+      <p>Turns research notes or job stories into annotated wireframes and mid-fi prototypes. You start
+      from what the research said, not from a blank canvas.</p>
     </details>
-
     <details class="log">
-      <summary>Advance of Z: Flag of Titans, manga</summary>
-      <p>In the manga adaptation, the parts for the Gundam TR-6 [Woundwort] are transported from
-      Confeito to the Aswan in November U.C. 0087 aboard a shuttle piloted by Carl Matsubara, with
-      assembly carried out externally, outside the ship. During the Battle for the Colony Laser Gryps 2,
-      the fully assembled Inle is docked aboard the Aswan, but its lower half, the Dandelion II, catches
-      fire following an enemy attack and is jettisoned. Despite this setback, Lieutenant Eliard Hunter
-      sorties in the Haze&rsquo;n-thley II-Rah form of the TR-6, acting on his own initiative.</p>
-      <p>Eliard attempts to take on the AEUG mobile suit squad single-handedly and intercept the Colony
-      Laser, but he fails to make it in time. The laser is fired, annihilating much of the Titans&rsquo;
-      rear fleet. Determined to ensure his allies can retreat, Eliard destroys several enemy mobile
-      suits and ships to cover the withdrawal of surviving Titans forces. With his mission complete, he
-      heads to a shoal zone to fulfill his original orders: to abandon and destroy the Woundwort.
-      Meanwhile, Carl&rsquo;s Hazel Owsla, equipped with the Fiver II unit, is deployed just as in the
-      photo-novel version. However, when it comes to recover Eliard, the machine is only outfitted with
-      the Bigwig Cannon II and the Hrududu II.</p>
+      <summary>TL-02 &nbsp;Design-system assistant</summary>
+      <p>Writes component specs, states and accessibility notes that line up with the library you already
+      have. New components look like they belong.</p>
     </details>
-
     <details class="log">
-      <summary>A.O.Z Re-Boot: Dream of the Black Rabbit</summary>
-      <p>In <i>A.O.Z Re-Boot: Dream of the Black Rabbit</i>, the Titans Remnants, known as
-      &ldquo;Tristellar,&rdquo; withdrew from the front lines at the end of the Gryps Conflict and
-      escaped to Mars, bringing with them at least one Haze&rsquo;n-thley II, Hrududu II, and the Fiver
-      II, which formed the upper half of the Inle unit. These were received by the Black Hares, a covert
-      special forces group led by Colonel Tristan, a key figure in the Titans remnants and a close
-      comrade of Dr. Valhalla, one of the TR-6 development team&rsquo;s core members. At the same time,
-      the Dandelion II, which formed the lower body of the Inle, was handed over to the AEUG, and Dr.
-      Valhalla herself joined their side. However, this was meant to prevent the AEUG from acquiring the
-      completed Inle and to ensure the continuation of the TR Project from within.</p>
-      <p>At the time, Mars was in a state of conflict between Zeon Mars, a Zeon remnant faction
-      affiliated with the late Kycilia Zabi, which effectively controlled the planet, and ReZeon, a Zeon
-      remnant organization affiliated with the late Gihren Zabi on Mars, led by Omega Zabi.
-      Tristan&rsquo;s faction joined ReZeon and participated in the ReZeon Founding War against Zeon
-      Mars. The Titans remnants&rsquo; mobile weapons, including the RX-124 Gundam TR-6, which they
-      brought with them, were deployed to the front lines along with Alicia Zabi and Omega, who claimed
-      to be the successors of the Zabi family.</p>
-      <p>The Gundam TR-6 did not have many chances to stand out during the Gryps Conflict, but it fully
-      demonstrated its overwhelming combat power against the Zeon Mars mobile suits, machines developed
-      in cooperation with Axis, the Zeon remnant group in the Asteroid Belt led by Dozle Zabi&rsquo;s
-      faction, and contributed greatly to ReZeon&rsquo;s victory. With the power of the Fiver II, they
-      crushed Zeon Mars, and contributed to the founding of the new nation of ReZeon. Even after the
-      establishment of the ReZeon nation, the Gundam TR-6 continued to serve as a core combat unit. It
-      was primarily used as the personal machine of the Alice Guard, an elite unit composed of Alicia,
-      who became its leader, and her sisters, all of whom were clone Cyber Newtypes. Thanks to its
-      performance in the Founding War, the Black Hares&rsquo; jet-black Gundam became beloved by the
-      people of ReZeon as a symbol of liberation from Zeon Mars and of their victory. It eventually
-      became firmly established as the Royal Guard&rsquo;s dedicated mobile suit.</p>
-      <p>Following this, ReZeon confiscated all the weapons brought by the Titans remnants, including
-      the TR-6 variants, and began mass production in industrial plants on Mars. By U.C. 0089, one unit
-      (in Queenly form) was stationed at Phobos Spaceport, and two Kehaar II units were deployed at
-      ground bases. By U.C. 0091, the number of Kehaar IIs at ground installations had increased to six
-      (one of which was later refitted into a Barzam II), and the Haze&rsquo;n-thley II had been
-      upgraded into the ARZ-125 Re-Haze, Alicia&rsquo;s personal machine. Meanwhile, the Fiver II,
-      referred to in the story as Inle, was reported to be under construction in a secret underground
-      glacier base on Mars. Parts were being manufactured at the industrial plant, with the unit&rsquo;s
-      completion drawing near.</p>
+      <summary>TL-03 &nbsp;Critique agent</summary>
+      <p>Reviews screens against usability heuristics, WCAG and your internal guidelines, then proposes
+      concrete revisions. You get &ldquo;change this, here&rdquo; rather than a list of principles.</p>
     </details>
   </section>
-
-  <section class="panel" data-ref="HGR-0107 &#183; REV E">
-    <p class="sub">CONFIGURATIONS</p>
-    <h2>Variants</h2>
-    <ul class="chips">
-      <li>ARZ-124WD Gundam TR-6 [Wondwart]</li>
-      <li>RX-124 Barzam II</li>
-      <li>RX-124 Gundam TR-6 [Fiver II]</li>
-      <li>RX-124 Gundam TR-6 [Haze&rsquo;n-thley II]</li>
-      <li>RX-124 Gundam TR-6 [Hrairoo II]</li>
-      <li>RX-124 Gundam TR-6 [Kehaar II]</li>
-      <li>RX-124 Gundam TR-6 [Dandelion II]</li>
-      <li>RX-124 Gundam TR-6 [Gaplant II]</li>
-      <li>RX-124 Gundam TR-6 [Hazel II]</li>
-      <li>RX-124 Gundam TR-6 [Hi-Zack II]</li>
-      <li>RX-124 Gundam TR-6 [Queenly]</li>
-      <li>RX-124 Gundam TR-6 [Woundwort-Rah]</li>
-      <li>RX-124 Gundam TR-6 [Woundwort] Gigantic Mode</li>
+  <section class="panel" data-ref="TLS-0103 &#183; REV A" data-sector="Goal">
+    <p class="sub">MISSION</p>
+    <h2>Why build them</h2>
+    <p>Faster concept-to-test cycles on client work, without the design rigor slipping. The tools do
+    the repetitive parts. The decisions stay with people.</p>
+  </section>
+  <section class="panel" data-ref="TLS-0104 &#183; REV A" data-sector="Rules">
+    <p class="sub">CONSTRAINTS</p>
+    <h2>What they won&rsquo;t do</h2>
+    <ul class="list">
+      <li>Invent a visual language of their own.</li>
+      <li>Drift off your tokens or spacing rules.</li>
+      <li>Treat accessibility as a pass at the end.</li>
     </ul>
   </section>
 </main>

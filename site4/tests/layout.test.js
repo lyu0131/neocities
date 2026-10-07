@@ -57,7 +57,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       const tag = `layout ${w}x${h} ${state}:`;
       const names = r.all.map(b => b.name);
       if (state === 'locked' && w >= 1440) {
-        const hostileNames = ['hx:TARGET ID', 'hx:UNIT DATA', 'hx:ARMAMENT DETECTED'];
+        const hostileNames = ['hx:CONTACT ID', 'hx:STUDIO DATA', 'hx:SERVICES'];
         const missingHostile = hostileNames.filter(n => !names.includes(n));
         check(`${tag} hostile set up`, missingHostile.length === 0, missingHostile.join(', '));
       }
@@ -101,7 +101,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         return { tokRaw, tok, plates: plates.length, allPlatesSame, bgSlew, bgHudmode, bgComms, bgMatch, brackets, hasComms: !!comms };
       })())`));
       check(`${tag} --panel token ties CSS backgrounds to SVG plates`, css.allPlatesSame && css.bgMatch && css.hasComms && css.brackets, JSON.stringify(css));
-      const pair = r.all.filter(b => b.name === 'hx:UNIT DATA' || b.name === 'hx:ARMAMENT DETECTED');
+      const pair = r.all.filter(b => b.name === 'hx:STUDIO DATA' || b.name === 'hx:SERVICES');
       if (pair.length === 2) check(`${tag} UNIT DATA and ARMAMENT share one edge`, pair[0].l === pair[1].l && pair[0].r === pair[1].r);
       const rails = JSON.parse(await p.eval(`JSON.stringify((() => {
         const boxes = [...document.querySelectorAll('#hud rect.plate')].filter(r => getComputedStyle(r.parentNode).opacity !== '0').map(r => r.getBoundingClientRect()).filter(b => b.width)
@@ -130,7 +130,7 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
         const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 2);
         for (let j = 0; j <= n; j++) {
           const x = x0 + (x1 - x0) * j / n, y = y0 + (y1 - y0) * j / n;
-          for (const b of r.all.concat(tape)) if (!/^hx:(UNIT|ARMAMENT)/.test(b.name) && x > b.l + 1 && x < b.r - 1 && y > b.t + 1 && y < b.b - 1) crossed.add(b.name);
+          for (const b of r.all.concat(tape)) if (!/^hx:(STUDIO DATA|SERVICES)/.test(b.name) && x > b.l + 1 && x < b.r - 1 && y > b.t + 1 && y < b.b - 1) crossed.add(b.name);
         }
       }
       check(`${tag} no seam runs through a box`, seams.length === 4 && crossed.size === 0, [...crossed].join(', '));

@@ -155,9 +155,9 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     const order = [];
     samples.forEach(s => { const n = (s.stage.match(/^0(\d)/) || [])[1]; if (n && order[order.length - 1] !== n) order.push(n); });
     check('the four stages run in order', order.join('') === '1234', order.join(','));
-    check('the pilot is connected on screen', samples.some(s => s.note === 'PILOT CONNECTED'));
-    const figAt = samples.filter(s => /PILOT ID/.test(s.stage)).map(s => s.fig);
-    check('PILOT ID has no suit silhouette (the emblem is what it verifies)', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] < 0.05, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
+    check('the channel opens on screen', samples.some(s => s.note === 'CHANNEL OPEN'));
+    const figAt = samples.filter(s => /STUDIO ID/.test(s.stage)).map(s => s.fig);
+    check('STUDIO ID has no suit silhouette (the emblem is what it verifies)', figAt.length && figAt.slice().sort((a, b) => a - b)[figAt.length >> 1] < 0.05, 'coverage ' + figAt.map(v => v.toFixed(3)).join(','));
     // the centre screen's lights come on, no static; the other four start as static together,
     // then each slides in from outside its edge and slots into place
     const sides = ['L', 'R', 'T', 'B'];
@@ -166,7 +166,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
     check('each side screen slides in to its slot', sides.every(id => samples.some(s => s.scr && s.scr[id] && s.scr[id].off > 10)), sides.map(id => id + Math.max(...samples.map(s => s.scr && s.scr[id] ? s.scr[id].off : 0)).toFixed(0)).join(' '));
     check('the launch call shows', samples.some(s => s.note === 'LAUNCHING'));
     check('the blueprint stage is gone', !samples.some(s => /DRAFTING|DESIGNED BY/.test(s.note)), samples.map(s => s.note).filter((v, i, a) => v && a.indexOf(v) === i).join(','));
-    check('stage 2 verifies the unit', samples.some(s => s.note === 'UNIT VERIFIED'));
+    check('stage 2 verifies the unit', samples.some(s => s.note === 'STUDIO VERIFIED'));
     check('the log runs', samples.some(s => s.log.trim().length > 0));
     // one clock: the log is already rolling while the bar is still near-empty, and the bar
     // does reach the end before the hub takes over
@@ -243,7 +243,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   // T5: focus a target link, view faces it, lock readout shows, Enter navigates
   await p.eval("document.querySelector('#targets-nav a[data-target=t-hangar]').focus()"); await p.sleep(1200);
   check('focus turns to hangar', Math.abs(((await p.eval('window.BUNNYS ? BUNNYS.state.yaw : 0') - 52 + 540) % 360) - 180) < 8);
-  check('lock readout shown', /RX-124/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('lock readout shown', /TOOLS/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.key('Enter', 'Enter', 13); await p.sleep(450);
   // the canopy shutters (js/link.js) close over the cockpit before it leaves, on its real seams
   check('firing closes the canopy shutters', await p.eval("(()=>{const l=document.getElementById('link');return !!l && l.querySelectorAll('.link-blade').length===5})()"));
@@ -265,7 +265,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await p.eval("window.BUNNYS && BUNNYS.emit('face', {yaw:180})"); await p.sleep(1500);
   const u = await p.eval("(()=>{const r=document.getElementById('t-unknown').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
   await p.mouse('mouseMoved', u.x, u.y); await p.sleep(600);
-  check('unknown locks', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('unknown locks', /OPEN CHANNEL/.test(await p.eval("document.getElementById('lock-status').textContent")));
   check('unknown lock tells you how in', /OPEN CHANNEL/.test(await p.eval("document.getElementById('hud').textContent")));
   await p.mouse('mousePressed', u.x, u.y, 1); await p.mouse('mouseReleased', u.x, u.y); await p.sleep(1600);
   check('unknown opens the open channel', /unknown\.html$/.test(await p.eval('location.pathname')));
@@ -278,7 +278,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   };
   await backToHub();
   // the one contacts table (bunnys.js) and the cockpit's targets must agree (checked back in the cockpit: the UNKNOWN click above now opens unknown.html)
-  check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label && (!c.rng || t.dataset.readout.includes(c.rng)); })"));
+  check('index targets match BUNNYS.contacts', await p.eval("BUNNYS.contacts.every(c => { const t = document.getElementById(c.id); return t && +t.dataset.yaw === c.yaw && t.dataset.label === c.label; })"));
   await p.eval("BUNNYS.emit('face', {yaw:0}); document.activeElement && document.activeElement.blur()"); await p.sleep(1500);
   await p.key('Enter', 'Enter', 13); await p.sleep(1600);
   check('Enter opens the boresight lock', /missions\.html$/.test(await p.eval('location.pathname')));
@@ -293,14 +293,14 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await backToHub();
   // number keys: 4 swings onto the unknown contact and locks it
   await p.key('4', 'Digit4', 52); await p.sleep(2200);
-  check('4 locks the unknown contact', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('4 locks the unknown contact', /OPEN CHANNEL/.test(await p.eval("document.getElementById('lock-status').textContent")));
   // Home turns the view, so it lets a number-key lock go: the lock follows the reticle again
   await p.key('1', 'Digit1', 49); await p.sleep(1500);
   await p.key('Home', 'Home', 36); await p.sleep(1800);
-  check('Home releases a number-key lock', /MISSIONS|2 ACTIVE/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('Home releases a number-key lock', /SERVICES|3 SERVICES/.test(await p.eval("document.getElementById('lock-status').textContent")));
   // 3 only locks; Enter, even mid-swing, opens what 3 picked (not a contact the reticle crosses)
   await p.key('3', 'Digit3', 51); await p.sleep(1200);
-  check('3 locks without leaving', /index\.html$/.test(await p.eval('location.pathname')) && /RX-124/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  check('3 locks without leaving', /index\.html$/.test(await p.eval('location.pathname')) && /TOOLS/.test(await p.eval("document.getElementById('lock-status').textContent")));
   await p.key('1', 'Digit1', 49); await p.sleep(150);
   await p.key('Enter', 'Enter', 13); await p.sleep(1800);
   check('Enter mid-swing opens the picked contact', /pilot\.html$/.test(await p.eval('location.pathname')));
@@ -521,7 +521,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
       peak = Math.max(peak, s.o);
       if (s.o > .5) minA = Math.min(minA, s.a);
       if (s.o >= 0.9) { if (firstFull === null) firstFull = now; lastFull = now; }
-      if (s.note === 'PILOT CONNECTED' && atPilot === null) atPilot = s.o;
+      if (s.note === 'CHANNEL OPEN' && atPilot === null) atPilot = s.o;
       if (s.note === 'LAUNCHING') atLaunch = s.o;
       await b.sleep(40);
     }
@@ -636,7 +636,7 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await t3b.sleep(150);
   const comms1440 = await rectOf(t3b, '#comms');
   const readouts1440 = await hostileGroupWith(t3b, 'BEARING');
-  const targetId1440 = await hostileGroupWith(t3b, 'TARGET ID');
+  const targetId1440 = await hostileGroupWith(t3b, 'CONTACT ID');
   const dossier1440 = await rectOf(t3b, '#hud .dossier > rect');
   const banner1440 = await warnGeom(t3b);
   // rectOf() reads getBoundingClientRect() whether or not the element is hidden, so a

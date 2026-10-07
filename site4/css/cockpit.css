@@ -626,7 +626,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   --cnr-c: var(--hud); --cnr-arm: 10px; --cnr-th: 1px;
 }
 .slew::after {
-  content: 'RX-124 · BNS-NAV-118A';
+  content: 'RX-124 · WWT-NAV-118A';
   position: absolute;
   right: 14px; bottom: 7px;
   font: 400 7px/1 'B612 Mono', monospace;
@@ -678,7 +678,7 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
    button style outright -- only its stencil code differs. place() stacks it above SLEW TO
    on the same lane. A pressed toggle stays lit, the way a latched cockpit switch does. */
 .hudmode { bottom: auto; }
-.hudmode::after { content: 'RX-124 · BNS-HUD-031M'; }
+.hudmode::after { content: 'RX-124 · WWT-HUD-031M'; }
 .slew button[aria-pressed="true"] { background: rgba(140, 255, 193, .16); border-color: var(--hud); }
 
 /* Popups in the open sky either side of TARGET ID. Same housing as every panel: the .97

@@ -263,7 +263,7 @@
     // Stacked in the bottom-right corner, where the ring has curved away: on one line under the
     // ring it would run 4px below the scope's 6 o'clock tick.
     stencil(radar, bx + w - G_PAD, by + h - 16, 'end', UNIT_SERIAL + ' \u00B7');
-    stencil(radar, bx + w - G_PAD, by + h - 7, 'end', 'BNS-SNS-7741A');
+    stencil(radar, bx + w - G_PAD, by + h - 7, 'end', 'WWT-SNS-7741A');
 
     targets.forEach(function (t) {
       var g = el('g', { class: 'blip' });
@@ -325,18 +325,18 @@
   var WIND_ARROW_D = 'M0,-5 L3.5,4 L0,1.5 L-3.5,4 Z';
   var WIND_ARROW_R = Math.sqrt(3.5 * 3.5 + 4 * 4);
   var PANELS = [
-    { id: 'reactor', title: 'REACTOR STATUS', code: 'BNS-PWR-118R', extra: 'spark',
+    { id: 'reactor', title: 'REACTOR STATUS', code: 'WWT-PWR-118R', extra: 'spark',
       rows: [{ key: 'OUTPT', base: 0.94, drift: 0.03 },
              { key: 'COOL', base: 0.65, drift: 0.09 },
              { key: 'P-INT', base: 0.38, drift: 0.16 },   // PARTICLE INTERFERENCE
              { key: 'CORE', base: 0.88, drift: 0.04 },    // CORE BLOCK
              { key: 'FLUX', base: 0.62, drift: 0.12 }] },
-    { id: 'thruster', title: 'THRUSTER VECTOR', code: 'BNS-THR-204V', extra: 'cross',
+    { id: 'thruster', title: 'THRUSTER VECTOR', code: 'WWT-THR-204V', extra: 'cross',
       rows: [{ key: 'MAIN', base: 0.90, drift: 0.06 },
              { key: 'VRN-A', base: 0.72, drift: 0.11 },
              { key: 'VRN-B', base: 0.68, drift: 0.13 },
              { key: 'VRN-C', base: 0.75, drift: 0.09 }] },
-    { id: 'combat', title: 'COMBAT SYSTEM', code: 'BNS-SYS-206C', extra: 'cells',
+    { id: 'combat', title: 'COMBAT SYSTEM', code: 'WWT-SYS-206C', extra: 'cells',
       rows: [{ key: 'SENSR', base: 0.70, drift: 0.11 },   // SENSOR ARRAY
              { key: 'FRAME', base: 0.88, drift: 0.04 },   // FRAME INTEGRITY
              { key: 'THR-V', base: 0.50, drift: 0.30, fmt: function (v) { var d = (v - 0.5) * 24; return (d >= 0 ? '+' : '') + d.toFixed(0) + '°'; } },
@@ -344,7 +344,7 @@
              { key: 'HDPT', base: 0.83, drift: 0.15, fmt: function (v) { return Math.max(1, Math.round(v * 6)) + '/6'; } }] },
     // Appended, not inserted: PANELS[0..2] keep the indices drawPanels()/place() key off of. rows:
     // [] skips buildPanel's bar-row loop; this panel's body is its 'env' branch.
-    { id: 'env', title: 'ENVIRONMENT', code: 'BNS-ENV-077W', extra: 'env', rows: [] }
+    { id: 'env', title: 'ENVIRONMENT', code: 'WWT-ENV-077W', extra: 'env', rows: [] }
   ];
   var sparkPts = [];
 
@@ -610,7 +610,7 @@
       dmgZones[z.id] = { path: p, state: 'nominal', since: 0 };
     });
     dmgStep = 360 / D.frames.length;
-    dmgStencil = stencil(dmgBox, DMG_W - DMG_TEXT_PAD, 0, 'end', UNIT_SERIAL + ' · BNS-DMG-220C');
+    dmgStencil = stencil(dmgBox, DMG_W - DMG_TEXT_PAD, 0, 'end', UNIT_SERIAL + ' · WWT-DMG-220C');
     svg.appendChild(dmgBox);
     setFrame(0);
   }
@@ -721,7 +721,7 @@
     }
     dosHint.setAttribute('y', hintY);
     dossier.appendChild(dosHint);
-    stencil(dossier, padX - 6, boxBottom - 8, 'end', 'BNS-TAQ-330B · ' + BLOCK_REV);
+    stencil(dossier, padX - 6, boxBottom - 8, 'end', 'WWT-TAQ-330B · ' + BLOCK_REV);
     svg.appendChild(dossier);
   }
   function setDossier(d) {
@@ -810,7 +810,7 @@
     // G_PAD inset matches every other panel's stencil; y=23 sits in the room freed below
     // warnInner's raised bottom (both checked against getBBox() ink -- see tests/hub.test.js's
     // warnGeom()).
-    warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 23, 'end', 'BNS-CTN-041A');
+    warnPN = stencil(warn, WARN_MIN_HALF - G_PAD, 23, 'end', 'WWT-CTN-041A');
     layoutWarn(WARN_MIN_HALF);
     svg.appendChild(warn);
   }
@@ -880,21 +880,19 @@
   // Content is fixed, so it is built once; only BEARING and LOCK are live.
   var HX_YAW = 180;
   var HX_DATA = {
-    mark: ['TARGET // MS-07B-3', 'GOUF CUSTOM'],
-    idRows: [['TYPE', 'LIMITED-PRODUCTION GROUND MS', 1],
-             ['AFFILIATION', 'PRINCIPALITY OF ZEON', 1],
-             ['IFF', 'HOSTILE', 2]],
-    spec: [['HEIGHT', '18.7 M', 1], ['EMPTY MASS', '58.5 T', 1], ['MAX MASS', '77.6 T', 1],
-           ['REACTOR', 'MINOVSKY ULTRACOMPACT FUSION', 1, true], ['OUTPUT', '1034 KW', 1],
-           ['MAX ACCEL', '0.53 G', 1], ['THRUST', '40,700 KG', 1],
-           ['SENSOR RANGE', '3,600 M', 1], ['ARMOR', 'SUPER-HARD STEEL ALLOY', 1]],
-    arms: [['75MM GATLING GUN', 'READY', 1], ['35MM TRIPLE GATLING', 'READY', 1],
-           ['HEAT ROD / ANCHOR', 'ARMED', 2], ['HEAT SABER TYPE-DIII', 'STORED', 0],
-           ['GOUF SHIELD', 'EQUIPPED', 1]],
-    warn: ['HEAT ROD // ELECTRO-MAGNETIC', 'GRAPPLER RANGE: EXTENDED',
-           'ELECTRICAL DISABLE CAPABILITY', '⚠ CLOSE-COMBAT THREAT'],
+    mark: ['CONTACT // OPEN CHANNEL', 'WOUNDWORT'],
+    idRows: [['TYPE', 'UX PRACTICE', 1],
+             ['FOCUS', 'CLAUDE-ASSISTED UX', 1],
+             ['CHANNEL', 'OPEN', 2]],
+    spec: [['EMAIL', 'YUTINGLYU@WOUNDWORT.XYZ', 1, true], ['LINKEDIN', 'SYLAS LYU', 1],
+           ['FOUNDER', 'SYLAS LYU', 1], ['PRACTICE', 'UX SYSTEMS', 1],
+           ['TOOLS', '3 IN BUILD', 1], ['BRIEF', 'THIN IS FINE', 1]],
+    arms: [['INTERACTION SYSTEMS', 'OPEN', 1], ['CLAUDE TOOLING', 'OPEN', 1],
+           ['CONCEPT-TO-TEST', 'OPEN', 1], ['MOOD BOARDS', 'NONE', 0]],
+    warn: ['SEND THE BRIEF, EVEN A THIN ONE', 'WE WORK FROM YOUR TOKENS',
+           'AND FROM YOUR RESEARCH', '⚠ CHANNEL OPEN AT 180'],
     ret: [['RNG', '01.42 KM', 1], ['REL VEL', '-032 M/S', 1], ['BEARING', null, 1],
-          ['ALT', '041 M', 1], ['LOCK', null, 2], ['IFF', 'HOSTILE', 2]]
+          ['ALT', '041 M', 1], ['LOCK', null, 2], ['IFF', 'OPEN', 2]]
   };
   // 0 stored or inactive, 1 nominal, 2 hostile or armed. Fill goes through inline style: `#hud text
   // { fill: var(--ice) }` beats a presentation attribute.
@@ -963,7 +961,7 @@
   var hxAll = [], hxBearing = null, hxLock = null;
   var hx = (function buildHostile() {
     var d = HX_DATA;
-    var idb = hxBox('TARGET ID', 268, 'BNS-TAQ-0701');
+    var idb = hxBox('CONTACT ID', 268, 'WWT-CON-0701');
     var mark = el('text', { x: 0, y: idb.y + 8, style: 'font-size:19px;letter-spacing:.06em;fill:var(--lock);text-anchor:start' });
     mark.textContent = d.mark[1];
     idb.appendChild(mark);
@@ -974,15 +972,15 @@
     d.idRows.forEach(function (r) { hxRow(idb, r[0], r[1], r[2]); });
     hxSeal(idb);
 
-    var sp = hxBox('UNIT DATA', 196, 'BNS-TAQ-0704', 'hx-spec');
+    var sp = hxBox('STUDIO DATA', 196, 'WWT-CON-0704', 'hx-spec');
     d.spec.forEach(function (r) { hxRow(sp, r[0], r[1], r[2], false, r[3]); });
     hxSeal(sp);
 
-    var ar = hxBox('ARMAMENT DETECTED', 190, 'BNS-TAQ-0708', 'hx-arms');
+    var ar = hxBox('SERVICES', 190, 'WWT-CON-0708', 'hx-arms');
     d.arms.forEach(function (r) { hxRow(ar, r[0], r[1], r[2], true); });
     hxSeal(ar);
 
-    var wn = hxBox('⚠ ANCHOR SYSTEM DETECTED', 268, 'BNS-TAQ-0712', 'hx-alarm');
+    var wn = hxBox('⚠ BRIEFS WELCOME', 268, 'WWT-CON-0712', 'hx-alarm');
     d.warn.forEach(function (line) {
       var t = el('text', { x: 0, y: wn.y, style: 'font-size:10px;letter-spacing:.1em;fill:var(--lock);text-anchor:start' });
       t.textContent = line;
@@ -1030,13 +1028,13 @@
   // text/classes/opacity. Each row is its own <g> with its own background <rect> so the
   // .hx-alarm flash (which inverts rect/text inside that class) has something to invert.
   var HOSTILE_ALARMS = [
-    ['HEAT ROD CONTACT // L ARM', 'arm-l'],
-    ['75MM GATLING FIRE // R LEG', 'leg-r'],
-    ['35MM GATLING GRAZE // HEAD', 'head'],
-    ['HEAT ROD DISCHARGE // FRAME', 'body'],
-    ['GATLING ROUNDS // CHEST', 'chest'],
-    ['IMPACT // WEAPON ARM', 'weapon'],
-    ['HOSTILE LOCK-ON DETECTED', null]
+    ['BRIEF RECEIVED // STUDIO', 'arm-l'],
+    ['JOB STORIES // FLOW GENERATOR', 'leg-r'],
+    ['TOKENS LOADED // DESIGN SYSTEM', 'head'],
+    ['WCAG TARGETS // CRITIQUE AGENT', 'body'],
+    ['RESEARCH NOTES // ATTACHED', 'chest'],
+    ['EDGE STATES // SPECCED', 'weapon'],
+    ['CHANNEL OPEN // BRG 180', null]
   ];
   var HX_LOG_ROWS = 3, HX_LOG_ROW_H = 18, HX_LOG_GAP = 12, HX_LOG_LIFE = 6000,
       HX_LOG_WAIT_MIN = 2200, HX_LOG_WAIT_MAX = 4800, HX_LOG_FIRST = 600;
@@ -1295,12 +1293,12 @@
   // Cockpit chatter from the suit's own world; the hostile unit is never named outside HX_DATA --
   // it is "the contact at 180" here.
   var COMMS = [
-    ['HQ-7', 'Patrol route confirmed. Hold bearing 180 and report any contact.'],
-    ['HANGAR CONTROL', 'Bay 3 is clear. RX-124 is cleared for redeployment.'],
-    ['HQ-7', 'Particle interference rising in sector 7. Expect sensor noise.'],
-    ['MISSION LOG', 'Three waypoints marked on your panoramic monitor.'],
-    ['LINEAR SEAT', 'Pilot biometrics nominal. Cockpit pressure holding.'],
-    ['HQ-7', 'Deployment ready on your mark. All systems nominal.']
+    ['STUDIO', 'Open channel at bearing 180. Send the brief, even a thin one.'],
+    ['TOOL BAY', 'Critique agent is checking screens against the client heuristics, not a generic list.'],
+    ['STUDIO', 'Every state gets a spec. Empty, loading, error, and the odd ones.'],
+    ['SERVICE LOG', 'Three services open. Markers are on your panoramic monitor.'],
+    ['TOOL BAY', "Flow generator is back with mid-fi flows from this morning's job stories."],
+    ['STUDIO', 'No mood boards today. Prototypes go to test on your mark.']
   ];
   // POP_H: the tallest a popup gets (a three-line transmission at the narrowest slot measured
   // 136px), so place() can tell whether the band clears the SPD/ALT captions.
@@ -1440,7 +1438,7 @@
       // a popup parked in the centre slot is sitting where TARGET ID is about to appear
       [commsEl, toastEl].forEach(function (n) { if (n && n.dataset.centre === '1') n.hidden = true; });
       hxLogStart();
-      showComms('HQ-7', 'Hostile confirmed at bearing 180. Engage at your discretion.');
+      showComms('STUDIO', 'Contact at bearing 180 is our open channel. Send the brief when you are ready.');
     }
     else { hxLogStop(); scheduleCaution(); }
   }
