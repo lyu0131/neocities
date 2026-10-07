@@ -27,7 +27,8 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   const dash0 = (await cl()).dash;
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   const h0 = await pose(p, 's.heading'); await p.sleep(900);
-  const turning = await cl(); await p.sleep(300);
+  const turning = await cl(), tiltTurn = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.gripTilt || null)')); await p.sleep(300);
+  check('turning left tilts the grips left', !!tiltTurn && tiltTurn[0] < -5, JSON.stringify(tiltTurn));
   check('turning left lights the left turn tabs only', turning.tabs[0] > 0.3 && turning.tabs[1] < 0.05, JSON.stringify(turning.tabs));
   check('the dash rows scroll with the turn', Math.abs(turning.dash - dash0) > 0.001, dash0 + ' -> ' + turning.dash);
   check('the thrust vector swings into the turn', turning.thrust[0] < -0.1, JSON.stringify(turning.thrust));
@@ -47,6 +48,8 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   for (let i = 0; i < 10; i++) { const c = (await cl()).chev; upLit = Math.max(upLit, c.up); upY = Math.max(upY, c.upY); await p.sleep(30); }
   check('climbing lights the up arrow', upLit > 0.3, upLit.toFixed(2));
   check('climbing pushes the up arrow up', upY > 0.3, upY.toFixed(2));
+  const tiltClimb = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.gripTilt || null)'));
+  check('climbing pulls the grips back', !!tiltClimb && tiltClimb[1] < -5, JSON.stringify(tiltClimb));
   const y1 = await noseY();
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
   check('climbing shifts the HUD down the screen', y1 - y0 > 40, `${y0.toFixed(0)} -> ${y1.toFixed(0)}`);

@@ -126,7 +126,12 @@ so the aiming area reads clean.
 A real 3D model after the ref frames (#14, #28, #29, #31-33), WebGL2 on its own canvas (`#seat`) over the HUD: the
 bucket seat (pan, quilted cushion, thigh bolsters, lumbar back and pads, wrap-round shoulder bolsters, headrest
 wings), the armrest consoles (arm pad, inlaid panels, pink trim, vented head with bolts, support leg with a red lamp
-strip), the grips (ribbed boot, head cap, thumb buttons, trigger) and what the seat hangs on (pedestal, cross
+strip), the control grips -- modelled in Blender by `tools/make_grip.py` (gimbal base with cap screws, ribbed bellows,
+collar, a sculpted handgrip with finger grooves, palm swell and pinky flange, a forward-tilted head with a 4-way hat
+switch and thumb buttons, a trigger; contact shading baked in Cycles) and shipped as `js/grip-data.js` (the pages
+open from file://, so not a .glb). They move: `pose.stick` (from the turn and climb rates, so AUTO moves them too)
+tilts each stick about its gimbal, up to 18 deg sideways and 15 fore and aft (climbing pulls back), the bellows half
+as far. Rebuild: `blender -b --factory-startup -P site5/tools/make_grip.py` and what the seat hangs on (pedestal, cross
 members, hoses, the boom arm). Rounded boxes and tubes in the seat frame. Lit by the panoramic monitor itself (sky
 above, moonlit cloud sea below, in world directions through the suit's attitude, so the light moves as it banks),
 plus the near-miss flash. Physically based materials (roughness, metalness, roughness-aware Fresnel; a rough

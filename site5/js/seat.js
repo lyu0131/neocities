@@ -35,6 +35,7 @@
     button: { a: [0.025, 0.025, 0.028], r: 0.22, m: 0, k: 0 },       // glossy thumb buttons
     yellow: { a: [0.80, 0.60, 0.12], r: 0.3, m: 0, k: 0 },           // the suit's colours, on the grips
     teal: { a: [0.12, 0.52, 0.58], r: 0.3, m: 0, k: 0 },
+    accent: null,                                                    // the grip's one coloured button: yellow right, teal left
     lamp: { a: [0.2, 0.02, 0.04], r: 0.3, m: 0, k: 0, e: [1.6, 0.16, 0.24] },   // the red lamps
     trim: { a: [0.2, 0.05, 0.1], r: 0.3, m: 0, k: 0, e: [0.85, 0.22, 0.45] }    // the pink trim along the consoles
   };
@@ -124,7 +125,7 @@
 
   // the consoles, their legs and lamps, and the grips
   [-1, 1].forEach(function (sd) {
-    var X = sd * 0.275, G = sd > 0 ? MAT.yellow : MAT.teal;
+    var X = sd * 0.275;
     rbox([X, -0.49, 0.17], [0.05, 0.04, 0.25], 0.01, MAT.shell, 'rail');                      // the console
     rbox([X - sd * 0.003, -0.446, 0.12], [0.04, 0.008, 0.2], 0.007, MAT.pad, 'rail');         // the arm pad
     rbox([sd * 0.3255, -0.49, 0.15], [0.003, 0.026, 0.2], 0.002, MAT.dark, 'rail');           // a panel let into its outer side
@@ -139,14 +140,6 @@
     tube([[X - 0.036, -0.535, 0.4], [X + 0.036, -0.535, 0.4]], 0.02, MAT.metal, 'rail');     // its hinge
     rbox([X - sd * 0.0305, -0.66, 0.4], [0.002, 0.055, 0.007], 0.002, MAT.lamp, 'rail');      // the red lamp strip
     rbox([X, -0.875, 0.4], [0.045, 0.012, 0.05], 0.008, MAT.metal, 'rail');                   // its foot
-    // the grip: a hinge housing, a forward-leaning stick in a ribbed boot, a head cap with thumb buttons, a trigger
-    rbox([X, -0.405, 0.405], [0.022, 0.012, 0.022], 0.006, MAT.dark, 'grip');
-    rbox([X + sd * 0.02, -0.405, 0.385], [0.004, 0.006, 0.012], 0.002, G, 'grip');
-    tube([[X, -0.4, 0.4], [X, -0.33, 0.415]], 0.017, MAT.grip, 'grip', 18);
-    for (var k = 0; k < 6; k++) { var y = -0.392 + k * 0.009, z = 0.4 + (y + 0.4) * 0.2143; tube([[X, y, z], [X, y + 0.003, z + 0.0006]], 0.0186, MAT.boot, 'grip', 18); }
-    rbox([X, -0.317, 0.418], [0.026, 0.014, 0.03], 0.012, MAT.cap, 'grip', rotX(-10));
-    [[-0.01, 0.41], [0.01, 0.41], [0, 0.428]].forEach(function (b, i) { tube([[X + b[0], -0.304, b[1]], [X + b[0], -0.3, b[1]]], 0.0062, i === 2 ? G : MAT.button, 'grip', 14); });
-    rbox([X, -0.35, 0.435], [0.006, 0.013, 0.007], 0.003, MAT.button, 'grip');
   });
 
   // what the seat hangs on: a pedestal, the legs' cross members, hoses, and the boom arm to the ball wall
@@ -233,11 +226,12 @@
   // ---- GL ----
   var VS = ['#version 300 es',
     'in vec3 aP, aN, aA, aE; in float aR, aM, aK, aG, aO;',
-    'uniform mat3 uView; uniform vec2 uTan; uniform float uKX, uLift;',
+    'uniform mat3 uView, uRot; uniform vec3 uOrg; uniform vec2 uTan; uniform float uKX, uLift;',
     'out vec3 vN, vA, vE, vP, vW; out float vR, vM, vK, vG, vO;',
     'void main() {',
-    '  vec3 p = vec3(aP.x * uKX, aP.y + uLift, aP.z), e = uView * p;',
-    '  vP = p; vW = aP; vN = normalize(vec3(aN.x / uKX, aN.y, aN.z)); vA = aA; vE = aE; vR = aR; vM = aM; vK = aK; vG = aG; vO = aO;',
+    '  vec3 q = uRot * aP + uOrg, m = uRot * aN;',
+    '  vec3 p = vec3(q.x * uKX, q.y + uLift, q.z), e = uView * p;',
+    '  vP = p; vW = aP; vN = normalize(vec3(m.x / uKX, m.y, m.z)); vA = aA; vE = aE; vR = aR; vM = aM; vK = aK; vG = aG; vO = aO;',
     '  float n = .01, f = 4.;',
     '  gl_Position = vec4(e.x / uTan.x, e.y / uTan.y, e.z * (f + n) / (f - n) - 2. * f * n / (f - n), e.z);',
     '}'].join('\n');
@@ -314,13 +308,49 @@
   gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
   gl.useProgram(prog);
+  var seatVAO = gl.createVertexArray(); gl.bindVertexArray(seatVAO);
   var vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, V, gl.STATIC_DRAW);
   later(function () { occlude(0); });
   var COUNT = TRI.length;
-  [['aP', 3, 0], ['aN', 3, 3], ['aA', 3, 6], ['aE', 3, 9], ['aR', 1, 12], ['aM', 1, 13], ['aK', 1, 14], ['aG', 1, 15], ['aO', 1, 16]].forEach(function (a) {
-    var loc = gl.getAttribLocation(prog, a[0]); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, a[1], gl.FLOAT, false, STRIDE * 4, a[2] * 4);
+  function attribs() {
+    [['aP', 3, 0], ['aN', 3, 3], ['aA', 3, 6], ['aE', 3, 9], ['aR', 1, 12], ['aM', 1, 13], ['aK', 1, 14], ['aG', 1, 15], ['aO', 1, 16]].forEach(function (a) {
+      var loc = gl.getAttribLocation(prog, a[0]); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, a[1], gl.FLOAT, false, STRIDE * 4, a[2] * 4);
+    });
+  }
+  attribs();
+  var U = {}; ['uView', 'uRot', 'uOrg', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });
+
+  // ---- the control grips: the Blender model (js/grip-data.js, from tools/make_grip.py), one per hand on its
+  // console's mount, the stick tilting about its gimbal with the flight (the bellows half as far) ----
+  var PIVOT_Y = -0.412 + 0.032 / 1.4, PIVOT_Z = 0.405;   // the housing's foot on the mount plate
+  var TILT_SIDE = 18, TILT_FORE = 15;                      // full stick, degrees
+  function decode(b64, Type) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Type(u.buffer); }
+  var grips = (window.SITE5_GRIP ? [-1, 1] : []).map(function (sd) {
+    var groups = [0, 0.5, 1].map(function (mv) { return { moves: mv, data: [] }; });
+    window.SITE5_GRIP.parts.forEach(function (pt) {
+      var P = decode(pt.pos, Float32Array), N = decode(pt.nrm, Int8Array), A = decode(pt.ao, Uint8Array);
+      var mt = pt.mat === 'accent' ? (sd > 0 ? MAT.yellow : MAT.teal) : MAT[pt.mat], e = mt.e || [0, 0, 0], g = groups[pt.moves === 0 ? 0 : pt.moves < 1 ? 1 : 2].data;
+      for (var v = 0; v < pt.count; v++) {
+        g.push(sd * P[v * 3], P[v * 3 + 1], P[v * 3 + 2], sd * N[v * 3] / 127, N[v * 3 + 1] / 127, N[v * 3 + 2] / 127,
+          mt.a[0], mt.a[1], mt.a[2], e[0], e[1], e[2], mt.r, mt.m, mt.k, 0, A[v] / 255);
+      }
+    });
+    var all = [], ranges = [];
+    groups.forEach(function (g) { ranges.push({ moves: g.moves, first: all.length / STRIDE, count: g.data.length / STRIDE }); all = all.concat(g.data); });
+    var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(all), gl.STATIC_DRAW);
+    attribs();
+    var org = [sd * 0.275, PIVOT_Y, PIVOT_Z];
+    [[0, 0, 0], [0, 0.05, 0], [0, 0.1, 0.01], [0, 0.14, 0.02], [sd * 0.02, 0.13, 0.02]].forEach(function (q) { points.grip.push(add(org, q)); });
+    return { vao: vao, ranges: ranges, org: org };
   });
-  var U = {}; ['uView', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });
+  gl.bindVertexArray(null);
+  var I3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  // the stick's turn: tipped sideways by side degrees (top to the right for +), then fore (top away for +)
+  function tilt(side, fore) {
+    var R = function (p) { return rotZ(-side)(rotX(fore)(p)); }, x = R([1, 0, 0]), y = R([0, 1, 0]), z = R([0, 0, 1]);
+    return x.concat(y, z);
+  }
   gl.enable(gl.DEPTH_TEST);   // no culling: the meshes are closed, and the shader lights a face from whichever side shows
   function mat(q) { var x = m.qrot(q, [1, 0, 0]), y = m.qrot(q, [0, 1, 0]), z = m.qrot(q, [0, 0, 1]); return x.concat(y, z); }
 
@@ -335,7 +365,15 @@
     gl.uniformMatrix3fv(U.uView, false, mat(HQi));
     gl.uniform2f(U.uTan, tx, ty); gl.uniform1f(U.uKX, KX); gl.uniform1f(U.uLift, LIFT);
     gl.uniformMatrix3fv(U.uSuit, false, mat(pose.suitQ)); gl.uniform1f(U.uFlash, pose.flash);
-    gl.drawArrays(gl.TRIANGLES, 0, COUNT);
+    gl.uniformMatrix3fv(U.uRot, false, I3); gl.uniform3f(U.uOrg, 0, 0, 0);
+    gl.bindVertexArray(seatVAO); gl.drawArrays(gl.TRIANGLES, 0, COUNT);
+    var st = pose.stick || [0, 0], side = st[0] * TILT_SIDE, fore = -st[1] * TILT_FORE;   // climbing pulls it back
+    grips.forEach(function (gp) {
+      gl.bindVertexArray(gp.vao); gl.uniform3fv(U.uOrg, gp.org);
+      gp.ranges.forEach(function (r) { if (!r.count) return; gl.uniformMatrix3fv(U.uRot, false, r.moves ? tilt(side * r.moves, fore * r.moves) : I3); gl.drawArrays(gl.TRIANGLES, r.first, r.count); });
+    });
+    gl.bindVertexArray(null);
+    S.parts.gripTilt = [side, fore];
     // what shows, per group: how many of its sample points land on the screen (for the tests)
     var drawn = {}, proj = function (p) { var e = m.qrot(HQi, [p[0] * KX, p[1] + LIFT, p[2]]); return e[2] > 0.02 ? [W / 2 + e[0] / e[2] / tx * W / 2, H / 2 - e[1] / e[2] / ty * H / 2] : null; };
     Object.keys(points).forEach(function (g) { drawn[g] = points[g].filter(function (p) { var s = proj(p); return s && s[0] >= 0 && s[0] <= W && s[1] >= 0 && s[1] <= H; }).length; });

@@ -198,7 +198,8 @@
     S.pose = {
       suitQ: suitQ, contacts: contacts, eye: eye, eyeQ: qmul(seatQ, euler(view.yaw, view.pitch, 0)), opp: od,
       heading: ((yaw.x % 360) + 360) % 360, pitch: pitch.x, flash: flash, pos: pos,
-      locked: locked, lockT: lockT, lockId: lockId, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T
+      locked: locked, lockT: lockT, lockId: lockId, mode: manual ? 'MANUAL' : 'AUTO', head: view, t: T,
+      stick: [clamp(yaw.v / 55, -1, 1), clamp(pitch.v / 40, -1, 1)]   // the grips' deflection: turn (+ right), climb (+ up)
     };
   }
 
