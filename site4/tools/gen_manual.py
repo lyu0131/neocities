@@ -15,8 +15,6 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import TextLexer, get_lexer_by_name
 
-SRC = Path(sys.argv[1])
-SITE = Path(sys.argv[2])
 HERE = Path(__file__).resolve().parent
 REV = "REV B"
 DATE = "7 OCT 2026"
@@ -59,13 +57,6 @@ def hl(code, lang, attrs):
 
 
 md = MarkdownIt("commonmark", {"html": False, "highlight": hl}).enable("table")
-text = SRC.read_text(encoding="utf-8")
-
-# split into sections
-parts = re.split(r"(?m)^## (\d+)\. (.+)$", text)
-sections = {}
-for i in range(1, len(parts), 3):
-    sections[int(parts[i])] = (parts[i + 1].strip(), parts[i + 2])
 
 DIAGRAM = """
 <figure class="fm-loop">
@@ -110,16 +101,74 @@ def link_for_section(n):
     return f"{SEC_PAGE[n]}#sec-{n}"
 
 
-EX_PAGE = {}
-REC_PAGE = {}
-for n, (title, body) in sections.items():
-    for m in re.finditer(r"(?m)^### Exercise (\d+)", body):
-        EX_PAGE[int(m.group(1))] = SEC_PAGE[n]
-    for m in re.finditer(r"(?m)^### Recipe (\d+)", body):
-        REC_PAGE[int(m.group(1))] = SEC_PAGE[n]
 
 REF_RE = re.compile(r"\b(Sections?|sections?) (\d{1,2})\b|\b(Exercises?) (\d{1,2})\b|\b(Recipe) (\d)\b")
 LEAD_RE = re.compile(r"([A-Z][^:.\n]{0,48}):\s+")   # a lead-in: up to the first colon, no full stop before it
+
+
+def parse_header(text, name):
+    """The `---` block at the top of a manual: meta dict and the body after it. ValueError names the file."""
+    text = text.replace("\r\n", "\n")
+    m = re.match(r"---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        raise ValueError(f"{name}: no header (a block between --- lines at the very top)")
+    meta = dict(revision="A", platform=None, code_blocks=None, legacy=None, parts=[])
+    key = None
+    for line in m.group(1).split("\n"):
+        if not line.strip():
+            continue
+        if key == "parts" and line.startswith("  - "):
+            bits = [b.strip() for b in line[4:].split("|")]
+            if len(bits) != 3 or not re.fullmatch(r"\d+(-\d+)?", bits[2]):
+                raise ValueError(f"{name}: a part reads 'Title | Blurb | 2-3', not '{line.strip()}'")
+            a, _, b = bits[2].partition("-")
+            meta["parts"].append((bits[0], bits[1], list(range(int(a), int(b or a) + 1))))
+            continue
+        key, sep, val = (s.strip() for s in line.partition(":"))
+        if not sep:
+            raise ValueError(f"{name}: header line without a colon: '{line.strip()}'")
+        if key != "parts":
+            meta[key] = int(val) if key == "code_blocks" else val
+    for k in ("title", "blurb", "date"):
+        if not meta.get(k):
+            raise ValueError(f"{name}: the header has no {k}")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta["date"]):
+        raise ValueError(f"{name}: date must read YYYY-MM-DD, not '{meta['date']}'")
+    return meta, text[m.end():]
+
+
+def split_sections(body, name):
+    """`## N. Title` sections: {N: (title, markdown)}."""
+    bits = re.split(r"(?m)^## (\d+)\. (.+)$", body)
+    if len(bits) < 4:
+        raise ValueError(f"{name}: no sections (headings like '## 1. Title')")
+    return {int(bits[i]): (bits[i + 1].strip(), bits[i + 2]) for i in range(1, len(bits), 3)}
+
+
+def layout(meta, sections, name):
+    """The manual's pages: its index (slug_n 0: section 1 and any section in no part), then a page per part.
+    No parts listed: every section after 1 is a part of its own."""
+    parts = meta["parts"] or [(sections[n][0], "", [n]) for n in sorted(sections) if n != 1]
+    used, pages = set(), []
+    for i, (title, blurb, secs) in enumerate(parts, 1):
+        for s in secs:
+            if s not in sections:
+                raise ValueError(f"{name}: part '{title}' names section {s}, which doesn't exist")
+            if s in used:
+                raise ValueError(f"{name}: section {s} is in two parts")
+            used.add(s)
+        src = title == "Sources"
+        pages.append(dict(slug_n=i, nav="SRC" if src else f"P{i}", title=title, kicker="SOURCES" if src else f"PART {i}",
+                          h1=title.upper(), blurb=blurb, sections=secs))
+    index = dict(slug_n=0, nav="INDEX", title=meta["title"], kicker="FIELD MANUAL", h1=meta["title"].upper(),
+                 blurb=meta["blurb"], sections=[n for n in sorted(sections) if n not in used])
+    return [index] + pages
+
+
+def short(title):
+    """A section's ladder label: the heading's first three words."""
+    return " ".join(title.split()[:3])
+
 
 
 def render_section(n, page_file):
@@ -341,39 +390,56 @@ def panel(n, title, body, code):
             f'    <h2>{html.escape(title)}</h2>\n{body}\n  </section>\n')
 
 
-exercises = []
-for n, (title, body) in sections.items():
-    for m in re.finditer(r"(?m)^### Exercise (\d+)(.*?):\s*(.*)$", body):
-        exercises.append((int(m.group(1)), m.group(3)[0].upper() + m.group(3)[1:], n))
+if __name__ == "__main__":
+    SRC = Path(sys.argv[1])
+    SITE = Path(sys.argv[2])
+    text = SRC.read_text(encoding="utf-8")
 
-rendered = {}
-for p in PAGES:
-    for n in p["sections"]:
-        rendered[n] = render_section(n, p["file"])
+    # split into sections
+    parts = re.split(r"(?m)^## (\d+)\. (.+)$", text)
+    sections = {}
+    for i in range(1, len(parts), 3):
+        sections[int(parts[i])] = (parts[i + 1].strip(), parts[i + 2])
+    EX_PAGE = {}
+    REC_PAGE = {}
+    for n, (title, body) in sections.items():
+        for m in re.finditer(r"(?m)^### Exercise (\d+)", body):
+            EX_PAGE[int(m.group(1))] = SEC_PAGE[n]
+        for m in re.finditer(r"(?m)^### Recipe (\d+)", body):
+            REC_PAGE[int(m.group(1))] = SEC_PAGE[n]
+    exercises = []
+    for n, (title, body) in sections.items():
+        for m in re.finditer(r"(?m)^### Exercise (\d+)(.*?):\s*(.*)$", body):
+            exercises.append((int(m.group(1)), m.group(3)[0].upper() + m.group(3)[1:], n))
 
-for i, p in enumerate(PAGES):
-    panels = ""
-    if p["file"] == "manual.html":
-        rows = []
-        for q in PAGES[1:]:
-            secs = "".join(f'<li><a href="{q["file"]}#sec-{s}">{s:02d} {html.escape(sections[s][0])}</a></li>' for s in q["sections"])
-            rows.append(f'<dt><a href="{q["file"]}">{html.escape(q["kicker"])}</a></dt><dd>{html.escape(q["title"])}<ul class="list">{secs}</ul></dd>')
-        panels += ('  <section class="panel" data-ref="FM-0001 &#183; ' + REV + '" data-sector="Contents">\n'
-                   '    <p class="sub">INDEX</p>\n    <h2>Contents</h2>\n'
-                   '    <p>Every code block has a COPY button, so commands paste exactly as written. Section and exercise numbers match the PDF edition.</p>\n'
-                   f'    <dl class="rows">{"".join(rows)}</dl>\n  </section>\n')
-        exl = "".join(f'<li><a href="{EX_PAGE[e]}#ex-{e}">EX-{e:02d} {html.escape(t)}</a> <span class="meta">SEC {s:02d}</span></li>' for e, t, s in exercises)
-        panels += ('  <section class="panel" data-ref="FM-0002 &#183; ' + REV + '" data-sector="Exercises">\n'
-                   '    <p class="sub">TRAINING</p>\n    <h2>Exercises</h2>\n'
-                   '    <p>Each exercise says what output to expect. The four-week plan in <a href="manual-5.html#sec-19">section 19</a> puts them in order.</p>\n'
-                   f'    <ul class="list fm-exlist">{exl}</ul>\n  </section>\n')
-    for n in p["sections"]:
-        title, body = rendered[n]
-        panels += panel(n, title, body, p["code"])
-    prev_p = PAGES[i - 1] if i > 0 else None
-    next_p = PAGES[i + 1] if i + 1 < len(PAGES) else None
-    (SITE / p["file"]).write_text(page(p, panels, prev_p, next_p, len(exercises)), encoding="utf-8")
-    print("wrote", p["file"])
+    rendered = {}
+    for p in PAGES:
+        for n in p["sections"]:
+            rendered[n] = render_section(n, p["file"])
 
-(HERE / "code_map.json").write_text(json.dumps(CODE_MAP), encoding="utf-8")
-print("code blocks", counter["code"], "exercises", len(exercises))
+    for i, p in enumerate(PAGES):
+        panels = ""
+        if p["file"] == "manual.html":
+            rows = []
+            for q in PAGES[1:]:
+                secs = "".join(f'<li><a href="{q["file"]}#sec-{s}">{s:02d} {html.escape(sections[s][0])}</a></li>' for s in q["sections"])
+                rows.append(f'<dt><a href="{q["file"]}">{html.escape(q["kicker"])}</a></dt><dd>{html.escape(q["title"])}<ul class="list">{secs}</ul></dd>')
+            panels += ('  <section class="panel" data-ref="FM-0001 &#183; ' + REV + '" data-sector="Contents">\n'
+                       '    <p class="sub">INDEX</p>\n    <h2>Contents</h2>\n'
+                       '    <p>Every code block has a COPY button, so commands paste exactly as written. Section and exercise numbers match the PDF edition.</p>\n'
+                       f'    <dl class="rows">{"".join(rows)}</dl>\n  </section>\n')
+            exl = "".join(f'<li><a href="{EX_PAGE[e]}#ex-{e}">EX-{e:02d} {html.escape(t)}</a> <span class="meta">SEC {s:02d}</span></li>' for e, t, s in exercises)
+            panels += ('  <section class="panel" data-ref="FM-0002 &#183; ' + REV + '" data-sector="Exercises">\n'
+                       '    <p class="sub">TRAINING</p>\n    <h2>Exercises</h2>\n'
+                       '    <p>Each exercise says what output to expect. The four-week plan in <a href="manual-5.html#sec-19">section 19</a> puts them in order.</p>\n'
+                       f'    <ul class="list fm-exlist">{exl}</ul>\n  </section>\n')
+        for n in p["sections"]:
+            title, body = rendered[n]
+            panels += panel(n, title, body, p["code"])
+        prev_p = PAGES[i - 1] if i > 0 else None
+        next_p = PAGES[i + 1] if i + 1 < len(PAGES) else None
+        (SITE / p["file"]).write_text(page(p, panels, prev_p, next_p, len(exercises)), encoding="utf-8")
+        print("wrote", p["file"])
+
+    (HERE / "code_map.json").write_text(json.dumps(CODE_MAP), encoding="utf-8")
+    print("code blocks", counter["code"], "exercises", len(exercises))
