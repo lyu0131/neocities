@@ -26,11 +26,9 @@
   // (copies, so the scope's DOM nodes don't land on the shared table)
   var CONTACTS = BUNNYS.contacts.map(function (c) { return Object.assign({ brg: BUNNYS.wrap360(c.yaw) }, c); });
   var PAGES = BUNNYS.contacts.filter(function (c) { return c.page; }).map(function (c) { return c.page; });
-  var here = document.documentElement.dataset.page;
-  // a page that isn't one of the cockpit's contacts (the field manual, manual*.html) reads as its own
-  // unit at the tools' bearing, so the scope shows all three contact pages as links
-  var me = CONTACTS.filter(function (c) { return c.page === here; })[0] ||
-    (/^manual/.test(here) ? { code: 'MAN', label: 'FIELD MANUAL', brg: 52, rng: '0.1 KM' } : CONTACTS[0]);
+  // the field manual's parts (manual-1..6.html) read as the FIELD MANUAL contact
+  var here = document.documentElement.dataset.page.replace(/-\d+$/, '');
+  var me = CONTACTS.filter(function (c) { return c.page === here; })[0] || CONTACTS[0];
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -73,7 +71,7 @@
   var side = el('aside', 'phud-scope');
   side.setAttribute('aria-label', 'Contacts');
   var scap = el('p', 'phud-cap', 'CONTACTS ');
-  scap.insertAdjacentHTML('beforeend', '<kbd aria-hidden="true">1-4</kbd>');
+  scap.insertAdjacentHTML('beforeend', '<kbd aria-hidden="true">1-5</kbd>');
   side.appendChild(scap);
   var dial = el('div', 'phud-dial');
   dial.appendChild(el('i', 'phud-sweep'));
@@ -163,7 +161,7 @@
   document.addEventListener('toggle', queue, true);
   update();
 
-  // ---- keys, the same map as the cockpit's: 1-4 lock a contact on the scope and Enter opens it
+  // ---- keys, the same map as the cockpit's: 1-5 lock a contact on the scope and Enter opens it
   // (the unknown one opens the cockpit facing it), Esc releases a lock or else goes back to the
   // cockpit, J/K the next/previous sector ----
   function go(href) { BUNNYS.link.go(href); }   // link.js: the shutters, or straight there under reduced motion
@@ -175,7 +173,7 @@
   }
   document.addEventListener('keydown', function (e) {
     if (!BUNNYS.keyable(e) || e.repeat) return;
-    var n = '1234'.indexOf(e.key);
+    var n = '12345'.indexOf(e.key);
     if (n >= 0) { e.preventDefault(); lock(CONTACTS[n]); return; }
     if (e.key === 'Enter' && locked && !(e.target.closest && e.target.closest('a, button, summary, input, select, textarea'))) {
       e.preventDefault(); go(locked.page ? locked.page + '.html' : 'index.html?face=t-unknown'); return;

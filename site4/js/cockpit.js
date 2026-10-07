@@ -229,7 +229,7 @@
   // Boresight acquisition works like hover/tab: turning a contact under the centre reticle brings
   // up its dossier.
   var boreTarget = null;
-  // a contact picked with 1-4: held through the swing, so Enter mid-turn opens what was picked and
+  // a contact picked with 1-5: held through the swing, so Enter mid-turn opens what was picked and
   // not whatever the reticle is crossing; any manual turn lets it go
   var keyTarget = null;
   function dropKeyLock() { if (keyTarget) { keyTarget = null; refreshLock(); } }
@@ -385,8 +385,8 @@
       return;
     }
     if (e.repeat) return;
-    // 1-4: what the matching SLEW button does -- swing onto that contact and lock it; Enter opens it
-    var n = '1234'.indexOf(e.key);
+    // 1-5: what the matching SLEW button does -- swing onto that contact and lock it; Enter opens it
+    var n = '12345'.indexOf(e.key);
     if (n >= 0) {
       var sb = document.querySelector('#slew [data-slew="' + BUNNYS.contacts[n].id + '"]');
       if (sb) { e.preventDefault(); sb.click(); }

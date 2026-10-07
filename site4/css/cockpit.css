@@ -655,15 +655,17 @@ body:has(> #boot:not(.boot-out)) :is(#hud, #targets-nav, #slew, #hudmode, #comms
   background: repeating-linear-gradient(to right, var(--hud) 0 1px, transparent 1px 12px);
   opacity: .5;
 }
-.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 6px; flex: 1; }
+.slew ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 4px; flex: 1; }
 .slew li { display: flex; }
+/* five contacts: the odd one out (UNKNOWN) takes the whole last row */
+.slew li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .slew button {
   display: block;
   width: 100%;
   /* the WCAG 2.5.8 floor, not the real height: at this padding the button's own
-     content sets it taller (~31px) than this minimum ever has to act on */
+     content sets it a touch taller than this minimum ever has to act on */
   min-height: 24px;
-  padding: 6px 8px;
+  padding: 3px 8px;
   font: inherit;
   text-align: left;
   color: var(--hud);
@@ -789,6 +791,8 @@ body.page::before {
 .strip a:hover { background: var(--hud); color: var(--night); }
 .strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
 .strip .ret { color: var(--amber); }
+/* FIELD MANUAL fits the strip from tablet up; on a phone it would wrap, so it reads MANUAL there */
+@media (max-width: 480px) { .strip .wide { display: none; } }
 
 .screen {
   position: relative; z-index: 1;   /* over the panorama (body.page::before, z 0); page chrome is --z-nav */
@@ -1053,7 +1057,7 @@ html.linked body.page .screen { animation: none; }
 a.phud-blip::after { content: ""; position: absolute; inset: -9px; }   /* a 26px target for an 8px mark */
 a.phud-blip:hover, a.phud-blip:focus-visible { background: var(--hud); outline: none; }
 a.phud-blip:focus-visible span { color: var(--amber); }
-/* lock brackets: this page amber, a 1-4 lock red (the cockpit's lock-on colour) */
+/* lock brackets: this page amber, a 1-5 lock red (the cockpit's lock-on colour) */
 .phud-blip.is-me { --bc: var(--amber); }
 .phud-blip.is-lock { --bc: var(--lock); opacity: 1; }
 .phud-blip.is-me, .phud-blip.is-lock { border-color: var(--bc); background: var(--bc); }

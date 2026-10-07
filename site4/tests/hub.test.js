@@ -291,9 +291,9 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   await enter(); await p.sleep(1600);
   check('Enter on SLEW again opens it', /hangar\.html$/.test(await p.eval('location.pathname')));
   await backToHub();
-  // number keys: 4 swings onto the unknown contact and locks it
-  await p.key('4', 'Digit4', 52); await p.sleep(2200);
-  check('4 locks the unknown contact', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
+  // number keys: 5 swings onto the unknown contact and locks it
+  await p.key('5', 'Digit5', 53); await p.sleep(2200);
+  check('5 locks the unknown contact', /UNIDENTIFIED/.test(await p.eval("document.getElementById('lock-status').textContent")));
   // Home turns the view, so it lets a number-key lock go: the lock follows the reticle again
   await p.key('1', 'Digit1', 49); await p.sleep(1500);
   await p.key('Home', 'Home', 36); await p.sleep(1800);

@@ -287,10 +287,10 @@ def page(p, panels_html, prev_p, next_p, total_ex):
 <link rel="stylesheet" href="css/manual.css">
 </head>
 <!-- generated from the guide's Markdown by gen_manual.py; edit the source, not this file -->
-<body class="page manual" style="--brg: 52">
+<body class="page manual" style="--brg: 104">
 
 <nav class="strip" aria-label="Field manual">
-  <a class="ret" href="hangar.html">&#9666; HANGAR</a>
+  <a class="ret" href="index.html" aria-keyshortcuts="Escape">&#9666; RETURN TO COCKPIT <kbd aria-hidden="true">ESC</kbd></a>
   <ul>
 {nav(p["file"])}
   </ul>

@@ -15,7 +15,7 @@ Fonts: B612 400/700 and B612 Mono 400/700 (one Google Fonts link, spec section 3
 
 ## Hub DOM (index.html)
 - `#cockpit` holds:
-  - `#pano` > `.pano-ring` > the 24 `.pano-slice` elements (generated) plus the `.target` elements (`#t-pilot`, `#t-missions`, `#t-hangar`, `#t-unknown`), with `data-yaw`, `data-href` (unknown's is `unknown.html`, its open channel), `data-label` and `data-readout`;
+  - `#pano` > `.pano-ring` > the 24 `.pano-slice` elements (generated) plus the `.target` elements (`#t-pilot`, `#t-missions`, `#t-hangar`, `#t-manual`, `#t-unknown`), with `data-yaw`, `data-href` (unknown's is `unknown.html`, its open channel), `data-label` and `data-readout`;
   - `canvas#fx`, `img#frame`, `svg#hud` (hud.js builds its contents; the heading number is in `.hdg-readout`);
   - `nav#targets-nav` (links carry `data-target`) and `p#lock-status.sr-only[aria-live]`.
 - **The owner's emblem** (split helmet, V-fin, wreath), as two files generated from their image, not redrawn:
@@ -89,7 +89,7 @@ Built at load from the page itself; nothing in the HTML. Instruments for reading
 
 ## Yaw to panorama mapping (pano.svg and cockpit.js must agree)
 - `pano.svg` is 9600 units wide, so 1° is 26.667 units.
-- Looking at yaw θ puts the view's centre at `x = θ × 26.667`, wrapping modulo 9600. Yaw 0 (MISSIONS, straight ahead) is centred on x = 0, which is the same as x = 9600. Yaw +52 (HANGAR) is at x ≈ 1387, yaw −52 (PILOT) at x ≈ 8213, and yaw 180 (UNKNOWN) at x = 4800.
+- Looking at yaw θ puts the view's centre at `x = θ × 26.667`, wrapping modulo 9600. Yaw 0 (MISSIONS, straight ahead) is centred on x = 0, which is the same as x = 9600. Yaw +52 (HANGAR) is at x ≈ 1387, yaw +104 (FIELD MANUAL) at x ≈ 2773, yaw −52 (PILOT) at x ≈ 8213, and yaw 180 (UNKNOWN) at x = 4800.
 - Positive yaw turns right. At pitch 0 the view is centred on y ≈ 1000 and shows roughly y 330–1670 on a 16:9 screen. The horizon is at y ≈ 1150.
 - Targets sit around y 700–1050 in panorama space.
 
@@ -110,13 +110,13 @@ contact is already locked: Enter once turns onto it, Enter again opens it.
 ### Keyboard map (one map across the site; every key is shown as a `<kbd>` where it acts)
 | key | cockpit | sub-pages |
 |---|---|---|
-| Space / Enter / Esc | skip the boot (boot.js; no other key skips, so 1-4 never do) | |
-| 1 2 3 4 | swing onto pilot / missions / hangar / unknown and **lock** it (held through the swing; any manual turn drops it; a SLEW click locks the same way) | lock that contact on the scope (red brackets; the status line says ENTER TO OPEN) |
+| Space / Enter / Esc | skip the boot (boot.js; no other key skips, so 1-5 never do) | |
+| 1 2 3 4 5 | swing onto pilot / missions / hangar / field manual / unknown and **lock** it (held through the swing; any manual turn drops it; a SLEW click locks the same way) | lock that contact on the scope (red brackets; the status line says ENTER TO OPEN) |
 | Enter | open the locked contact | open the scope lock (unknown: the cockpit, facing it, `index.html?face=t-unknown`) |
 | Esc | acknowledge comms | release a scope lock, else back to the cockpit |
 | Arrows / WASD, Home | turn, face forward | hangar: arrows turn the model |
 | X N R C | declutter, night vis, run diag, comms | |
-| Q / E | | the page left / right (pilot, missions, hangar: the cockpit's order), wrapping |
+| Q / E | | the page left / right (pilot, missions, hangar, manual: the cockpit's order), wrapping |
 | J / K | | next / previous sector |
 | F S R | | hangar: front / side / rear |
 Owners: cockpit.js (hub), pagehud.js (sub-pages), hangar.js (model), boot.js (skip). Labels carry
@@ -387,14 +387,16 @@ drift against anything, so it keeps its `steps(1, end)` square wave.
 Seven reading pages generated from `docs/field-manual.md` (the Windows guide to Claude's agents, MCP, skills, hooks and
 plugins) by `python tools/gen_manual.py docs/field-manual.md .` (needs `markdown-it-py`, `pygments` and `beautifulsoup4`).
 Edit the Markdown and regenerate; never hand-edit the pages.
-- `body.page.manual`, `--brg: 52` (they hang off HANGAR; `hangar.html`'s last panel links `manual.html`). One `.panel` per
-  guide section, so pagehud.js builds the ladder as usual. They are not cockpit contacts: pagehud.js reads any page named
-  `manual*` as its own unit (`MAN`, FIELD MANUAL, bearing 052) and shows all three contact pages on the scope as links.
-  link.js leaves them alone (not in `OWN`), so clicks between manual pages are plain navigation.
+- FIELD MANUAL is the cockpit's fifth contact (`t-manual`, `MAN`, yaw 104, key 4; UNKNOWN moved to key 5), so the
+  pages carry `body.page.manual`, `--brg: 104`. Its SLEW button reads MANUAL (FIELD MANUAL wraps and breaks the pod's
+  level with SENSOR ARRAY); the slew buttons are 3px/8px padded at the 24px floor for the same reason. pagehud.js
+  reads `manual-N` as the manual contact. `manual.html` is in link.js's `OWN` (the shutter handover from the cockpit);
+  the parts aren't, so clicks between them are plain navigation. One `.panel` per guide section, so the ladder works
+  as usual.
 - `css/manual.css`: code blocks (`.fm-code`, recessed glass, never wrapped so a copy pastes exactly, token colours from
   the palette), tables that scroll in their own box, exercises (`.fm-ex`), cautions (amber outline, no stripes), best
   practice (`.fm-best`), Expected (`.fm-expected`), Unverified and Tested tags. The content pages' hover magnify is off here.
 - `js/manual.js`: the COPY buttons (clipboard API, textarea fallback, `#fm-live` announcement). No globals.
 - Code blocks carry ids `c-1`..`c-N` in guide order; the PDF edition links to them as `manual-N.html#c-K`.
 - `tests/manual.test.js` (in `run.js`): overflow at 375/768/1366/1920, one h1, a rung per panel, COPY copies the exact
-  text, every in-manual link and fragment resolves, hangar links the manual, no JS errors.
+  text, every in-manual link and fragment resolves, the strip links the manual, no JS errors.

@@ -10,13 +10,14 @@
     shortestDelta: function (from, to) { var d = window.BUNNYS.wrap360(to - from); return d > 180 ? d - 360 : d; },
     clamp: function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); },
     pad: function (n, w) { return ('000' + n).slice(-w); },
-    // The cockpit's contacts, in key order (1-4, Q/E): the one table the sub-page scope, the
+    // The cockpit's contacts, in key order (1-5, Q/E): the one table the sub-page scope, the
     // number keys and the shutter labels read. index.html's .target data-yaw/data-label must match
     // (tests/hub.test.js holds them together).
     contacts: [
       { id: 't-pilot', page: 'pilot', code: 'PIL', label: 'PILOT', yaw: -52, rng: '0.4 KM' },
       { id: 't-missions', page: 'missions', code: 'MIS', label: 'MISSIONS', yaw: 0, rng: '1.2 KM' },
       { id: 't-hangar', page: 'hangar', code: 'HGR', label: 'HANGAR', yaw: 52, rng: '0.1 KM' },
+      { id: 't-manual', page: 'manual', code: 'MAN', label: 'FIELD MANUAL', yaw: 104, rng: '0.2 KM' },
       { id: 't-unknown', page: null, code: 'UNK', label: 'UNKNOWN', yaw: 180 }
     ],
     // Whether a keydown is the page's to handle: no modifier, nobody handled it, not typing.

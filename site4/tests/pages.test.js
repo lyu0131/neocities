@@ -75,7 +75,7 @@ const SIZES = [[375, 740], [768, 1024], [1024, 768], [1366, 600], [1440, 900], [
   check('E goes to the page on the right', /missions\.html$/.test(await p.eval('location.pathname')));
   await p.goto('pilot.html', 1200);
   await p.key('q', 'KeyQ', 81); await p.sleep(2200);
-  check('Q wraps to the far page', /hangar\.html$/.test(await p.eval('location.pathname')));
+  check('Q wraps to the far page', /manual\.html$/.test(await p.eval('location.pathname')));
   // 2 locks the missions contact, Enter opens it
   await p.goto('pilot.html', 1200);
   await p.key('2', 'Digit2', 50); await p.sleep(200);
