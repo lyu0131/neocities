@@ -15,20 +15,23 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     g.readPixels(w >> 1, h >> 2, 8, 8, g.RGBA, g.UNSIGNED_BYTE, px); let lit = 0; for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] > 12) lit++; r(lit > 32); }))`));
   check('the HUD draws', await p.eval(`(() => { const c = document.getElementById('hud'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 64) if (d[i]) n++; return n > 200; })()`));
 
+  // strapping in: the hand rings start open and swing shut
+  const open0 = await p.eval('SITE5.parts.ringOpen');
   // the scripted flight turns the suit, and the seat swings inside the ball
   const a0 = await pose(p, 's.heading'); let maxSeat = 0;
   for (let i = 0; i < 30; i++) { await p.sleep(100); maxSeat = Math.max(maxSeat, await pose(p, 'Math.hypot(s.eye[0], s.eye[1], s.eye[2] + .4)')); }
   check('AUTO flies: the heading changes', Math.abs(((await pose(p, 's.heading')) - a0 + 540) % 360 - 180) > 3);
   check('AUTO says so', (await pose(p, 's.mode')) === 'AUTO');
   check('the seat sways inside the ball', maxSeat > 0.003 && maxSeat < 0.3, maxSeat.toFixed(4));
+  check('the hand rings start open and close as you strap in', open0 > 60 && (await p.eval('SITE5.parts.ringOpen')) === 0, open0 + ' -> ' + (await p.eval('SITE5.parts.ringOpen')));
 
   // keys take it over (MANUAL) and turn it; it hands back after 4s
   const cl = () => p.eval('JSON.stringify(SITE5.parts.cluster)').then(JSON.parse);
   const dash0 = (await cl()).dash;
   await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 });
   const h0 = await pose(p, 's.heading'); await p.sleep(900);
-  const turning = await cl(), tiltTurn = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.gripTilt || null)')); await p.sleep(300);
-  check('turning left tilts the grips left', !!tiltTurn && tiltTurn[0] < -5, JSON.stringify(tiltTurn));
+  const turning = await cl(), tiltTurn = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.ringTurn || null)')); await p.sleep(300);
+  check('turning left rolls the hand rings left', !!tiltTurn && tiltTurn.roll < -5, JSON.stringify(tiltTurn));
   check('turning left lights the left turn tabs only', turning.tabs[0] > 0.3 && turning.tabs[1] < 0.05, JSON.stringify(turning.tabs));
   check('the dash rows scroll with the turn', Math.abs(turning.dash - dash0) > 0.001, dash0 + ' -> ' + turning.dash);
   check('the thrust vector swings into the turn', turning.thrust[0] < -0.1, JSON.stringify(turning.thrust));
@@ -48,8 +51,8 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
   for (let i = 0; i < 10; i++) { const c = (await cl()).chev; upLit = Math.max(upLit, c.up); upY = Math.max(upY, c.upY); await p.sleep(30); }
   check('climbing lights the up arrow', upLit > 0.3, upLit.toFixed(2));
   check('climbing pushes the up arrow up', upY > 0.3, upY.toFixed(2));
-  const tiltClimb = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.gripTilt || null)'));
-  check('climbing pulls the grips back', !!tiltClimb && tiltClimb[1] < -5, JSON.stringify(tiltClimb));
+  const tiltClimb = JSON.parse(await p.eval('JSON.stringify(SITE5.parts.ringTurn || null)'));
+  check('climbing tilts the hand rings back', !!tiltClimb && tiltClimb.pitch < -5, JSON.stringify(tiltClimb));
   const y1 = await noseY();
   await p.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 });
   check('climbing shifts the HUD down the screen', y1 - y0 > 40, `${y0.toFixed(0)} -> ${y1.toFixed(0)}`);
@@ -223,7 +226,6 @@ async function ready(p) { for (let i = 0; i < 60 && !(await p.eval('!!(window.SI
     check('phone: draws', await m.eval('!!SITE5.gl') && m.errors.length === 0, m.errors.join(' | '));
     const ed = await m.eval('JSON.stringify(SITE5.parts.cluster.edges)');
     check('phone: the whole cluster fits across the screen', JSON.parse(ed)[0] >= 4 && JSON.parse(ed)[1] <= 371, ed);
-    check('phone: the grip heads show at rest', await m.eval('SITE5.parts.seat.grip > 0'), JSON.stringify(await m.eval('SITE5.parts.seat')));
     await m.mouse('mousePressed', 187, 650, 1); for (let k = 1; k <= 8; k++) await m.mouse('mouseMoved', 187, 650 - 40 * k, 1); await m.mouse('mouseReleased', 187, 330);
     await m.sleep(200);
     check('phone: looking down shows the rails and grips', await m.eval('SITE5.parts.seat.grip > 4 && SITE5.parts.seat.rail > 4'), JSON.stringify(await m.eval('SITE5.parts.seat')));

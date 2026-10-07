@@ -35,9 +35,14 @@
     button: { a: [0.025, 0.025, 0.028], r: 0.22, m: 0, k: 0 },       // glossy thumb buttons
     yellow: { a: [0.80, 0.60, 0.12], r: 0.3, m: 0, k: 0 },           // the suit's colours, on the grips
     teal: { a: [0.12, 0.52, 0.58], r: 0.3, m: 0, k: 0 },
-    accent: null,                                                    // the grip's one coloured button: yellow right, teal left
+    ring: { a: [0.30, 0.31, 0.33], r: 0.32, m: 0.55, k: 4 },        // the hand ring's satin metal bands and handbar
+    liner: { a: [0.055, 0.055, 0.06], r: 0.7, m: 0, k: 1 },         // the soft liner inside the ring
+    channel: { a: [0.03, 0.03, 0.034], r: 0.45, m: 0, k: 0 },       // the recess the finger keys sit in
+    key: { a: [0.02, 0.02, 0.024], r: 0.14, m: 0, k: 0 },           // glossy black keys and the thumb dome
+    glow: { a: [0.02, 0.03, 0.05], r: 0.3, m: 0, k: 0, e: [0.22, 0.5, 0.95] },   // the keys' hairlines of light
     lamp: { a: [0.2, 0.02, 0.04], r: 0.3, m: 0, k: 0, e: [1.6, 0.16, 0.24] },   // the red lamps
-    trim: { a: [0.2, 0.05, 0.1], r: 0.3, m: 0, k: 0, e: [0.85, 0.22, 0.45] }    // the pink trim along the consoles
+    trim: { a: [0.2, 0.05, 0.1], r: 0.3, m: 0, k: 0, e: [0.85, 0.22, 0.45] },   // the pink trim along the consoles and rings
+    track: { a: [0.30, 0.31, 0.33], r: 0.32, m: 0.55, k: 4 }
   };
 
   // ---- geometry: triangles of {p, n, m, id}, the parts as ray occluders, sample points per group ----
@@ -127,14 +132,10 @@
   [-1, 1].forEach(function (sd) {
     var X = sd * 0.275;
     rbox([X, -0.49, 0.17], [0.05, 0.04, 0.25], 0.01, MAT.shell, 'rail');                      // the console
-    rbox([X - sd * 0.003, -0.446, 0.12], [0.04, 0.008, 0.2], 0.007, MAT.pad, 'rail');         // the arm pad
+    rbox([X - sd * 0.003, -0.446, 0.1], [0.04, 0.008, 0.18], 0.007, MAT.pad, 'rail');         // the arm pad, stopping short of the ring
     rbox([sd * 0.3255, -0.49, 0.15], [0.003, 0.026, 0.2], 0.002, MAT.dark, 'rail');           // a panel let into its outer side
     rbox([sd * 0.2245, -0.49, 0.17], [0.003, 0.024, 0.21], 0.002, MAT.dark, 'rail');          // and its inner
     rbox([sd * 0.235, -0.451, 0.15], [0.0025, 0.0025, 0.17], 0.002, MAT.trim, 'rail');        // the pink trim
-    rbox([X, -0.47, 0.4], [0.052, 0.05, 0.075], 0.01, MAT.shell, 'rail');                     // its raised head
-    for (var g = 0; g < 4; g++) rbox([X, -0.495 + g * 0.014, 0.4755], [0.034, 0.003, 0.002], 0.0015, MAT.dark, 'rail');   // a vent in its front
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (b) { tube([[X + b[0] * 0.04, -0.4195, 0.4 + b[1] * 0.06], [X + b[0] * 0.04, -0.4185, 0.4 + b[1] * 0.06]], 0.004, MAT.metal, 'rail', 8); });   // bolts
-    rbox([X, -0.418, 0.405], [0.032, 0.006, 0.036], 0.005, MAT.dark, 'rail');                 // the grip's mount plate
     rbox([sd * 0.24, -0.56, -0.01], [0.03, 0.02, 0.06], 0.01, MAT.dark, 'rail');              // the console's arm to the seat
     rbox([X, -0.70, 0.4], [0.03, 0.17, 0.035], 0.01, MAT.dark, 'rail');                       // the support leg
     tube([[X - 0.036, -0.535, 0.4], [X + 0.036, -0.535, 0.4]], 0.02, MAT.metal, 'rail');     // its hinge
@@ -320,42 +321,40 @@
   attribs();
   var U = {}; ['uView', 'uRot', 'uOrg', 'uTan', 'uKX', 'uLift', 'uSuit', 'uFlash'].forEach(function (k) { U[k] = gl.getUniformLocation(prog, k); });
 
-  // ---- the control grips: the Blender model (js/grip-data.js, from tools/make_grip.py), one per hand on its
-  // console's mount, the stick tilting about its gimbal with the flight (the bellows half as far) ----
-  var PIVOT_Y = -0.412 + 0.032 / 1.4, PIVOT_Z = 0.405;   // the housing's foot on the mount plate
-  var TILT_SIDE = 18, TILT_FORE = 15;                      // full stick, degrees
+  // ---- the hand rings: the Blender model (js/ring-data.js, from tools/make_ring.py), one floating over the front
+  // of each console. The forearm goes through the inner ring and the hand closes on the L handbar. The outer track
+  // yaws and pitches, the inner ring rolls inside it; the upper halves of both open as a clamshell about one hinge on
+  // the outer side. Mirrored for the left hand; both turn the same way, with the flight ----
+  var RING_C = [0.275, -0.39, 0.36];                      // the ring's centre, right hand
+  var ROLL = 35, PITCH = 18, YAW = 10, OPEN = 115;        // full stick, degrees; the clamshell fully open
+  var GROUPS = ['track', 'trackhatch', 'ring', 'hatch'];
   function decode(b64, Type) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Type(u.buffer); }
-  var grips = (window.SITE5_GRIP ? [-1, 1] : []).map(function (sd) {
-    var groups = [0, 0.5, 1].map(function (mv) { return { moves: mv, data: [] }; });
-    window.SITE5_GRIP.parts.forEach(function (pt) {
-      var P = decode(pt.pos, Float32Array), N = decode(pt.nrm, Int8Array), A = decode(pt.ao, Uint8Array);
-      var mt = pt.mat === 'accent' ? (sd > 0 ? MAT.yellow : MAT.teal) : MAT[pt.mat], e = mt.e || [0, 0, 0], g = groups[pt.moves === 0 ? 0 : pt.moves < 1 ? 1 : 2].data;
+  var rings = (window.SITE5_RING ? [-1, 1] : []).map(function (sd) {
+    var data = {}; GROUPS.forEach(function (g) { data[g] = []; });
+    window.SITE5_RING.parts.forEach(function (pt) {
+      var P = decode(pt.pos, Float32Array), N = decode(pt.nrm, Int8Array), A = decode(pt.ao, Uint8Array), mt = MAT[pt.mat], e = mt.e || [0, 0, 0], g = data[pt.group];
       for (var v = 0; v < pt.count; v++) {
         g.push(sd * P[v * 3], P[v * 3 + 1], P[v * 3 + 2], sd * N[v * 3] / 127, N[v * 3 + 1] / 127, N[v * 3 + 2] / 127,
           mt.a[0], mt.a[1], mt.a[2], e[0], e[1], e[2], mt.r, mt.m, mt.k, 0, A[v] / 255);
       }
     });
-    var all = [], ranges = [];
-    groups.forEach(function (g) { ranges.push({ moves: g.moves, first: all.length / STRIDE, count: g.data.length / STRIDE }); all = all.concat(g.data); });
+    var all = [], ranges = {};
+    GROUPS.forEach(function (g) { ranges[g] = { first: all.length / STRIDE, count: data[g].length / STRIDE }; all = all.concat(data[g]); });
     var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(all), gl.STATIC_DRAW);
     attribs();
-    var org = [sd * 0.275, PIVOT_Y, PIVOT_Z];
-    [[0, 0, 0], [0, 0.05, 0], [0, 0.1, 0.01], [0, 0.14, 0.02], [sd * 0.02, 0.13, 0.02]].forEach(function (q) { points.grip.push(add(org, q)); });
-    return { vao: vao, ranges: ranges, org: org };
+    var c = [sd * RING_C[0], RING_C[1], RING_C[2]], h = window.SITE5_RING.hinge;
+    [[0, 0.05, 0], [0, -0.05, 0], [sd * 0.06, 0, 0], [0, -0.01, 0.12], [-sd * 0.02, -0.01, 0.125]].forEach(function (q) { points.grip.push(add(c, q)); });
+    return { vao: vao, ranges: ranges, c: c, hinge: [sd * h[0], h[1], h[2]], sd: sd };
   });
   gl.bindVertexArray(null);
   var I3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-  // the stick's turn: tipped sideways by side degrees (top to the right for +), then fore (top away for +)
-  function tilt(side, fore) {
-    var R = function (p) { return rotZ(-side)(rotX(fore)(p)); }, x = R([1, 0, 0]), y = R([0, 1, 0]), z = R([0, 0, 1]);
-    return x.concat(y, z);
-  }
+  function cols(f) { return f([1, 0, 0]).concat(f([0, 1, 0]), f([0, 0, 1])); }   // a turn as a column-major mat3
   gl.enable(gl.DEPTH_TEST);   // no culling: the meshes are closed, and the shader lights a face from whichever side shows
   function mat(q) { var x = m.qrot(q, [1, 0, 0]), y = m.qrot(q, [0, 1, 0]), z = m.qrot(q, [0, 0, 1]); return x.concat(y, z); }
 
   // On a narrow (portrait) screen the view is too tight to ever take in the grips, so the pair is drawn closer
-  // together there (KX < 1); LIFT raises everything so the grips' heads just show in the lower corners.
+  // together there (KX < 1); LIFT raises everything a touch.
   var LIFT = 0.035;
   S.renderers.push(function (pose, W, H) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2), cw = Math.round(W * dpr), ch = Math.round(H * dpr);
@@ -367,18 +366,28 @@
     gl.uniformMatrix3fv(U.uSuit, false, mat(pose.suitQ)); gl.uniform1f(U.uFlash, pose.flash);
     gl.uniformMatrix3fv(U.uRot, false, I3); gl.uniform3f(U.uOrg, 0, 0, 0);
     gl.bindVertexArray(seatVAO); gl.drawArrays(gl.TRIANGLES, 0, COUNT);
-    var st = pose.stick || [0, 0], side = st[0] * TILT_SIDE, fore = -st[1] * TILT_FORE;   // climbing pulls it back
-    grips.forEach(function (gp) {
-      gl.bindVertexArray(gp.vao); gl.uniform3fv(U.uOrg, gp.org);
-      gp.ranges.forEach(function (r) { if (!r.count) return; gl.uniformMatrix3fv(U.uRot, false, r.moves ? tilt(side * r.moves, fore * r.moves) : I3); gl.drawArrays(gl.TRIANGLES, r.first, r.count); });
+    // strapping in: the clamshells start open and swing shut over the first two seconds (closed under reduced motion);
+    // the roll eases to centre while they're open, so the halves meet
+    var shut = S.reduce ? 1 : m.clamp((pose.t - 0.6) / 1.2, 0, 1), open = OPEN * (1 - shut * shut * (3 - 2 * shut));
+    var st = pose.stick || [0, 0], turn = { yaw: st[0] * YAW, pitch: -st[1] * PITCH, roll: st[0] * ROLL * (1 - open / OPEN) };
+    var YP = function (p) { return rotY(turn.yaw)(rotX(turn.pitch)(p)); }, YPR = function (p) { return YP(rotZ(-turn.roll)(p)); };
+    rings.forEach(function (rg) {
+      // the clamshell's swing about the hinge's axis (the forearm's line): up and over, outward, on either hand
+      var Ho = rotZ(-rg.sd * open);
+      var draw = function (g, f, org) { var r = rg.ranges[g]; if (!r.count) return; gl.uniformMatrix3fv(U.uRot, false, cols(f)); gl.uniform3fv(U.uOrg, org); gl.drawArrays(gl.TRIANGLES, r.first, r.count); };
+      gl.bindVertexArray(rg.vao);
+      draw('track', YP, rg.c);
+      draw('trackhatch', function (p) { return YP(Ho(p)); }, add(rg.c, YP(rg.hinge)));
+      draw('ring', YPR, rg.c);
+      draw('hatch', function (p) { return YPR(Ho(p)); }, add(rg.c, YPR(rg.hinge)));
     });
     gl.bindVertexArray(null);
-    S.parts.gripTilt = [side, fore];
+    S.parts.ringTurn = turn; S.parts.ringOpen = Math.round(open);
     // what shows, per group: how many of its sample points land on the screen (for the tests)
     var drawn = {}, proj = function (p) { var e = m.qrot(HQi, [p[0] * KX, p[1] + LIFT, p[2]]); return e[2] > 0.02 ? [W / 2 + e[0] / e[2] / tx * W / 2, H / 2 - e[1] / e[2] / ty * H / 2] : null; };
     Object.keys(points).forEach(function (g) { drawn[g] = points[g].filter(function (p) { var s = proj(p); return s && s[0] >= 0 && s[0] <= W && s[1] >= 0 && s[1] <= H; }).length; });
     S.parts.seat = drawn;
-    S.parts.gripAt = proj([0.275, -0.3, 0.4]);
+    S.parts.gripAt = proj([0.275, -0.39, 0.42]);   // the right hand ring's handbar
   });
   S.seatGL = gl;
 })();
