@@ -1,22 +1,22 @@
 # Claude Agents, Tools and Workflow: A Practical Guide
 
-Prepared for Sylas Lyu. Written 6 October 2026; reviewed, tested on Windows and extended 7 October 2026.
+Written 6 October 2026; reviewed, tested on Windows and extended 7 October 2026.
 
 ## 1. How to use this guide
 
-This guide explains every term from our chat (agent, tool, environment, MCP, connector, CLI, skill, subagent, hook, plugin, marketplace), how to install each piece, and examples you can run. It is written for Windows, since your laptop and desktop both run it; macOS differences are noted where they matter.
+This guide explains the terms you meet when you start working with Claude (agent, tool, environment, MCP, connector, CLI, skill, subagent, hook, plugin, marketplace), how to install each piece, and examples you can run. It is written for Windows; macOS differences are noted where they matter.
 
 Parts:
 
 - Part 1, concepts: sections 2 and 3. What the pieces are and how they fit.
 - Part 2, foundations: sections 4 and 5. Terminal and JSON basics, which everything technical depends on.
-- Part 3, claude.ai: sections 6 to 8. Projects, connectors and skills in the app you already use.
+- Part 3, claude.ai: sections 6 to 8. Projects, connectors and skills in the chat app.
 - Part 4, Claude Code: sections 9 to 15. Installing it, then MCP, subagents, hooks, plugins and automation.
 - Part 5, applying it: sections 16 to 20. Workflow recipes, safety, troubleshooting, a four-week plan and a cheat sheet.
 
-Shortcut if you only use Claude for coursework and writing: read 2, 3, 6, 7, 8 and 16. Add Part 2 and Part 4 when you start working with code or data files.
+Shortcut if you only use Claude for writing and research: read 2, 3, 6, 7, 8 and 16. Add Part 2 and Part 4 when you start working with code or data files.
 
-The product blurb that started this conversation ("Drive every app from a CLI, a JSON control channel or an MCP server") is answered directly at the end of section 15, under "Agent-ready apps: three ways to drive one". It makes most sense after sections 4, 5 and 11.
+A common product claim, "drive every app from a CLI, a JSON control channel or an MCP server", is explained at the end of section 15, under "Agent-ready apps: three ways to drive one". It makes most sense after sections 4, 5 and 11.
 
 Conventions:
 
@@ -31,7 +31,7 @@ Accuracy: install commands, file formats and command flags were checked against 
 
 An agent is a model that takes actions in a loop. Everything else in this guide controls one of three things: where that loop runs, what it can reach, and what instructions it carries.
 
-The loop, as Claude Code's docs describe it and as this chat runs it:
+The loop, as Claude Code's docs describe it:
 
 1. You give a task.
 2. The model picks an action: read a file, search the web, run a command, call a connector.
@@ -41,13 +41,13 @@ The loop, as Claude Code's docs describe it and as this chat runs it:
 
 The model never touches your files directly. It can only ask for a tool, and the app decides whether to run it, which is why permission prompts exist.
 
-| Term | What it is | Example you have already seen |
+| Term | What it is | Example |
 | --- | --- | --- |
-| Model | The language model itself: Claude Opus, Sonnet, Haiku. Text in, text out | The model answering in this chat |
-| Tool | One named action the model can request; the app executes it | Web search, reading a file, Canva "create design" |
-| Agent | Model plus tools plus the loop above | This chat searching the docs before writing this guide |
-| Environment (surface) | Where the loop runs and what it can touch | claude.ai's cloud sandbox; Claude Code inside a folder on your laptop |
-| Prompt | Your message | "Fill in this thought journal" |
+| Model | The language model itself: Claude Opus, Sonnet, Haiku. Text in, text out | The model answering a chat |
+| Tool | One named action the model can request; the app executes it | Web search, reading a file, creating a document |
+| Agent | Model plus tools plus the loop above | A chat that searches the web before answering |
+| Environment (surface) | Where the loop runs and what it can touch | claude.ai's cloud sandbox; Claude Code inside a folder on your computer |
+| Prompt | Your message | "Summarise this report in five bullets" |
 | System prompt | Instructions the app gives the model before your message | Project instructions, the app's own rules |
 | Context window | Everything the model sees on one turn: system prompt, chat history, files, tool results, skill descriptions | Very long chats drift because early details get crowded out |
 | Token | The unit the model counts text in. Anthropic's pages give about 3.5 to 4 characters of English per token, and add that Claude 4.7 and later models produce about 30% more tokens for the same text, so expect nearer 3 with current models (derived) | Usage limits and context size are measured in tokens |
@@ -72,11 +72,11 @@ One distinction matters more than the rest. Instructions (CLAUDE.md, project ins
 
 Use claude.ai for work whose inputs you can upload and whose output is text, a doc or a deck. Use Claude Code when the work lives in a folder of files on your computer or needs code run on them.
 
-The chat you are reading this from is claude.ai. Its tools run in a private cloud workspace, so it sees your files only when you upload them, connect an app, or link the Claude desktop app on your computer.
+claude.ai's tools run in a private cloud workspace, so it sees your files only when you upload them, connect an app, or link the Claude desktop app on your computer.
 
 | Surface | Runs on | Can touch | Good for | Requirement |
 | --- | --- | --- | --- | --- |
-| claude.ai (web, desktop chat, mobile) | Anthropic's cloud | Uploads, connectors, the web | Coursework, writing, research questions, docs, decks | Any plan; features vary by plan |
+| claude.ai (web, desktop chat, mobile) | Anthropic's cloud | Uploads, connectors, the web | Writing, research questions, docs, decks | Any plan; features vary by plan |
 | Claude desktop app, Code tab | Your computer | Local project folders you open | Claude Code with a graphical interface, visual diff review | Download from claude.com/download; paid plan for Code |
 | Claude Code CLI | Your terminal, in one folder | Files in that folder; commands you approve | Data scripts, website code, automation; the most complete Claude Code surface | Pro, Max, Team, Enterprise or Console account |
 | Claude Code in VS Code or JetBrains | Inside your code editor | As the CLI | Coding without switching windows | Editor extension |
@@ -91,7 +91,7 @@ Points from Anthropic's setup and platforms pages worth knowing:
 - Settings, project memory and MCP servers are shared across the local Claude Code surfaces, so a setup made in the terminal also shows up in the desktop app and VS Code on the same computer.
 - Claude Code on the web runs in the cloud, so a task keeps going after you disconnect.
 
-For your work: coursework, readings and writing stay in claude.ai. Python analysis of research data and your website's code are Claude Code jobs. You can skip the API and SDK unless you decide to build an app.
+A rule of thumb: reading and writing stay in claude.ai; data analysis and code that lives in a folder are Claude Code jobs. You can skip the API and SDK unless you decide to build an app.
 
 ## 4. Terminal and CLI basics on Windows
 
@@ -164,7 +164,7 @@ Expected: `first line` and `second line` printed on two lines. You will reuse th
 - Absolute path: the full address, such as `C:\Users\<you>\claude-practice\hello.txt`.
 - Relative path: from where you are now. `.\hello.txt` is "hello.txt in this folder"; `..\` is the folder above.
 - Home: `~`, `$HOME` or `$env:USERPROFILE` in PowerShell. Some programs started from PowerShell, such as `code`, do not understand `~`, so this guide writes `$HOME` in those commands. `%USERPROFILE%` means the same folder in File Explorer's address bar and in CMD, but not in PowerShell.
-- Paths with spaces need quotes: `cd "C:\Users\<you>\OneDrive\Class Notes"`.
+- Paths with spaces need quotes: `cd "C:\Users\<you>\OneDrive\My Notes"`.
 
 ### Installing the tools this guide uses
 
@@ -301,7 +301,7 @@ Expected: an "Initialized empty Git repository" line, a one-file commit summary,
 JSON is the text format behind almost every config file in this guide: `settings.json`, `.mcp.json`, `plugin.json`, the data a hook receives, and the messages MCP servers exchange. Six rules cover it.
 
 1. An object sits in curly braces and holds `"key": value` pairs separated by commas.
-2. A list (array) sits in square brackets: `["PSY", "COM"]`.
+2. A list (array) sits in square brackets: `["red", "blue"]`.
 3. Keys and text values use double quotes. Single quotes are invalid.
 4. A value is text, a number, `true`, `false`, `null`, an object or a list.
 5. No comma after the last item, and no comments. Claude Code's hooks troubleshooting page lists both as reasons a settings file silently fails to load.
@@ -324,14 +324,14 @@ The outer object has one key, `env`, whose value is another object holding two `
 
 ```powershell
 cd ~\claude-practice
-Set-Content good.json '{"name": "test", "courses": ["PSY", "COM"], "junior": true}'
+Set-Content good.json '{"name": "test", "colours": ["red", "blue"], "active": true}'
 jq . good.json
 jq '.name' good.json
-jq -r '.courses[]' good.json
-jq '.courses | length' good.json
+jq -r '.colours[]' good.json
+jq '.colours | length' good.json
 ```
 
-Expected, in order: the object printed with indentation; `"test"`; `PSY` and `COM` on separate lines (`-r` removes the quotes); `2`.
+Expected, in order: the object printed with indentation; `"test"`; `red` and `blue` on separate lines (`-r` removes the quotes); `2`.
 
 The outer single quotes matter in PowerShell. They pass the text through unchanged, double quotes included.
 
@@ -358,7 +358,7 @@ Expected: `npm test`. Section 13 uses exactly this pattern.
 
 ### JSON messages as a control channel
 
-The "JSON control channel" from the product blurb that started this conversation is a general pattern: a program accepts commands written as JSON objects and answers in JSON. MCP works this way. It uses JSON-RPC 2.0 messages, so a client asking a server to list its tools sends an object shaped like this (illustrative):
+The "JSON control channel" in that product claim is a general pattern: a program accepts commands written as JSON objects and answers in JSON. MCP works this way. It uses JSON-RPC 2.0 messages, so a client asking a server to list its tools sends an object shaped like this (illustrative):
 
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
@@ -372,16 +372,16 @@ Skill and subagent files start with YAML frontmatter instead of JSON. YAML uses 
 
 ```yaml
 ---
-name: quiz-helper
-description: Answers practice quiz questions from assigned chapters
+name: report-helper
+description: Answers questions about a report from its sections
 ---
 ```
 
 The `---` lines mark where the frontmatter starts and ends. Claude Code's skills page notes that the opening `---` has to be the file's first line.
 
-## 6. claude.ai features you already have
+## 6. claude.ai features
 
-For coursework, a well-set-up Project does most of what people build agents for: it keeps your files and standing instructions loaded so every new chat starts informed.
+For ongoing work on one subject, a well-set-up Project does most of what people build agents for: it keeps your files and standing instructions loaded so every new chat starts informed.
 
 ### Projects
 
@@ -395,19 +395,17 @@ A Project is a workspace with its own chats, a knowledge base of files, and inst
 - Chats in the same Project do not see each other. Anything that should carry over between chats belongs in project knowledge.
 - Existing chats can be moved in with the dropdown next to the chat name, then "Add to project".
 
-You already have Projects for PSY, COM, ANTH and EDPS. The improvements below apply to those.
+### Exercise 7: tighten a Project
 
-### Exercise 7: tighten a course Project
-
-1. Open the course Project. In project knowledge, upload the syllabus, the assigned readings or chapters, and lecture transcripts. Use descriptive file names such as `Ch05_Griffin_SocialPenetration.pdf`; retrieval and your own citations both work better with them.
-2. Click "Set project instructions" and paste a version of this, adjusted per course:
+1. Open a Project (or create one). In project knowledge, upload the documents the work is about: briefs, reports, reference material, meeting transcripts. Use descriptive file names such as `2026-Q3_Sales_Report.pdf`; retrieval and your own citations both work better with them.
+2. Click "Set project instructions" and paste a version of this, adjusted per Project:
 
 ```text
-Course: <course code and title>, Fall 2026.
+Subject: <what this Project is about>.
 Sources: answer from the files in project knowledge first. Name the file and page, slide or timestamp for each answer.
 If the files do not cover a question, say so before answering from outside knowledge, and label that answer as outside research.
 Never invent page numbers, quotes or citations.
-Style: British spelling. Plain prose. No em dashes, no bold. Study notes as short bullet fragments.
+Style: plain prose. Notes as short bullet points.
 ```
 
 3. Start a new chat in the Project and ask: "Which file covers \<topic>, and on what page?" Expected: Claude names a file and location. If it answers vaguely, check that the file uploaded and that its text is selectable (scanned PDFs without a text layer read poorly).
@@ -429,20 +427,20 @@ To change memory directly, tell Claude in any chat what to remember or forget. T
 
 ### Profile preferences
 
-Settings > Profile holds preferences applied to every new chat: tone, formatting, background. Your no-dashes, British-English and plain-prose rules live there now. Changes apply to new chats only.
+Settings > Profile holds preferences applied to every new chat: tone, formatting, background. Changes apply to new chats only.
 
 ### Artifacts
 
-Artifacts are pages Claude publishes to your claude.ai gallery, private until you share them. Some open in dedicated editors where you can change text yourself, such as documents, slide decks and spreadsheets; this guide is one. Others are single web pages Claude builds, such as a calculator, dashboard or interactive explainer. Ask for the thing by name ("make a doc", "make a slide deck") and Claude picks the matching kind; documents and decks can be downloaded as Word, PowerPoint or PDF from the artifact.
+Artifacts are pages Claude publishes to your claude.ai gallery, private until you share them. Some open in dedicated editors where you can change text yourself, such as documents, slide decks and spreadsheets. Others are single web pages Claude builds, such as a calculator, dashboard or interactive explainer. Ask for the thing by name ("make a doc", "make a slide deck") and Claude picks the matching kind; documents and decks can be downloaded as Word, PowerPoint or PDF from the artifact.
 
 ### Best practices for chats and Projects
 
 From Anthropic's prompting guide and help articles:
 
-- Write as if briefing a capable new colleague with no context. If a classmate would be confused by the prompt, Claude will be too.
+- Write as if briefing a capable new colleague with no context. If a colleague would be confused by the prompt, Claude will be too.
 - Give the reason behind a rule ("no ellipses, because this is read aloud"), so Claude can apply it to cases you did not list.
-- Show the format you want with 3 to 5 examples, wrapped in `<example>` tags, and keep instructions, readings and questions apart with XML tags such as `<reading>`.
-- Put long material first and your question last; Anthropic reports quality gains of up to 30 percent from that order in its tests. For long readings, ask Claude to quote the relevant passages before answering.
+- Show the format you want with 3 to 5 examples, wrapped in `<example>` tags, and keep instructions, documents and questions apart with XML tags such as `<document>`.
+- Put long material first and your question last; Anthropic reports quality gains of up to 30 percent from that order in its tests. For long documents, ask Claude to quote the relevant passages before answering.
 - Put each instruction where it belongs: profile preferences apply to every chat, Project instructions to one Project, and skills to one repeated task.
 - Use incognito for one-off or sensitive questions. Incognito chats stay out of history and memory, though the help article says they are still retained for 30 days by default.
 - Use "Remove from project" to take a stray chat out of a Project's memory.
@@ -457,7 +455,7 @@ From Anthropic's prompting guide and help articles:
 
 A connector is an MCP server that claude.ai connects to for you. It adds tools for one of your apps, and Anthropic's help article states Claude inherits your own permissions there: a file you cannot open, Claude cannot open either.
 
-Your account already has Google Drive and Canva connected; their tools appear in this chat (Drive: search, read, create, update, share, trash; Canva: search, create, edit, export designs).
+Google Drive is a typical example: once connected, its tools (search, read, create, update, share, trash) appear in your chats. The exercises below assume it.
 
 ### The four ways tools reach Claude
 
@@ -471,13 +469,13 @@ Your account already has Google Drive and Canva connected; their tools appear in
 Facts from the help articles worth knowing:
 
 - Custom connectors are on every plan; the free plan allows one.
-- Claude reaches a custom connector from Anthropic's cloud, not from your laptop, so a server on your own machine or behind a university VPN will not connect as a custom connector. That case needs a local MCP server instead.
+- Claude reaches a custom connector from Anthropic's cloud, not from your computer, so a server on your own machine or behind a company VPN will not connect as a custom connector. That case needs a local MCP server instead.
 - With many connectors on, the chat menu's "Tool access" setting can switch from Auto to On demand; the article suggests On demand at 10 or more connectors, to leave room in context.
 - To edit a custom connector, remove it and add it again.
 
 ### Exercise 8: use a connector on purpose
 
-1. Start a new chat. Click "+" at the lower left (or type `/`), hover over Connectors, and check that Google Drive is toggled on for this chat.
+1. Connect Google Drive at Customize > Connectors if it is not connected yet. Start a new chat, click "+" at the lower left (or type `/`), hover over Connectors, and check that Google Drive is toggled on for this chat.
 2. Ask: "Find my three most recently edited Google Docs and list their titles and last-edited dates."
 3. Expected: a tool-call card showing a Drive search, then a short list. If Claude says it cannot access Drive, the connector is off for that chat or needs re-authenticating in Customize > Connectors.
 
@@ -505,12 +503,12 @@ The help article describes these per-tool settings (Always allow, Needs approval
 
 ## 8. Skills
 
-A skill is a folder holding a `SKILL.md` file of instructions for one repeated task. Claude sees only each skill's name and description until a task matches, then loads the full instructions. Your text-quiz, homework-quiz, psy-quiz, coms-quiz and psy-thought-journal setups are skills, so this section explains what you already built and how to build the next one well.
+A skill is a folder holding a `SKILL.md` file of instructions for one repeated task. Claude sees only each skill's name and description until a task matches, then loads the full instructions. This section explains how they work and how to build one well.
 
 ### Anatomy
 
 ```text
-lecture-notes/
+meeting-notes/
 ├── SKILL.md        required: frontmatter + instructions
 ├── references/     optional: long reference files, read only when needed
 ├── scripts/        optional: code the skill runs
@@ -549,81 +547,81 @@ The spec's own contrast: "Extracts text and tables from PDF files, fills PDF for
 
 Per Claude Code's skills page, a claude.ai upload containing a Claude Code-only field fails with an error naming the unexpected key. Keep skills meant for both places to the first four rows.
 
-### Worked example: a lecture-notes skill
+### Worked example: a meeting-notes skill
 
-This fills a gap next to your existing skills: turning a lecture transcript into study notes in your format.
+This one turns a meeting transcript into notes in the same format every time.
 
 ```markdown
 ---
-name: lecture-notes
-description: Turns a lecture transcript into concise study notes with timestamps, defined terms and points the lecturer flagged for the exam. Use when the user uploads a lecture transcript and asks for notes, a summary or a study sheet.
+name: meeting-notes
+description: Turns a meeting transcript into concise notes with timestamps, decisions and action items. Use when the user uploads a meeting transcript and asks for notes, a summary or action items.
 ---
 
-# Lecture notes from a transcript
+# Meeting notes from a transcript
 
 ## Inputs
-- A lecture transcript (.txt, .docx or pasted). If none is attached, ask for it. Never write notes from general knowledge of the topic.
-- Optional: course name and the chapter the lecture covers.
+- A meeting transcript (.txt, .docx or pasted). If none is attached, ask for it. Never write notes from general knowledge of the topic.
+- Optional: the meeting's name and date.
 
 ## Steps
 1. Read the whole transcript before writing.
-2. Split it into the topics the lecturer covered, in the order covered.
-3. For each topic: 2 to 6 bullet fragments, with the transcript timestamp or line number.
-4. List every term the lecturer defined, one line each, in the lecturer's wording where exact wording matters.
-5. List anything flagged as important: "this will be on the exam", repeated points, "remember".
-6. List gaps: readings or slides referred to but not explained.
+2. Split it into the topics discussed, in the order discussed.
+3. For each topic: 2 to 6 short bullets, with the transcript timestamp or line number.
+4. List every decision made, one line each, in the speakers' wording where exact wording matters.
+5. List every action item: who, what, and by when if a date was said.
+6. List open questions: things raised but not settled.
 
 ## Output
-Sections in this order: Topics, Key terms, Flagged for exam, Gaps.
+Sections in this order: Topics, Decisions, Action items, Open questions.
 
 ## Rules
-- British spelling. No em dashes. No bold. Fragments, not full sentences.
-- Add nothing the lecturer did not say. Context you add is tagged [Added].
+- Short bullets, not full sentences.
+- Add nothing that was not said. Context you add is tagged [Added].
 ```
 
 ### Exercise 10: install it in claude.ai
 
 No terminal needed:
 
-1. In File Explorer, open `C:\Users\<you>`, create a folder named `skills`, and inside it a folder named `lecture-notes`. The folder name must match the `name` line in the frontmatter.
-2. Open Notepad, paste the example above, and choose File > Save as. Set "Save as type" to All files, go to the `lecture-notes` folder, and save as `SKILL.md`. If File Explorer then shows it as a text document, it was saved as `SKILL.md.txt`; turn on file name extensions in File Explorer's View menu to check, and rename it.
-3. Right-click the `lecture-notes` folder itself. On Windows 11 24H2 and later, including 25H2, choose Compress to > ZIP File; earlier Windows 11 builds call it Compress to ZIP file, and Windows 10 uses Send to > Compressed (zipped) folder. Zipping the folder, rather than the file inside it, keeps the folder at the top of the ZIP, which claude.ai needs: its how-to page says it looks for `<skill-name>/SKILL.md` inside the archive.
+1. In File Explorer, open `C:\Users\<you>`, create a folder named `skills`, and inside it a folder named `meeting-notes`. The folder name must match the `name` line in the frontmatter.
+2. Open Notepad, paste the example above, and choose File > Save as. Set "Save as type" to All files, go to the `meeting-notes` folder, and save as `SKILL.md`. If File Explorer then shows it as a text document, it was saved as `SKILL.md.txt`; turn on file name extensions in File Explorer's View menu to check, and rename it.
+3. Right-click the `meeting-notes` folder itself. On Windows 11 24H2 and later, including 25H2, choose Compress to > ZIP File; earlier Windows 11 builds call it Compress to ZIP file, and Windows 10 uses Send to > Compressed (zipped) folder. Zipping the folder, rather than the file inside it, keeps the folder at the top of the ZIP, which claude.ai needs: its how-to page says it looks for `<skill-name>/SKILL.md` inside the archive.
 
 Terminal route, once you have done section 4:
 
 ```powershell
-mkdir $HOME\skills\lecture-notes
-code "$HOME\skills\lecture-notes\SKILL.md"
+mkdir $HOME\skills\meeting-notes
+code "$HOME\skills\meeting-notes\SKILL.md"
 cd $HOME\skills
-tar.exe -a -c -f lecture-notes.zip lecture-notes
+tar.exe -a -c -f meeting-notes.zip meeting-notes
 ```
 
-`tar.exe` ships with Windows 10 and 11, and `-a` picks the ZIP format from the file name. Check the result with `tar.exe -tf lecture-notes.zip`: every entry should start with `lecture-notes/`. Avoid `Compress-Archive` in Windows PowerShell 5.1 for this. Tested: its built-in Archive module (version 1.0.1.0) stored the file as `lecture-notes\SKILL.md` with a backslash, while the ZIP specification (PKWARE APPNOTE, section 4.4.17) requires forward slashes; `tar.exe` stored `lecture-notes/SKILL.md`. Whether claude.ai's uploader rejects the backslash version was not tested.
+`tar.exe` ships with Windows 10 and 11, and `-a` picks the ZIP format from the file name. Check the result with `tar.exe -tf meeting-notes.zip`: every entry should start with `meeting-notes/`. Avoid `Compress-Archive` in Windows PowerShell 5.1 for this. Tested: its built-in Archive module (version 1.0.1.0) stored the file as `meeting-notes\SKILL.md` with a backslash, while the ZIP specification (PKWARE APPNOTE, section 4.4.17) requires forward slashes; `tar.exe` stored `meeting-notes/SKILL.md`. Whether claude.ai's uploader rejects the backslash version was not tested.
 
 Then, per Anthropic's help article:
 
 1. Check Settings > Capabilities: "Code execution and file creation" must be on.
 2. Go to Customize > Skills, click "+", then "+ Create skill", then "Upload a skill", and choose the ZIP.
 3. Make sure the new skill's toggle is on.
-4. Test in a new chat: upload any lecture transcript and write "make notes from this lecture". Expected: the reply shows the skill being used and follows the four-section format.
+4. Test in a new chat: upload any meeting transcript and write "make notes from this meeting". Expected: the reply shows the skill being used and follows the four-section format.
 
 ### Exercise 11: install it in Claude Code
 
 After section 9:
 
 ```powershell
-mkdir $env:USERPROFILE\.claude\skills\lecture-notes
-Copy-Item ~\skills\lecture-notes\SKILL.md $env:USERPROFILE\.claude\skills\lecture-notes\
+mkdir $env:USERPROFILE\.claude\skills\meeting-notes
+Copy-Item ~\skills\meeting-notes\SKILL.md $env:USERPROFILE\.claude\skills\meeting-notes\
 ```
 
-Start `claude` in any folder and type `/skills`. Expected: `lecture-notes` in the list. Invoke it with `/lecture-notes` or by asking for lecture notes. Skills uploaded to your claude.ai account also sync into Claude Code when you sign in with that account (Claude Code v2.1.273 or later), so this step is only needed for skills you keep local.
+Start `claude` in any folder and type `/skills`. Expected: `meeting-notes` in the list. Invoke it with `/meeting-notes` or by asking for meeting notes. Skills uploaded to your claude.ai account also sync into Claude Code when you sign in with that account (Claude Code v2.1.273 or later), so this step is only needed for skills you keep local.
 
 ### Writing skills that trigger correctly
 
 - Put the main use case first in the description; Claude Code truncates the description in its skill list.
-- Name the request words people use ("notes", "summary", "study sheet"), and file types where relevant.
-- Overlapping descriptions make Claude pick the wrong skill, per Anthropic's guidance. Your three comm-theory quiz skills (coms-quiz, text-quiz, homework-quiz) cover similar ground. text-quiz and homework-quiz name explicit trigger phrases, which helps; in this guide's reading, coms-quiz's broader description is the one most likely to fire when you meant another.
-- Say what not to do, as your text-quiz skill does ("Don't invent a page number"). Concrete prohibitions work better than general advice.
+- Name the request words people use ("notes", "summary", "action items"), and file types where relevant.
+- Overlapping descriptions make Claude pick the wrong skill, per Anthropic's guidance. When two skills cover similar ground, give each explicit trigger phrases; the one with the broader description is the one most likely to fire when you meant the other.
+- Say what not to do ("Don't invent a page number"). Concrete prohibitions work better than general advice.
 - To test a change, run the same prompt in a fresh chat with the skill on and off and compare.
 - Rules that must hold every single time belong in a hook (section 13), which Claude cannot skip. A skill is an instruction Claude interprets.
 
@@ -631,7 +629,7 @@ Start `claude` in any folder and type `/skills`. Expected: `lecture-notes` in th
 
 From Anthropic's skill-authoring guidance:
 
-- Write the description in the third person ("Turns a lecture transcript into...") and say both what it does and when to use it. The claude.ai how-to page allows 1,024 characters, an older help article says 200; staying under 200 works with both.
+- Write the description in the third person ("Turns a meeting transcript into...") and say both what it does and when to use it. The claude.ai how-to page allows 1,024 characters, an older help article says 200; staying under 200 works with both.
 - Keep `SKILL.md` under 500 lines, move detail into `references/` files one level deep, and give any reference file over 100 lines a table of contents.
 - Match strictness to fragility: plain guidance for open-ended work, exact steps or a script where one mistake breaks the result.
 - Write at least three test prompts before polishing the instructions, then run each in a fresh chat with the skill on and off. In Claude Code the skill-creator plugin (Exercise 22) runs the with-and-without comparison for you; on claude.ai, skill-creator is a skill under Customize > Skills and works through the prompts one at a time.
@@ -640,7 +638,7 @@ From Anthropic's skill-authoring guidance:
 
 ### Claude Code extras worth knowing
 
-- `$ARGUMENTS` in the body is replaced by whatever you type after the command: `/lecture-notes week5.txt`.
+- `$ARGUMENTS` in the body is replaced by whatever you type after the command: `/meeting-notes standup.txt`.
 - A line starting with `` !`command` `` runs that command first and pastes its output into the instructions, such as `` !`git diff HEAD` ``. Claude Code only; ignored in claude.ai.
 - `disable-model-invocation: true` suits skills with side effects (sending, deleting, publishing), so they only run when you type the command.
 
@@ -792,7 +790,7 @@ Guidance from Anthropic's memory page:
 An example for a data-analysis folder:
 
 ```markdown
-# Passive sensing analysis
+# Sales data analysis
 
 ## Setup
 - Python is managed with uv. Run scripts with `uv run <script>.py`.
@@ -801,7 +799,6 @@ An example for a data-analysis folder:
 
 ## Conventions
 - pandas for tables, matplotlib for figures. Save figures as PNG and PDF.
-- British spelling in comments and figure labels.
 - Every script prints the input files and row counts it used.
 
 ## Checks
@@ -1003,8 +1000,8 @@ This follows the official Python quickstart, which uses MCP Python SDK 2.x and P
 
 ```powershell
 cd ~\claude-practice
-uv init study-tools
-cd study-tools
+uv init text-tools
+cd text-tools
 uv add "mcp[cli]"
 code server.py
 ```
@@ -1017,7 +1014,7 @@ import logging
 from mcp.server import MCPServer
 
 logger = logging.getLogger(__name__)
-mcp = MCPServer("study-tools")
+mcp = MCPServer("text-tools")
 
 
 @mcp.tool()
@@ -1051,19 +1048,19 @@ Expected: the Tools tab lists `word_count` and `reading_time`. Run `word_count` 
 Then give it to Claude Code for all your projects:
 
 ```powershell
-claude mcp add --scope user study-tools -- uv --directory "$HOME\claude-practice\study-tools" run server.py
+claude mcp add --scope user text-tools -- uv --directory "$HOME\claude-practice\text-tools" run server.py
 ```
 
-Start `claude`, run `/mcp` to confirm study-tools is connected with 2 tools, and ask: "use study-tools to estimate reading time for this paragraph: \<paste a paragraph>". Expected: a call to the reading\_time tool and its answer.
+Start `claude`, run `/mcp` to confirm text-tools is connected with 2 tools, and ask: "use text-tools to estimate reading time for this paragraph: \<paste a paragraph>". Expected: a call to the reading\_time tool and its answer.
 
 To use the same server in the Claude desktop app's chat, open `code $env:AppData\Claude\claude_desktop_config.json` and add it under `mcpServers` in the shape the quickstart shows, with an absolute path and doubled backslashes, then fully quit the app from the system tray and reopen it:
 
 ```json
 {
   "mcpServers": {
-    "study-tools": {
+    "text-tools": {
       "command": "uv",
-      "args": ["--directory", "C:\\Users\\<you>\\claude-practice\\study-tools", "run", "server.py"]
+      "args": ["--directory", "C:\\Users\\<you>\\claude-practice\\text-tools", "run", "server.py"]
     }
   }
 }
@@ -1162,7 +1159,7 @@ For each in-text citation in the draft:
 3. Give a verdict: Supported, Partly supported, or Not found.
 
 Return one table: claim (shortened), citation, verdict, location in the source.
-Never edit files. British spelling.
+Never edit files.
 ```
 
 Because `tools` lists only Read, Grep and Glob, it cannot change your draft even if asked.
@@ -1414,11 +1411,11 @@ Expected: every shell command Claude runs is appended to `command-log.txt` in yo
 
 ### Safety
 
-Hooks run arbitrary commands with your permissions, every time. Read the hooks in any repository you clone before running Claude Code there (the permissions page notes that a repository's hooks run even under `claude -p` or when you only trusted a parent folder), and the hooks inside any plugin before installing it. For coursework in claude.ai you will not need hooks; they become useful once Claude Code is editing real code or data.
+Hooks run arbitrary commands with your permissions, every time. Read the hooks in any repository you clone before running Claude Code there (the permissions page notes that a repository's hooks run even under `claude -p` or when you only trusted a parent folder), and the hooks inside any plugin before installing it. For everyday chat in claude.ai you will not need hooks; they become useful once Claude Code is editing real code or data.
 
 ## 14. Plugins and marketplaces
 
-A plugin is a package that installs several add-ons at once: skills, commands, subagents, hooks and MCP servers. A marketplace is a catalogue you install plugins from. You already have about ten plugins on your claude.ai account; this section covers what they do, how to trim them, and how to build one.
+A plugin is a package that installs several add-ons at once: skills, commands, subagents, hooks and MCP servers. A marketplace is a catalogue you install plugins from. This section covers what they do, how to keep the list short, and how to build one.
 
 ### What a plugin can contain, and where each part works
 
@@ -1446,20 +1443,14 @@ Cowork, in this table, is the platform-support page's term for "Cowork tasks in 
 - Plugins on your account also sync into Claude Code when you sign in there with the same account, listed as `<name>@synced`.
 - Per the same page, Anthropic reviews plugins listed in its directory, but not plugins added from a marketplace URL or uploaded by hand.
 
-### Trimming what you have
+### Keeping the list short
 
-The skills visible in this chat include plugin skills from: Figma, Canva, Data, Design, Product Management, Productivity, PDF Viewer, Desktop Commander, Superpowers, and a plugin-management plugin, alongside your own quiz and thought-journal skills. Every enabled skill's name and description loads into each conversation, and Anthropic's docs note that overlapping or excessive descriptions make Claude pick the wrong skill.
+Every enabled skill's name and description loads into each conversation, and Anthropic's docs note that overlapping or excessive descriptions make Claude pick the wrong skill. So keep enabled only what you use:
 
-A suggested review, based on the coursework, research and design work you have described; keep what you actually use:
-
-| Plugin | Built for | Suggestion |
-| --- | --- | --- |
-| Canva, Figma, Design | Design work | Keep if you use them for UX coursework or your website |
-| PDF Viewer | Reading and annotating PDFs | Keep; your quiz skills read PDF chapters |
-| Data | Analysis, charts, SQL | Keep if you do data work in chat; otherwise disable until you need it |
-| Superpowers | Software development workflow: test-driven development, git worktrees, code review | Turn off for everyday coursework, since its using-superpowers skill tells Claude to check for skills before every response; turn on when you want a structured review of code or a document, as used for this guide's review |
-| Product Management, Productivity, plugin management | Product teams; plugin setup | Disable unless you use them |
-| Desktop Commander | Terminal access on your computer | Disable unless you are using it for a specific task |
+- Open Customize > Plugins and go through the list once a month.
+- Keep a plugin you used in the last few weeks; disable the rest.
+- Turn off plugins that change how every reply starts, such as workflow plugins that tell Claude to check for skills first, when you are doing everyday writing; turn them on for the work they are built for.
+- Disable anything that can act on your computer or your accounts until you need it for a specific task.
 
 Disabling is reversible: the toggle brings a plugin back unchanged.
 
@@ -1503,28 +1494,28 @@ Anthropic's skills page uses skill-creator as its example, a plugin that helps w
 /plugin install skill-creator@claude-plugins-official
 ```
 
-Choose "Install for you (user scope)". Expected: an install summary ending in "Plugin is now active" or a reload note. Then ask: "evaluate my lecture-notes skill with skill-creator". It walks you through writing test prompts and compares results with and without the skill.
+Choose "Install for you (user scope)". Expected: an install summary ending in "Plugin is now active" or a reload note. Then ask: "evaluate my meeting-notes skill with skill-creator". It walks you through writing test prompts and compares results with and without the skill.
 
-### Exercise 23: package your own study kit
+### Exercise 23: package your own kit
 
-Bundle the lecture-notes skill (section 8) and the citation-checker subagent (section 12) into one plugin.
+Bundle the meeting-notes skill (section 8) and the citation-checker subagent (section 12) into one plugin.
 
 ```powershell
 cd ~\claude-practice
-mkdir study-kit\.claude-plugin
-mkdir study-kit\skills\lecture-notes
-mkdir study-kit\agents
-Copy-Item ~\skills\lecture-notes\SKILL.md study-kit\skills\lecture-notes\
-Copy-Item $env:USERPROFILE\.claude\agents\citation-checker.md study-kit\agents\
-code study-kit\.claude-plugin\plugin.json
+mkdir work-kit\.claude-plugin
+mkdir work-kit\skills\meeting-notes
+mkdir work-kit\agents
+Copy-Item ~\skills\meeting-notes\SKILL.md work-kit\skills\meeting-notes\
+Copy-Item $env:USERPROFILE\.claude\agents\citation-checker.md work-kit\agents\
+code work-kit\.claude-plugin\plugin.json
 ```
 
 Paste into `plugin.json`, the manifest:
 
 ```json
 {
-  "name": "study-kit",
-  "description": "Lecture notes and citation checking for coursework",
+  "name": "work-kit",
+  "description": "Meeting notes and citation checking",
   "version": "1.0.0",
   "author": { "name": "<your name>" }
 }
@@ -1533,19 +1524,19 @@ Paste into `plugin.json`, the manifest:
 Then check and try it:
 
 ```powershell
-claude plugin validate .\study-kit
-claude --plugin-dir .\study-kit
+claude plugin validate .\work-kit
+claude --plugin-dir .\work-kit
 ```
 
-Expected: `Validation passed`, then inside the session the skill appears as `/study-kit:lecture-notes` and the subagent as `study-kit:citation-checker`. Only `plugin.json` goes inside `.claude-plugin/`; the docs warn that components placed there do not load.
+Expected: `Validation passed`, then inside the session the skill appears as `/work-kit:meeting-notes` and the subagent as `work-kit:citation-checker`. Only `plugin.json` goes inside `.claude-plugin/`; the docs warn that components placed there do not load.
 
-To use it in claude.ai, zip the `study-kit` folder with File Explorer as in Exercise 10, or with `tar.exe` as below, and upload it at Customize > Plugins > Add > Upload plugin:
+To use it in claude.ai, zip the `work-kit` folder with File Explorer as in Exercise 10, or with `tar.exe` as below, and upload it at Customize > Plugins > Add > Upload plugin:
 
 ```powershell
-tar.exe -a -c -f study-kit.zip study-kit
+tar.exe -a -c -f work-kit.zip work-kit
 ```
 
-In chat, the lecture-notes skill works and the citation-checker agent is skipped, per the component table above.
+In chat, the meeting-notes skill works and the citation-checker agent is skipped, per the component table above.
 
 ### Best practices for plugins
 
@@ -1597,18 +1588,18 @@ Expected: the answer (id 2, score 15) and an estimated cost figure. The docs cal
 
 Windows PowerShell 5.1 removes the double quotes inside a string passed to a program, which breaks `--json-schema` and similar flags. Tested: passing `'{"a": "b"}'` to a program in 5.1 arrived as `{a: b}`. Microsoft's about_Parsing page describes the behaviour, and says PowerShell 7.3 and later preserve the quotes. When a flag needs a JSON string, run the command in PowerShell 7 (`winget install --id Microsoft.PowerShell -e`, then open "PowerShell 7") or in Git Bash. Also note that in 5.1, `>` writes UTF-16 files, which tools expecting UTF-8, such as jq, may fail to read; `| Out-File -Encoding utf8 <file>` writes UTF-8 instead. Text captured from `claude` can come out garbled, because PowerShell decodes program output with the console's code page (IBM437 on a default US setup). Tested: a curly apostrophe captured that way became `ΓÇÖ`; after `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` the same text came through intact. Run that line at the start of any script that captures `claude` output.
 
-### Exercise 25: batch-process lecture transcripts
+### Exercise 25: batch-process meeting transcripts
 
-This runs the lecture-notes skill (section 8) over every transcript in a folder, one fresh session each. The docs confirm that `/skill-name` inside a `-p` prompt expands the skill. Text after the skill name reaches it as its arguments; since the skill has no `$ARGUMENTS` placeholder, Claude Code appends it as an `ARGUMENTS:` line.
+This runs the meeting-notes skill (section 8) over every transcript in a folder, one fresh session each. The docs confirm that `/skill-name` inside a `-p` prompt expands the skill. Text after the skill name reaches it as its arguments; since the skill has no `$ARGUMENTS` placeholder, Claude Code appends it as an `ARGUMENTS:` line.
 
 ```powershell
 cd ~\claude-practice
 mkdir transcripts, notes -Force
-# Copy one or two lecture transcripts (.txt) into transcripts first
+# Copy one or two meeting transcripts (.txt) into transcripts first
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Get-ChildItem .\transcripts\*.txt | ForEach-Object {
   $out = ".\notes\$($_.BaseName)-notes.md"
-  claude -p "/lecture-notes $($_.FullName)" --allowedTools "Read" | Out-File -Encoding utf8 $out
+  claude -p "/meeting-notes $($_.FullName)" --allowedTools "Read" | Out-File -Encoding utf8 $out
   Write-Host "Done: $out"
 }
 ```
@@ -1622,17 +1613,17 @@ Expected: one `-notes.md` file per transcript. Each run counts towards your usag
 | Inside a Claude Code session | `/loop 10m <prompt>` | That session stays open |
 | Claude desktop app | Scheduled tasks in the Code tab (Anthropic's desktop scheduled-tasks page) | Your computer is on and the app is running |
 | Anthropic's cloud | Routines, set up with `/schedule` | Always; runs on a fresh copy of a GitHub repository |
-| This Claude app | Ask: "every Sunday at 6 pm, summarise what is due next week from my course Projects" | Runs in the cloud on the schedule; results arrive as a new chat |
+| This Claude app | Ask: "every Sunday at 6 pm, summarise what is due next week from my Projects" | Runs in the cloud on the schedule; results arrive as a new chat |
 
-A cloud routine cannot see files on your laptop, and, per the skills page, it does not read skills stored only in `~/.claude/skills/`. Put anything a scheduled cloud run needs into your claude.ai account or the repository.
+A cloud routine cannot see files on your computer, and, per the skills page, it does not read skills stored only in `~/.claude/skills/`. Put anything a scheduled cloud run needs into your claude.ai account or the repository.
 
 ### The Agent SDK, briefly
 
-The same engine is available as Python and TypeScript packages (the Agent SDK) for building your own agent apps: a research assistant with your own tools, a bot for a lab Slack. Worth knowing it exists; not needed for anything in this guide.
+The same engine is available as Python and TypeScript packages (the Agent SDK) for building your own agent apps: a research assistant with your own tools, a bot for a team Slack. Worth knowing it exists; not needed for anything in this guide.
 
 ### Agent-ready apps: three ways to drive one
 
-This answers the question that started this guide. An app described as agent-ready, drivable "from a CLI, a JSON control channel or an MCP server", offers up to three doors into the same program. A web search for the blurb's exact wording on 7 October 2026 found no matching product, so the routine below is general and works for any app that offers these doors.
+An app described as agent-ready, drivable "from a CLI, a JSON control channel or an MCP server", offers up to three doors into the same program. A web search for the blurb's exact wording on 7 October 2026 found no matching product, so the routine below is general and works for any app that offers these doors.
 
 | Door | What it means | How it gets used | Background |
 | --- | --- | --- | --- |
@@ -1655,58 +1646,58 @@ Claude Code is itself an agent-ready app, so you can practise on it:
 - JSON: `--output-format json` returns one JSON object (Exercise 24); `--output-format stream-json --verbose` prints one JSON event per line as the run progresses, per the headless page.
 - MCP server: `claude mcp serve` runs Claude Code as a stdio MCP server that offers its own tools, such as reading and editing files, to another MCP client like the Claude desktop app. Per Anthropic's MCP page it prints nothing when it starts, and the client is responsible for asking you to confirm each tool call.
 
-Desktop Commander, one of your plugins, is another example of the MCP door: an MCP server that gives Claude a terminal and file tools on your computer.
+Desktop Commander, a popular plugin, is another example of the MCP door: an MCP server that gives Claude a terminal and file tools on your computer.
 
 An app with none of the three doors can still be driven through its screen. Claude in Chrome operates websites, and computer use operates desktop apps, by clicking and typing the way you would. Both are slower and less predictable than a CLI or MCP server, so they suit apps with no other way in.
 
 ## 16. Workflow playbook
 
-Pick the tool by where the inputs live and what has to happen to them. Most of your work belongs in claude.ai Projects with skills; Claude Code takes over once code or data files on your laptop are involved.
+Pick the tool by where the inputs live and what has to happen to them. Reading and writing work belongs in claude.ai Projects with skills; Claude Code takes over once code or data files on your computer are involved.
 
 ### The decision rules
 
 1. Inputs you can upload, output is text, a doc or a deck: claude.ai, inside the right Project.
-2. Inputs are files on your laptop and something has to run on them: Claude Code in that folder.
+2. Inputs are files on your computer and something has to run on them: Claude Code in that folder.
 3. You keep copying information out of another app: connect it (connector in claude.ai, MCP server in Claude Code).
 4. You have explained the same procedure three times: write a skill.
 5. A side job would flood the conversation: a subagent.
 6. A rule must hold every single time: a hook or a deny rule, plus read-only files where a script could get round them; never only an instruction.
 7. The same job recurs on a timetable: a scheduled task.
 
-### Recipe 1: quizzes and thought journals
+### Recipe 1: a Project per subject
 
-- One Project per course, holding the syllabus, assigned chapters and lecture transcripts, with the instructions from Exercise 7.
-- Your existing quiz and journal skills run inside those Projects. Give each skill a distinct trigger phrase in its description, as text-quiz and homework-quiz already do.
-- For a study guide you will reread, ask for it as a doc; for a one-off check, keep it in chat.
+- One Project per ongoing subject, holding its reference documents, with the instructions from Exercise 7.
+- Skills you use there each get a distinct trigger phrase in their description, so the right one fires.
+- For a summary you will reread, ask for it as a doc; for a one-off check, keep it in chat.
 - Use incognito chat for anything you do not want feeding into memory.
 
-### Recipe 2: lectures to notes
+### Recipe 2: meetings to notes
 
-- Single lecture: upload the transcript to the course Project and say "make notes from this lecture"; the lecture-notes skill (section 8) shapes the output.
-- A term's worth at once: Exercise 25's batch script in Claude Code.
+- Single meeting: upload the transcript to the Project and say "make notes from this meeting"; the meeting-notes skill (section 8) shapes the output.
+- A month's worth at once: Exercise 25's batch script in Claude Code.
 
 ### Recipe 3: reading and writing a paper
 
 - A Project for the paper: upload the sources, and put your citation style and spelling rules in its instructions.
 - Ask for claims with page references, then spot-check a few against the PDFs. Retrieval can miss passages and Claude can misattribute.
 - Draft in a doc so you can edit in place and comment.
-- Before submitting, run the citation-checker subagent (section 12) in Claude Code over the draft and a `sources/` folder.
+- Before sharing it, run the citation-checker subagent (section 12) in Claude Code over the draft and a `sources/` folder.
 
-### Recipe 4: research data analysis
+### Recipe 4: data analysis
 
 - Work in Claude Code in the analysis folder, never by pasting data into chat.
 - Set up once: a CLAUDE.md like the section 10 example; a deny rule on `Edit(./data/raw/**)` and read-only raw files (section 10); Python through uv.
 - For each analysis: start in plan mode, approve the plan, let Claude write the script, run it on a sample first, then the full data.
 - Read the code it wrote as well as the numbers. Ask it to print row counts and input file names so silent filtering shows up.
-- Before any data leaves your laptop: if the dataset came with a data use agreement, IRB conditions or lab rules, check what they allow. Claude Code sends the contents of files it reads to Anthropic's servers to process them.
+- Before any data leaves your computer: if the dataset came with a data use agreement or privacy rules, check what they allow. Claude Code sends the contents of files it reads to Anthropic's servers to process them.
 
 ### Recipe 5: UX design work
 
 - Mockups and flows: ask for a design in claude.ai, which opens as an editable artifact; or work through the Figma and Canva connectors when the file lives there.
-- Critique: your Design plugin includes a design-critique skill; give it a screenshot or a Figma link.
-- Research synthesis: the same plugin's research-synthesis skill takes interview notes or survey results.
+- Critique: give Claude a screenshot or a Figma link and ask what to fix first and why.
+- Research synthesis: upload interview notes or survey results and ask for themes, each with the quotes behind it.
 
-### Recipe 6: your website
+### Recipe 6: a website
 
 - Claude Code in the site's folder, with Git initialised so every change can be undone (`git init` once, then ask Claude to commit after each working change; Git basics are in section 4).
 - Plan mode for anything touching more than one page.
@@ -1714,14 +1705,14 @@ Pick the tool by where the inputs live and what has to happen to them. Most of y
 
 ### Recipe 7: long tasks that finish
 
-This recipe adapts a setup posted by @beamnxw on X on 6 October 2026 ("Make Opus 5.5 Finish Long Tasks"), checked against Anthropic's docs on 7 October; corrections to the post are listed at the end. The example is a sourced write-up, such as a literature summary for the HiTOP paper, in a folder holding `task.md` (the brief), `sources/`, `drafts/` and `final/`. The aim is a run that leaves files you can open, evidence you can check, and a note the next session can resume from.
+This recipe adapts a setup posted by @beamnxw on X on 6 October 2026 ("Make Opus 5.5 Finish Long Tasks"), checked against Anthropic's docs on 7 October; corrections to the post are listed at the end. The example is a sourced write-up, such as a literature summary, in a folder holding `task.md` (the brief), `sources/`, `drafts/` and `final/`. The aim is a run that leaves files you can open, evidence you can check, and a note the next session can resume from.
 
 1. Durable facts in CLAUDE.md, the task itself elsewhere:
 
 ```markdown
 # Write-up project
 - Reference material is in sources/; working files in drafts/; approved files in final/.
-- British spelling. Plain prose, short paragraphs.
+- Plain prose, short paragraphs.
 - Cite primary sources only, with the URL or page and the date checked.
 - After each stage, update progress.md with decisions, open issues and the next action.
 - When finishing, report the output paths and what was verified.
@@ -1835,7 +1826,7 @@ An agent acts with your permissions, so the main risks are things it does that y
 | Hidden instructions in a web page, file or tool result (prompt injection) | Connect only trusted servers; turn off write tools for Research; treat surprising actions as a signal to stop and check |
 | A plugin, hook or MCP server misbehaves | They run as you. Install from the official marketplace or Anthropic's directory; read hooks and "Will install" lists first |
 | Secrets leak | Never paste passwords or API keys into chat; deny reads of `.env` files (section 10); use narrowly scoped tokens for MCP servers |
-| Research data leaves where it is allowed to be | Check data use agreements, IRB conditions and lab rules before any file reaches an AI service |
+| Data leaves where it is allowed to be | Check data use agreements and privacy rules before any file reaches an AI service |
 | A chat feeds memory you did not want | Incognito chat; view and edit memory in Settings |
 
 For Anthropic's data handling terms, read the Claude Code "Data usage" page and the claude.ai privacy settings rather than relying on summaries, including this one.
@@ -1920,15 +1911,15 @@ Most failures come from five causes: a program not on PATH, invalid JSON, a file
 
 ## 19. Four-week learning plan
 
-This plan takes you from the claude.ai features you already use to a guarded Claude Code project with your own skill, subagent, hook and MCP server. Each week ends with a check you can verify.
+This plan takes you from the everyday claude.ai features to a guarded Claude Code project with your own skill, subagent, hook and MCP server. Each week ends with a check you can verify.
 
-### Week 1: tighten what you already use (claude.ai, no terminal)
+### Week 1: claude.ai, no terminal
 
-- [ ] Exercise 7: instructions and well-named files in each course Project
+- [ ] Exercise 7: instructions and well-named files in a Project
 - [ ] Exercises 8 and 9: use the Drive connector on purpose; set write tools to Needs approval
 - [ ] Section 14: disable the plugins you do not use
-- [ ] Exercise 10: upload the lecture-notes skill and test it on a real transcript
-- [ ] Check: a new chat in each course Project names the file and page it answers from
+- [ ] Exercise 10: upload the meeting-notes skill and test it on a real transcript
+- [ ] Check: a new chat in the Project names the file and page it answers from
 
 ### Week 2: terminal and install
 
@@ -1942,7 +1933,7 @@ This plan takes you from the claude.ai features you already use to a guarded Cla
 ### Week 3: Claude Code core
 
 - [ ] Exercise 14: the guarded analysis project (CLAUDE.md plus a deny rule)
-- [ ] Exercise 11: the lecture-notes skill locally, visible in `/skills`
+- [ ] Exercise 11: the meeting-notes skill locally, visible in `/skills`
 - [ ] Exercise 18: the citation-checker subagent on a test draft
 - [ ] Exercises 19 and 20: notification hook and the recursive-delete block
 - [ ] Use plan mode for one real change, and `/rewind` once to see how undo works
@@ -1951,13 +1942,13 @@ This plan takes you from the claude.ai features you already use to a guarded Cla
 ### Week 4: connect and automate
 
 - [ ] Exercises 15 and 16: add a ready-made MCP server and inspect it
-- [ ] Exercise 17: build and register the study-tools server
-- [ ] Exercises 22 and 23: install skill-creator; package the study kit
+- [ ] Exercise 17: build and register the text-tools server
+- [ ] Exercises 22 and 23: install skill-creator; package the work kit
 - [ ] Exercises 24 and 25: one-shot JSON run, then the batch notes script on two files
 - [ ] Apply Recipe 4 or Recipe 6 from section 16 to a real project
 - [ ] Run the agent-ready routine at the end of section 15 on one app you use
 - [ ] Set up Recipe 7 for one real write-up and resume it once from progress.md
-- [ ] Check: `/mcp` shows study-tools connected and the batch script produced readable notes
+- [ ] Check: `/mcp` shows text-tools connected and the batch script produced readable notes
 
 ### Further learning from Anthropic
 

@@ -62,17 +62,17 @@
 </ol>
 <div class="fm-code" id="c-26"><div class="fm-code-head"><span>POWERSHELL · C-26</span><button aria-label="Copy code block 26" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="p">-</span><span class="n">-version</span>
 <span class="n">claude</span> <span class="n">doctor</span></code></pre></div>
-<p class="fm-expected">Expected: a version number followed by <code>(Claude Code)</code>, then a diagnostics report covering install health, settings-file errors and warnings with fixes.</p>
-<p>Already installed through npm? <span class="fm-tested">Tested</span>: the PC this guide was checked on had Claude Code 2.1.268 from <code>npm install -g @anthropic-ai/claude-code</code> (it lives in <code>C:\nvm4w\nodejs</code>), while winget listed 2.1.292 as current. Anthropic's install page lists npm under advanced options and calls the native install recommended. To switch, run the installer from <a href="#ex-12">Exercise 12</a>, then <code>npm uninstall -g @anthropic-ai/claude-code</code>, open a new window, and check that <code>where.exe claude</code> lists only <code>...\.local\bin\claude.exe</code>; if it lists nothing, run the PATH fix below. The CLI reference says <code>claude install</code> also installs the native binary (not tested here). The troubleshooting page says to keep only one install. Some behaviour in this guide, such as auto mode as the starting mode on every plan, needs v2.1.283 or later.</p>
-<p>Alternative install through winget: <code>winget install Anthropic.ClaudeCode</code>. The native installer updates itself in the background; the winget version does not, so you would run <code>winget upgrade Anthropic.ClaudeCode</code> yourself.</p>
+<p class="fm-expected"><strong>Expected:</strong> a version number followed by <code>(Claude Code)</code>, then a diagnostics report covering install health, settings-file errors and warnings with fixes.</p>
+<p><strong>Already installed through npm? <span class="fm-tested">Tested</span>:</strong> the PC this guide was checked on had Claude Code 2.1.268 from <code>npm install -g @anthropic-ai/claude-code</code> (it lives in <code>C:\nvm4w\nodejs</code>), while winget listed 2.1.292 as current. Anthropic's install page lists npm under advanced options and calls the native install recommended. To switch, run the installer from <a href="#ex-12">Exercise 12</a>, then <code>npm uninstall -g @anthropic-ai/claude-code</code>, open a new window, and check that <code>where.exe claude</code> lists only <code>...\.local\bin\claude.exe</code>; if it lists nothing, run the PATH fix below. The CLI reference says <code>claude install</code> also installs the native binary (not tested here). The troubleshooting page says to keep only one install. Some behaviour in this guide, such as auto mode as the starting mode on every plan, needs v2.1.283 or later.</p>
+<p><strong>Alternative install through winget:</strong> <code>winget install Anthropic.ClaudeCode</code>. The native installer updates itself in the background; the winget version does not, so you would run <code>winget upgrade Anthropic.ClaudeCode</code> yourself.</p>
 </div><div class="fm-ex" id="ex-13"><h3><span class="fm-tag">EX-13</span> First session in the practice folder</h3>
 <div class="fm-code" id="c-27"><div class="fm-code-head"><span>POWERSHELL · C-27</span><button aria-label="Copy code block 27" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
 <span class="n">claude</span> <span class="p">-</span><span class="n">-permission-mode</span> <span class="n">manual</span></code></pre></div>
 <ol class="list">
 <li>The first launch opens a browser to sign in with your Claude account. Credentials are stored, so later launches skip this. Type <code>/login</code> inside a session to switch accounts. Anthropic's security page adds that the first run in a folder asks you to confirm you trust it; say yes for your practice folder. Start Claude Code from a project folder rather than your home folder, since trust given to the home folder only lasts for that session.</li>
 <li>Manual mode makes Claude ask before every edit and command, which is the best way to see what it does while learning. Claude Code v2.1.283 and later otherwise start in auto mode, where a second model reviews actions instead of you (<a href="#sec-10">section 10</a>).</li>
-<li>Type: <code>what files are in this folder and what does each contain?</code> Expected: it lists <code>hello.txt</code>, <code>hello.py</code>, <code>good.json</code> and the rest, with a line on each. Reading needs no approval.</li>
-<li>Type: <code>create notes.md with a one-line description of each file here</code>. Expected: a permission prompt showing the file it wants to write. Choose Yes, then open the file to check it.</li>
+<li><strong>Type:</strong> <code>what files are in this folder and what does each contain?</code> Expected: it lists <code>hello.txt</code>, <code>hello.py</code>, <code>good.json</code> and the rest, with a line on each. Reading needs no approval.</li>
+<li><strong>Type:</strong> <code>create notes.md with a one-line description of each file here</code>. Expected: a permission prompt showing the file it wants to write. Choose Yes, then open the file to check it.</li>
 <li>Type <code>/exit</code>, or press Ctrl + D twice, to leave. Esc interrupts Claude mid-task.</li>
 </ol>
 </div><h3>If something goes wrong</h3>
@@ -125,8 +125,8 @@
 <p>Settings and history live in <code>%USERPROFILE%\.claude</code> and <code>%USERPROFILE%\.claude.json</code>. Deleting those erases all settings, MCP configuration and session history.</p>
 <h3>The two graphical alternatives</h3>
 <ul class="list">
-<li>Claude desktop app, Code tab: download from claude.com/download, open the Code tab, pick a project folder. Same engine with a visual diff viewer and no terminal. Settings are shared with the CLI.</li>
-<li>VS Code extension: needs VS Code 1.94 or later. Press Ctrl + Shift + X, search "Claude Code", install (publisher Anthropic, ID <code>anthropic.claude-code</code>), then click the spark icon at the top right of an open file and sign in. The extension bundles its own private copy of Claude Code, so it does not make <code>claude</code> work in a terminal; for that you still need the install above. Conversations are shared: <code>claude --resume</code> in a terminal opens a picker that includes extension sessions.</li>
+<li><strong>Claude desktop app, Code tab:</strong> download from claude.com/download, open the Code tab, pick a project folder. Same engine with a visual diff viewer and no terminal. Settings are shared with the CLI.</li>
+<li><strong>VS Code extension:</strong> needs VS Code 1.94 or later. Press Ctrl + Shift + X, search "Claude Code", install (publisher Anthropic, ID <code>anthropic.claude-code</code>), then click the spark icon at the top right of an open file and sign in. The extension bundles its own private copy of Claude Code, so it does not make <code>claude</code> work in a terminal; for that you still need the install above. Conversations are shared: <code>claude --resume</code> in a terminal opens a picker that includes extension sessions.</li>
 </ul>
 <p>For a first-time terminal user, the desktop app's Code tab is the gentlest start. The CLI is worth learning because scripting, <code>claude -p</code> and some commands exist only there.</p>
 
@@ -170,7 +170,7 @@
 </tr>
 </tbody>
 </table></div>
-<p>Inside a session: Esc interrupts Claude; Shift + Tab cycles permission modes; typing <code>/</code> lists commands and skills; typing <code>@</code> followed by part of a file name attaches that file; Up arrow recalls earlier prompts.</p>
+<p><strong>Inside a session:</strong> Esc interrupts Claude; Shift + Tab cycles permission modes; typing <code>/</code> lists commands and skills; typing <code>@</code> followed by part of a file name attaches that file; Up arrow recalls earlier prompts.</p>
 <h3>The commands worth learning first</h3>
 <p>Descriptions condensed from Anthropic's commands reference.</p>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
@@ -301,7 +301,7 @@
 <li>Claude also keeps its own notes (auto memory) in <code>~/.claude/projects/&lt;project&gt;/memory/</code>; <code>/memory</code> shows and toggles them.</li>
 </ul>
 <p>An example for a data-analysis folder:</p>
-<div class="fm-code" id="c-30"><div class="fm-code-head"><span>MARKDOWN · C-30</span><button aria-label="Copy code block 30" class="copy" type="button">COPY</button></div><pre><code><span class="gh"># Passive sensing analysis</span>
+<div class="fm-code" id="c-30"><div class="fm-code-head"><span>MARKDOWN · C-30</span><button aria-label="Copy code block 30" class="copy" type="button">COPY</button></div><pre><code><span class="gh"># Sales data analysis</span>
 
 <span class="gu">## Setup</span>
 <span class="k">-</span><span class="w"> </span>Python is managed with uv. Run scripts with <span class="sb">`uv run &lt;script&gt;.py`</span>.
@@ -310,7 +310,6 @@
 
 <span class="gu">## Conventions</span>
 <span class="k">-</span><span class="w"> </span>pandas for tables, matplotlib for figures. Save figures as PNG and PDF.
-<span class="k">-</span><span class="w"> </span>British spelling in comments and figure labels.
 <span class="k">-</span><span class="w"> </span>Every script prints the input files and row counts it used.
 
 <span class="gu">## Checks</span>
@@ -448,8 +447,8 @@
 <p>Then:</p>
 <div class="fm-code" id="c-35"><div class="fm-code-head"><span>POWERSHELL · C-35</span><button aria-label="Copy code block 35" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="p">-</span><span class="n">-permission-mode</span> <span class="n">acceptEdits</span></code></pre></div>
 <ol class="list">
-<li>Ask: <code>add a row with id 4 and score 20 to data/raw/scores.csv</code>. Expected: the edit is refused because of the deny rule, even though acceptEdits would normally allow file edits.</li>
-<li>Ask: <code>write mean.py that prints the mean score from data/raw/scores.csv, then run it with uv</code>. Expected: Claude creates <code>mean.py</code> without asking (acceptEdits), asks before running the command, and prints <code>12.0</code>.</li>
+<li><strong>Ask:</strong> <code>add a row with id 4 and score 20 to data/raw/scores.csv</code>. Expected: the edit is refused because of the deny rule, even though acceptEdits would normally allow file edits.</li>
+<li><strong>Ask:</strong> <code>write mean.py that prints the mean score from data/raw/scores.csv, then run it with uv</code>. Expected: Claude creates <code>mean.py</code> without asking (acceptEdits), asks before running the command, and prints <code>12.0</code>.</li>
 <li>Run <code>/init</code>. Expected: a starter <code>CLAUDE.md</code> describing the folder. Open it and add the read-only rule from the example above.</li>
 <li>Run <code>/context</code> and confirm CLAUDE.md appears under Memory files.</li>
 </ol>
@@ -461,22 +460,22 @@
 <p>MCP (Model Context Protocol) is an open standard that lets any AI client use any tool server. In Claude Code you add a server with one <code>claude mcp add</code> command, and a working server of your own takes about 20 lines of Python.</p>
 <h3>The shape of it</h3>
 <ul class="list">
-<li>Client: the AI app. Claude Code, the Claude desktop app and claude.ai are all MCP clients.</li>
-<li>Server: a separate program that offers capabilities to clients. Per modelcontextprotocol.io, a server can offer three kinds:
+<li><strong>Client:</strong> the AI app. Claude Code, the Claude desktop app and claude.ai are all MCP clients.</li>
+<li><strong>Server:</strong> a separate program that offers capabilities to clients. Per modelcontextprotocol.io, a server can offer three kinds:
 <ul class="list">
-<li>Tools: functions the model can call, such as "search issues" or "create design".</li>
-<li>Resources: file-like data you can pull in; in Claude Code you reference them with <code>@server:protocol://path</code>.</li>
-<li>Prompts: ready-made templates, which show up in Claude Code as <code>/</code> commands.</li>
+<li><strong>Tools:</strong> functions the model can call, such as "search issues" or "create design".</li>
+<li><strong>Resources:</strong> file-like data you can pull in; in Claude Code you reference them with <code>@server:protocol://path</code>.</li>
+<li><strong>Prompts:</strong> ready-made templates, which show up in Claude Code as <code>/</code> commands.</li>
 </ul>
 </li>
-<li>Transport: how client and server talk.
+<li><strong>Transport:</strong> how client and server talk.
 <ul class="list">
 <li>stdio: the server runs on your computer as a child process; messages travel through its standard input and output.</li>
-<li>HTTP: the server runs somewhere on the internet; Anthropic's docs call this the recommended option for remote servers.</li>
-<li>SSE: older remote transport, marked deprecated.</li>
+<li><strong>HTTP:</strong> the server runs somewhere on the internet; Anthropic's docs call this the recommended option for remote servers.</li>
+<li><strong>SSE:</strong> older remote transport, marked deprecated.</li>
 </ul>
 </li>
-<li>Messages: JSON-RPC objects like the one in <a href="manual-2.html#sec-5">section 5</a>.</li>
+<li><strong>Messages:</strong> JSON-RPC objects like the one in <a href="manual-2.html#sec-5">section 5</a>.</li>
 </ul>
 <h3>Adding servers to Claude Code</h3>
 <p>Remote (HTTP) server, then sign in from inside a session:</p>
@@ -532,17 +531,17 @@
 <div class="fm-code" id="c-39"><div class="fm-code-head"><span>POWERSHELL · C-39</span><button aria-label="Copy code block 39" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
 <span class="n">claude</span> <span class="n">mcp</span> <span class="n">add</span> <span class="n">files</span> <span class="p">--</span> <span class="n">npx</span> <span class="n">-y</span> <span class="nv">@modelcontextprotocol</span><span class="p">/</span><span class="n">server-filesystem</span> <span class="s2">"$HOME\claude-practice"</span>
 <span class="n">claude</span> <span class="n">mcp</span> <span class="n">list</span></code></pre></div>
-<p class="fm-expected">Expected: an <code>Added ...</code> line, then <code>files</code> in the list with a status such as Connected. Start <code>claude</code>, ask "using the files server, list what is in claude-practice", and the reply shows a tool call from that server. Remove it afterwards with <code>claude mcp remove files</code>.</p>
+<p class="fm-expected"><strong>Expected:</strong> an <code>Added ...</code> line, then <code>files</code> in the list with a status such as Connected. Start <code>claude</code>, ask "using the files server, list what is in claude-practice", and the reply shows a tool call from that server. Remove it afterwards with <code>claude mcp remove files</code>.</p>
 <p>If it shows "Failed to connect", run <code>claude mcp get files</code> and read its Issue line, then run the <code>npx</code> command on its own to see its error. Anthropic's MCP quickstart says <code>claude mcp add</code> works the same in PowerShell and Command Prompt. A slow first <code>npx</code> download can time out: start Claude Code with <code>$env:MCP_TIMEOUT = "60000"; claude</code> to allow 60 seconds. Older community guides suggest wrapping <code>npx</code> as <code>cmd /c npx ...</code>; the current docs do not, so keep that as a last resort.</p>
 </div><div class="fm-ex" id="ex-16"><h3><span class="fm-tag">EX-16</span> Inspect a server without any AI</h3>
 <p>The MCP Inspector is the reference testing tool. It needs Node 22.19.0 or newer, per its docs.</p>
 <div class="fm-code" id="c-40"><div class="fm-code-head"><span>POWERSHELL · C-40</span><button aria-label="Copy code block 40" class="copy" type="button">COPY</button></div><pre><code><span class="n">npx</span> <span class="n">-y</span> <span class="nv">@modelcontextprotocol</span><span class="p">/</span><span class="n">inspector</span> <span class="n">npx</span> <span class="n">-y</span> <span class="nv">@modelcontextprotocol</span><span class="p">/</span><span class="n">server-filesystem</span> <span class="s2">"$HOME\claude-practice"</span></code></pre></div>
-<p class="fm-expected">Expected: a URL with a one-time token is printed. Open it in a browser, connect, open the Tools tab, pick a tool, fill in its arguments and run it. You see the raw request and response, which is what Claude sees when it calls the tool. <code>--cli</code> instead of the web UI gives a scriptable version.</p>
+<p class="fm-expected"><strong>Expected:</strong> a URL with a one-time token is printed. Open it in a browser, connect, open the Tools tab, pick a tool, fill in its arguments and run it. You see the raw request and response, which is what Claude sees when it calls the tool. <code>--cli</code> instead of the web UI gives a scriptable version.</p>
 </div><div class="fm-ex" id="ex-17"><h3><span class="fm-tag">EX-17</span> Build your own server in Python</h3>
 <p>This follows the official Python quickstart, which uses MCP Python SDK 2.x and Python 3.10 or newer.</p>
 <div class="fm-code" id="c-41"><div class="fm-code-head"><span>POWERSHELL · C-41</span><button aria-label="Copy code block 41" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
-<span class="n">uv</span> <span class="n">init</span> <span class="n">study-tools</span>
-<span class="nb">cd </span><span class="n">study-tools</span>
+<span class="n">uv</span> <span class="n">init</span> <span class="n">text-tools</span>
+<span class="nb">cd </span><span class="n">text-tools</span>
 <span class="n">uv</span> <span class="n">add</span> <span class="s2">"mcp[cli]"</span>
 <span class="n">code</span> <span class="n">server</span><span class="p">.</span><span class="n">py</span></code></pre></div>
 <p>Paste into <code>server.py</code>:</p>
@@ -551,7 +550,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">mcp.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCPServer</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-<span class="n">mcp</span> <span class="o">=</span> <span class="n">MCPServer</span><span class="p">(</span><span class="s2">"study-tools"</span><span class="p">)</span>
+<span class="n">mcp</span> <span class="o">=</span> <span class="n">MCPServer</span><span class="p">(</span><span class="s2">"text-tools"</span><span class="p">)</span>
 
 
 <span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
@@ -570,19 +569,19 @@
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="n">mcp</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">transport</span><span class="o">=</span><span class="s2">"stdio"</span><span class="p">)</span></code></pre></div>
-<p>How it works: the SDK reads each function's type hints and docstring and turns them into a tool definition, so the docstring is what Claude reads when deciding whether to call it. The quickstart's one hard rule for stdio servers: never <code>print()</code>, because anything written to standard output corrupts the JSON-RPC messages. Use <code>logging</code>, which writes to standard error.</p>
+<p><strong>How it works:</strong> the SDK reads each function's type hints and docstring and turns them into a tool definition, so the docstring is what Claude reads when deciding whether to call it. The quickstart's one hard rule for stdio servers: never <code>print()</code>, because anything written to standard output corrupts the JSON-RPC messages. Use <code>logging</code>, which writes to standard error.</p>
 <p>Test it in the Inspector first:</p>
 <div class="fm-code" id="c-43"><div class="fm-code-head"><span>POWERSHELL · C-43</span><button aria-label="Copy code block 43" class="copy" type="button">COPY</button></div><pre><code><span class="n">npx</span> <span class="n">-y</span> <span class="nv">@modelcontextprotocol</span><span class="p">/</span><span class="n">inspector</span> <span class="n">uv</span> <span class="p">-</span><span class="n">-directory</span> <span class="s2">"$PWD"</span> <span class="n">run</span> <span class="n">server</span><span class="p">.</span><span class="n">py</span></code></pre></div>
-<p class="fm-expected">Expected: the Tools tab lists <code>word_count</code> and <code>reading_time</code>. Run <code>word_count</code> with <code>the quick brown fox</code> and get <code>4</code>.</p>
+<p class="fm-expected"><strong>Expected:</strong> the Tools tab lists <code>word_count</code> and <code>reading_time</code>. Run <code>word_count</code> with <code>the quick brown fox</code> and get <code>4</code>.</p>
 <p>Then give it to Claude Code for all your projects:</p>
-<div class="fm-code" id="c-44"><div class="fm-code-head"><span>POWERSHELL · C-44</span><button aria-label="Copy code block 44" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="n">mcp</span> <span class="n">add</span> <span class="p">-</span><span class="n">-scope</span> <span class="n">user</span> <span class="n">study-tools</span> <span class="p">--</span> <span class="n">uv</span> <span class="p">-</span><span class="n">-directory</span> <span class="s2">"$HOME\claude-practice\study-tools"</span> <span class="n">run</span> <span class="n">server</span><span class="p">.</span><span class="n">py</span></code></pre></div>
-<p>Start <code>claude</code>, run <code>/mcp</code> to confirm study-tools is connected with 2 tools, and ask: "use study-tools to estimate reading time for this paragraph: &lt;paste a paragraph&gt;". Expected: a call to the reading_time tool and its answer.</p>
+<div class="fm-code" id="c-44"><div class="fm-code-head"><span>POWERSHELL · C-44</span><button aria-label="Copy code block 44" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="n">mcp</span> <span class="n">add</span> <span class="p">-</span><span class="n">-scope</span> <span class="n">user</span> <span class="n">text-tools</span> <span class="p">--</span> <span class="n">uv</span> <span class="p">-</span><span class="n">-directory</span> <span class="s2">"$HOME\claude-practice\text-tools"</span> <span class="n">run</span> <span class="n">server</span><span class="p">.</span><span class="n">py</span></code></pre></div>
+<p>Start <code>claude</code>, run <code>/mcp</code> to confirm text-tools is connected with 2 tools, and ask: "use text-tools to estimate reading time for this paragraph: &lt;paste a paragraph&gt;". Expected: a call to the reading_time tool and its answer.</p>
 <p>To use the same server in the Claude desktop app's chat, open <code>code $env:AppData\Claude\claude_desktop_config.json</code> and add it under <code>mcpServers</code> in the shape the quickstart shows, with an absolute path and doubled backslashes, then fully quit the app from the system tray and reopen it:</p>
 <div class="fm-code" id="c-45"><div class="fm-code-head"><span>JSON · C-45</span><button aria-label="Copy code block 45" class="copy" type="button">COPY</button></div><pre><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"study-tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"text-tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uv"</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"--directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"C:\\Users\\&lt;you&gt;\\claude-practice\\study-tools"</span><span class="p">,</span><span class="w"> </span><span class="s2">"run"</span><span class="p">,</span><span class="w"> </span><span class="s2">"server.py"</span><span class="p">]</span>
+<span class="w">      </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"--directory"</span><span class="p">,</span><span class="w"> </span><span class="s2">"C:\\Users\\&lt;you&gt;\\claude-practice\\text-tools"</span><span class="p">,</span><span class="w"> </span><span class="s2">"run"</span><span class="p">,</span><span class="w"> </span><span class="s2">"server.py"</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span></code></pre></div>
@@ -590,7 +589,7 @@
 </div><div class="fm-best"><h3><span class="fm-tag">BEST PRACTICE</span> Best practices for MCP servers you build</h3>
 <p>From the MCP specification, its security page and Anthropic's connector review criteria:</p>
 <ul class="list">
-<li>Tool names: 1 to 128 characters of letters, digits, <code>_</code>, <code>-</code> and <code>.</code>; Anthropic's directory caps them at 64.</li>
+<li><strong>Tool names:</strong> 1 to 128 characters of letters, digits, <code>_</code>, <code>-</code> and <code>.</code>; Anthropic's directory caps them at 64.</li>
 <li>Descriptions say exactly what the tool does and when to call it. Keep reading tools separate from tools that change things, and mark them with <code>readOnlyHint</code> or <code>destructiveHint</code> annotations.</li>
 <li>When a call fails, return an error result (<code>isError: true</code>) whose message tells the model what to fix, such as "date must be YYYY-MM-DD", rather than a bare "Internal error".</li>
 <li>Validate every input, and request the narrowest scopes and tokens that work; servers must not accept tokens that were not issued for them.</li>
@@ -612,7 +611,7 @@
 <p>Anthropic's subagents page gives the test:</p>
 <ul class="list">
 <li>Use one when a side task would flood the conversation with search results, logs or file contents you will not look at again.</li>
-<li>Use one to restrict tools: a reviewer that cannot edit, a researcher that cannot run commands.</li>
+<li><strong>Use one to restrict tools:</strong> a reviewer that cannot edit, a researcher that cannot run commands.</li>
 <li>Use one to run independent investigations in parallel.</li>
 <li>Stay in the main conversation for quick changes, back-and-forth refinement, and work where each step depends on the last.</li>
 </ul>
@@ -737,7 +736,7 @@
 </table></div>
 <p>A subagent receives only its own prompt plus basic environment details, not the main Claude Code system prompt, and not your conversation history. Everything it needs has to be in its file or in the task Claude hands it.</p>
 <h3>Worked example: a citation checker</h3>
-<p>For paper drafts: a read-only subagent that checks each in-text citation against the source files in a <code>sources/</code> folder.</p>
+<p><strong>For paper drafts:</strong> a read-only subagent that checks each in-text citation against the source files in a <code>sources/</code> folder.</p>
 <div class="fm-code" id="c-46"><div class="fm-code-head"><span>MARKDOWN · C-46</span><button aria-label="Copy code block 46" class="copy" type="button">COPY</button></div><pre><code>---
 name: citation-checker
 description: Checks that each citation in a paper draft is supported by the cited source file. Use after editing a draft or when asked to verify references.
@@ -753,21 +752,21 @@ For each in-text citation in the draft:
 <span class="k">3.</span> Give a verdict: Supported, Partly supported, or Not found.
 
 Return one table: claim (shortened), citation, verdict, location in the source.
-Never edit files. British spelling.</code></pre></div>
+Never edit files.</code></pre></div>
 <p>Because <code>tools</code> lists only Read, Grep and Glob, it cannot change your draft even if asked.</p>
 <div class="fm-ex" id="ex-18"><h3><span class="fm-tag">EX-18</span> Create and use it</h3>
 <ol class="list">
 <li>In PowerShell, run <code>mkdir $HOME\.claude\agents -Force</code>, then <code>code "$HOME\.claude\agents\citation-checker.md"</code>, paste the example and save. Alternatively, ask Claude in a session to "create a personal citation-checker subagent in ~/.claude/agents/" with the description above; the docs show Claude writing the file for you.</li>
 <li>Make a test folder with a short <code>draft.md</code> containing two or three citations and a <code>sources/</code> folder holding the matching files.</li>
 <li>Start <code>claude</code> in that folder and type: <code>Use the citation-checker subagent on draft.md</code>.</li>
-<li>Expected: a transcript row reading <code>citation-checker(...)</code>, then a table of verdicts in the main conversation, without the source text cluttering it.</li>
+<li><strong>Expected:</strong> a transcript row reading <code>citation-checker(...)</code>, then a table of verdicts in the main conversation, without the source text cluttering it.</li>
 </ol>
 <p>If Claude does not see the new subagent and the <code>agents</code> folder did not exist when the session started, restart Claude Code; the docs note a running session does not notice a newly created <code>agents</code> folder.</p>
 </div><h3>Three ways to call one</h3>
 <ul class="list">
-<li>Natural language: "Use the citation-checker subagent to...". Claude usually delegates.</li>
+<li><strong>Natural language:</strong> "Use the citation-checker subagent to...". Claude usually delegates.</li>
 <li>@-mention: type <code>@</code> and pick it from the list, such as <code>@"citation-checker (agent)" check draft.md</code>. This guarantees that subagent runs.</li>
-<li>Whole session: <code>claude --agent citation-checker</code> runs the main conversation as that subagent, with its tools and model.</li>
+<li><strong>Whole session:</strong> <code>claude --agent citation-checker</code> runs the main conversation as that subagent, with its tools and model.</li>
 </ul>
 <h3>Running, watching and stopping</h3>
 <ul class="list">
@@ -787,8 +786,8 @@ Never edit files. British spelling.</code></pre></div>
 </div><h3>Keeping them cheap</h3>
 <ul class="list">
 <li>Short descriptions. Every subagent's description loads into context; Claude Code warns when their combined size passes 15,000 tokens.</li>
-<li>A cheaper model where judgement matters less: <code>model: haiku</code> for searching and listing.</li>
-<li>Ask for summaries back instead of raw output: "report only failing tests with their error messages".</li>
+<li><strong>A cheaper model where judgement matters less:</strong> <code>model: haiku</code> for searching and listing.</li>
+<li><strong>Ask for summaries back instead of raw output:</strong> "report only failing tests with their error messages".</li>
 </ul>
 
   </section>
@@ -813,7 +812,7 @@ Never edit files. British spelling.</code></pre></div>
 <ol class="list">
 <li>Event (<code>PostToolUse</code>): the moment in the loop.</li>
 <li>Matcher (<code>Edit|Write</code>): narrows which occurrences count; for tool events it matches the tool name. Omit it, or use <code>*</code>, to match everything.</li>
-<li>Handler: what runs. Usually <code>"type": "command"</code>; other types send an HTTP request, call an MCP tool, or ask a model to decide (<code>"prompt"</code>, <code>"agent"</code>).</li>
+<li><strong>Handler:</strong> what runs. Usually <code>"type": "command"</code>; other types send an HTTP request, call an MCP tool, or ask a model to decide (<code>"prompt"</code>, <code>"agent"</code>).</li>
 </ol>
 <h3>The events worth knowing first</h3>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
@@ -875,11 +874,11 @@ Never edit files. British spelling.</code></pre></div>
 <p>The full list in the hooks reference has more than 30 events.</p>
 <h3>How a hook talks back</h3>
 <ul class="list">
-<li>Input: Claude Code sends the hook a JSON object on standard input, with fields such as <code>tool_name</code>, <code>tool_input</code> and <code>cwd</code> (the shape practised in <a href="manual-2.html#ex-6">Exercise 6</a>).</li>
-<li>Exit code 0: no objection; normal permission rules still apply.</li>
-<li>Exit code 2: block. For <code>PreToolUse</code>, the tool call is cancelled and your standard-error text is shown to Claude as the reason.</li>
-<li>Any other exit code: a non-blocking error. The action goes ahead and the transcript shows a hook error notice.</li>
-<li>JSON on standard output: finer control, such as <code>"permissionDecision": "deny"</code> with a reason.</li>
+<li><strong>Input:</strong> Claude Code sends the hook a JSON object on standard input, with fields such as <code>tool_name</code>, <code>tool_input</code> and <code>cwd</code> (the shape practised in <a href="manual-2.html#ex-6">Exercise 6</a>).</li>
+<li><strong>Exit code 0:</strong> no objection; normal permission rules still apply.</li>
+<li><strong>Exit code 2:</strong> block. For <code>PreToolUse</code>, the tool call is cancelled and your standard-error text is shown to Claude as the reason.</li>
+<li><strong>Any other exit code:</strong> a non-blocking error. The action goes ahead and the transcript shows a hook error notice.</li>
+<li><strong>JSON on standard output:</strong> finer control, such as <code>"permissionDecision": "deny"</code> with a reason.</li>
 </ul>
 <p>The reference's warning in plain terms: exit code 1, the usual "failure" code, does not block. A policy hook must exit 2 or print a deny decision.</p>
 <h3>Hooks on Windows</h3>
@@ -907,7 +906,7 @@ Never edit files. British spelling.</code></pre></div>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span></code></pre></div>
-<p>Test it: run <code>/hooks</code> in a session and check the hook is listed under Notification. Start <code>claude --permission-mode manual</code>, ask for something that needs permission, and switch to another window. Expected: a dialog titled "Claude Code" after a few seconds; the guide notes it can open behind your terminal.</p>
+<p><strong>Test it:</strong> run <code>/hooks</code> in a session and check the hook is listed under Notification. Start <code>claude --permission-mode manual</code>, ask for something that needs permission, and switch to another window. Expected: a dialog titled "Claude Code" after a few seconds; the guide notes it can open behind your terminal.</p>
 </div><div class="fm-ex" id="ex-20"><h3><span class="fm-tag">EX-20</span> Block recursive deletes</h3>
 <p>This is the reference's Windows example, added to the analysis project from <a href="#ex-14">Exercise 14</a>. Create the script file:</p>
 <div class="fm-code" id="c-50"><div class="fm-code-head"><span>POWERSHELL · C-50</span><button aria-label="Copy code block 50" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span><span class="p">\</span><span class="n">analysis</span>
@@ -959,7 +958,7 @@ Never edit files. British spelling.</code></pre></div>
 <p>The <code>if</code> field narrows each handler further than the matcher: the script only starts for <code>rm</code> or <code>Remove-Item</code> commands, so ordinary commands pay no cost.</p>
 <p>Test the script on its own before trusting it:</p>
 <div class="fm-code" id="c-53"><div class="fm-code-head"><span>POWERSHELL · C-53</span><button aria-label="Copy code block 53" class="copy" type="button">COPY</button></div><pre><code><span class="s1">'{"tool_name":"PowerShell","tool_input":{"command":"Remove-Item data -Recurse"}}'</span> <span class="p">|</span> <span class="n">powershell</span> <span class="n">-NoProfile</span> <span class="n">-ExecutionPolicy</span> <span class="n">Bypass</span> <span class="o">-File</span> <span class="p">.</span><span class="n">claude</span><span class="p">\</span><span class="n">hooks</span><span class="p">\</span><span class="nb">block-rm</span><span class="p">.</span><span class="n">ps1</span></code></pre></div>
-<p class="fm-expected">Expected: a JSON object containing <code>"permissionDecision": "deny"</code>. Then run <code>mkdir junk</code>, start <code>claude</code> in this folder, and ask: <code>run rm -rf junk</code>. Expected: the command is blocked and Claude reports "Destructive command blocked by hook". The script's pattern catches <code>rm -rf</code> and <code>Remove-Item ... -Recurse</code>; a plain <code>rm -r</code> gets past it, so test any hook against the exact commands you want stopped.</p>
+<p class="fm-expected"><strong>Expected:</strong> a JSON object containing <code>"permissionDecision": "deny"</code>. Then run <code>mkdir junk</code>, start <code>claude</code> in this folder, and ask: <code>run rm -rf junk</code>. Expected: the command is blocked and Claude reports "Destructive command blocked by hook". The script's pattern catches <code>rm -rf</code> and <code>Remove-Item ... -Recurse</code>; a plain <code>rm -r</code> gets past it, so test any hook against the exact commands you want stopped.</p>
 <p>Project hooks only run after you accept the workspace trust prompt for that folder, which Claude Code shows the first time you start a session there.</p>
 </div><div class="fm-ex" id="ex-21"><h3><span class="fm-tag">EX-21</span> Log every command<span class="fm-note">needs Git for Windows</span></h3>
 <p>Open your user settings again (<code>code $HOME\.claude\settings.json</code>). Add a <code>PostToolUse</code> entry beside <a href="#ex-19">Exercise 19</a>'s <code>Notification</code> entry, so one <code>hooks</code> object holds both. The whole file then looks like this, plus any other keys you already had:</p>
@@ -986,13 +985,13 @@ Never edit files. British spelling.</code></pre></div>
 <span class="w">    </span><span class="p">]</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span></code></pre></div>
-<p class="fm-expected">Expected: every shell command Claude runs is appended to <code>command-log.txt</code> in your <code>.claude</code> folder; read it with <code>Get-Content $HOME\.claude\command-log.txt</code>. Useful for reviewing what an agent did after a long session.</p>
+<p class="fm-expected"><strong>Expected:</strong> every shell command Claude runs is appended to <code>command-log.txt</code> in your <code>.claude</code> folder; read it with <code>Get-Content $HOME\.claude\command-log.txt</code>. Useful for reviewing what an agent did after a long session.</p>
 </div><h3>When a hook does not work</h3>
 <ul class="list">
 <li><code>/hooks</code> shows nothing: check the JSON is valid (<code>jq . &lt;file&gt;</code>), with no trailing commas or comments, and that the file is in the right place.</li>
-<li>Hook error notices: run the script by hand with sample JSON piped in, as above, and check <code>$LASTEXITCODE</code>.</li>
-<li>Full detail: start with <code>claude --debug-file $env:TEMP\claude.log</code>, or run <code>/debug</code> mid-session, and read the log.</li>
-<li>Matchers are case-sensitive: <code>bash</code> does not match <code>Bash</code>.</li>
+<li><strong>Hook error notices:</strong> run the script by hand with sample JSON piped in, as above, and check <code>$LASTEXITCODE</code>.</li>
+<li><strong>Full detail:</strong> start with <code>claude --debug-file $env:TEMP\claude.log</code>, or run <code>/debug</code> mid-session, and read the log.</li>
+<li><strong>Matchers are case-sensitive:</strong> <code>bash</code> does not match <code>Bash</code>.</li>
 <li><code>"disableAllHooks": true</code> in settings turns every non-managed hook off without deleting them.</li>
 </ul>
 <div class="fm-best"><h3><span class="fm-tag">BEST PRACTICE</span> Best practices for hooks</h3>
@@ -1003,13 +1002,13 @@ Never edit files. British spelling.</code></pre></div>
 <li>On Windows, set <code>"shell": "powershell"</code> for PowerShell scripts, and test each one by piping sample JSON into it before relying on it.</li>
 </ul>
 </div><div class="fm-caution"><h3><span class="fm-tag">CAUTION</span> Safety</h3>
-<p>Hooks run arbitrary commands with your permissions, every time. Read the hooks in any repository you clone before running Claude Code there (the permissions page notes that a repository's hooks run even under <code>claude -p</code> or when you only trusted a parent folder), and the hooks inside any plugin before installing it. For coursework in claude.ai you will not need hooks; they become useful once Claude Code is editing real code or data.</p>
+<p>Hooks run arbitrary commands with your permissions, every time. Read the hooks in any repository you clone before running Claude Code there (the permissions page notes that a repository's hooks run even under <code>claude -p</code> or when you only trusted a parent folder), and the hooks inside any plugin before installing it. For everyday chat in claude.ai you will not need hooks; they become useful once Claude Code is editing real code or data.</p>
 </div>
   </section>
   <section class="panel" id="sec-14" data-ref="FM-1400 &#183; REV B" data-sector="Plugins">
     <p class="sub">SECTION 14</p>
     <h2>Plugins and marketplaces</h2>
-<p>A plugin is a package that installs several add-ons at once: skills, commands, subagents, hooks and MCP servers. A marketplace is a catalogue you install plugins from. You already have about ten plugins on your claude.ai account; this section covers what they do, how to trim them, and how to build one.</p>
+<p>A plugin is a package that installs several add-ons at once: skills, commands, subagents, hooks and MCP servers. A marketplace is a catalogue you install plugins from. This section covers what they do, how to keep the list short, and how to build one.</p>
 <h3>What a plugin can contain, and where each part works</h3>
 <p>Per Anthropic's plugin platform-support page:</p>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
@@ -1072,51 +1071,15 @@ Never edit files. British spelling.</code></pre></div>
 <li>Plugins on your account also sync into Claude Code when you sign in there with the same account, listed as <code>&lt;name&gt;@synced</code>.</li>
 <li>Per the same page, Anthropic reviews plugins listed in its directory, but not plugins added from a marketplace URL or uploaded by hand.</li>
 </ul>
-<h3>Trimming what you have</h3>
-<p>The skills visible in this chat include plugin skills from: Figma, Canva, Data, Design, Product Management, Productivity, PDF Viewer, Desktop Commander, Superpowers, and a plugin-management plugin, alongside your own quiz and thought-journal skills. Every enabled skill's name and description loads into each conversation, and Anthropic's docs note that overlapping or excessive descriptions make Claude pick the wrong skill.</p>
-<p>A suggested review, based on the coursework, research and design work you have described; keep what you actually use:</p>
-<div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
-<thead>
-<tr>
-<th>Plugin</th>
-<th>Built for</th>
-<th>Suggestion</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Canva, Figma, Design</td>
-<td>Design work</td>
-<td>Keep if you use them for UX coursework or your website</td>
-</tr>
-<tr>
-<td>PDF Viewer</td>
-<td>Reading and annotating PDFs</td>
-<td>Keep; your quiz skills read PDF chapters</td>
-</tr>
-<tr>
-<td>Data</td>
-<td>Analysis, charts, SQL</td>
-<td>Keep if you do data work in chat; otherwise disable until you need it</td>
-</tr>
-<tr>
-<td>Superpowers</td>
-<td>Software development workflow: test-driven development, git worktrees, code review</td>
-<td>Turn off for everyday coursework, since its using-superpowers skill tells Claude to check for skills before every response; turn on when you want a structured review of code or a document, as used for this guide's review</td>
-</tr>
-<tr>
-<td>Product Management, Productivity, plugin management</td>
-<td>Product teams; plugin setup</td>
-<td>Disable unless you use them</td>
-</tr>
-<tr>
-<td>Desktop Commander</td>
-<td>Terminal access on your computer</td>
-<td>Disable unless you are using it for a specific task</td>
-</tr>
-</tbody>
-</table></div>
-<p>Disabling is reversible: the toggle brings a plugin back unchanged.</p>
+<h3>Keeping the list short</h3>
+<p>Every enabled skill's name and description loads into each conversation, and Anthropic's docs note that overlapping or excessive descriptions make Claude pick the wrong skill. So keep enabled only what you use:</p>
+<ul class="list">
+<li>Open Customize &gt; Plugins and go through the list once a month.</li>
+<li>Keep a plugin you used in the last few weeks; disable the rest.</li>
+<li>Turn off plugins that change how every reply starts, such as workflow plugins that tell Claude to check for skills first, when you are doing everyday writing; turn them on for the work they are built for.</li>
+<li>Disable anything that can act on your computer or your accounts until you need it for a specific task.</li>
+</ul>
+<p><strong>Disabling is reversible:</strong> the toggle brings a plugin back unchanged.</p>
 <p>In Claude Code, <code>/plugin</code> shows a "Not used recently" group on its Installed tab, and <code>claude plugin details &lt;name&gt;</code> prints an "Always-on" figure: the tokens a plugin adds to every session.</p>
 <h3>Plugins in Claude Code</h3>
 <p>Anthropic's official marketplace, <code>claude-plugins-official</code>, is added automatically the first time you start an interactive session.</p>
@@ -1160,30 +1123,30 @@ Never edit files. British spelling.</code></pre></div>
 <div class="fm-ex" id="ex-22"><h3><span class="fm-tag">EX-22</span> Install an official plugin</h3>
 <p>Anthropic's skills page uses skill-creator as its example, a plugin that helps write and test skills:</p>
 <div class="fm-code" id="c-57"><div class="fm-code-head"><span>TEXT · C-57</span><button aria-label="Copy code block 57" class="copy" type="button">COPY</button></div><pre><code>/plugin install skill-creator@claude-plugins-official</code></pre></div>
-<p>Choose "Install for you (user scope)". Expected: an install summary ending in "Plugin is now active" or a reload note. Then ask: "evaluate my lecture-notes skill with skill-creator". It walks you through writing test prompts and compares results with and without the skill.</p>
-</div><div class="fm-ex" id="ex-23"><h3><span class="fm-tag">EX-23</span> Package your own study kit</h3>
-<p>Bundle the lecture-notes skill (<a href="manual-3.html#sec-8">section 8</a>) and the citation-checker subagent (<a href="#sec-12">section 12</a>) into one plugin.</p>
+<p>Choose "Install for you (user scope)". Expected: an install summary ending in "Plugin is now active" or a reload note. Then ask: "evaluate my meeting-notes skill with skill-creator". It walks you through writing test prompts and compares results with and without the skill.</p>
+</div><div class="fm-ex" id="ex-23"><h3><span class="fm-tag">EX-23</span> Package your own kit</h3>
+<p>Bundle the meeting-notes skill (<a href="manual-3.html#sec-8">section 8</a>) and the citation-checker subagent (<a href="#sec-12">section 12</a>) into one plugin.</p>
 <div class="fm-code" id="c-58"><div class="fm-code-head"><span>POWERSHELL · C-58</span><button aria-label="Copy code block 58" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
-<span class="n">mkdir</span> <span class="n">study-kit</span><span class="p">\.</span><span class="n">claude-plugin</span>
-<span class="n">mkdir</span> <span class="n">study-kit</span><span class="p">\</span><span class="n">skills</span><span class="p">\</span><span class="n">lecture-notes</span>
-<span class="n">mkdir</span> <span class="n">study-kit</span><span class="p">\</span><span class="n">agents</span>
-<span class="nb">Copy-Item</span> <span class="p">~\</span><span class="n">skills</span><span class="p">\</span><span class="n">lecture-notes</span><span class="p">\</span><span class="n">SKILL</span><span class="p">.</span><span class="nb">md </span><span class="n">study-kit</span><span class="p">\</span><span class="n">skills</span><span class="p">\</span><span class="n">lecture-notes</span><span class="p">\</span>
-<span class="nb">Copy-Item</span> <span class="nv">$env:USERPROFILE</span><span class="p">\.</span><span class="n">claude</span><span class="p">\</span><span class="n">agents</span><span class="p">\</span><span class="n">citation-checker</span><span class="p">.</span><span class="nb">md </span><span class="n">study-kit</span><span class="p">\</span><span class="n">agents</span><span class="p">\</span>
-<span class="n">code</span> <span class="n">study-kit</span><span class="p">\.</span><span class="n">claude-plugin</span><span class="p">\</span><span class="n">plugin</span><span class="p">.</span><span class="n">json</span></code></pre></div>
+<span class="n">mkdir</span> <span class="n">work-kit</span><span class="p">\.</span><span class="n">claude-plugin</span>
+<span class="n">mkdir</span> <span class="n">work-kit</span><span class="p">\</span><span class="n">skills</span><span class="p">\</span><span class="n">meeting-notes</span>
+<span class="n">mkdir</span> <span class="n">work-kit</span><span class="p">\</span><span class="n">agents</span>
+<span class="nb">Copy-Item</span> <span class="p">~\</span><span class="n">skills</span><span class="p">\</span><span class="n">meeting-notes</span><span class="p">\</span><span class="n">SKILL</span><span class="p">.</span><span class="nb">md </span><span class="n">work-kit</span><span class="p">\</span><span class="n">skills</span><span class="p">\</span><span class="n">meeting-notes</span><span class="p">\</span>
+<span class="nb">Copy-Item</span> <span class="nv">$env:USERPROFILE</span><span class="p">\.</span><span class="n">claude</span><span class="p">\</span><span class="n">agents</span><span class="p">\</span><span class="n">citation-checker</span><span class="p">.</span><span class="nb">md </span><span class="n">work-kit</span><span class="p">\</span><span class="n">agents</span><span class="p">\</span>
+<span class="n">code</span> <span class="n">work-kit</span><span class="p">\.</span><span class="n">claude-plugin</span><span class="p">\</span><span class="n">plugin</span><span class="p">.</span><span class="n">json</span></code></pre></div>
 <p>Paste into <code>plugin.json</code>, the manifest:</p>
 <div class="fm-code" id="c-59"><div class="fm-code-head"><span>JSON · C-59</span><button aria-label="Copy code block 59" class="copy" type="button">COPY</button></div><pre><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"study-kit"</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Lecture notes and citation checking for coursework"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"work-kit"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Meeting notes and citation checking"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.0.0"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;your name&gt;"</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span></code></pre></div>
 <p>Then check and try it:</p>
-<div class="fm-code" id="c-60"><div class="fm-code-head"><span>POWERSHELL · C-60</span><button aria-label="Copy code block 60" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="n">plugin</span> <span class="n">validate</span> <span class="p">.\</span><span class="n">study-kit</span>
-<span class="n">claude</span> <span class="p">-</span><span class="n">-plugin-dir</span> <span class="p">.\</span><span class="n">study-kit</span></code></pre></div>
-<p class="fm-expected">Expected: <code>Validation passed</code>, then inside the session the skill appears as <code>/study-kit:lecture-notes</code> and the subagent as <code>study-kit:citation-checker</code>. Only <code>plugin.json</code> goes inside <code>.claude-plugin/</code>; the docs warn that components placed there do not load.</p>
-<p>To use it in claude.ai, zip the <code>study-kit</code> folder with File Explorer as in <a href="manual-3.html#ex-10">Exercise 10</a>, or with <code>tar.exe</code> as below, and upload it at Customize &gt; Plugins &gt; Add &gt; Upload plugin:</p>
-<div class="fm-code" id="c-61"><div class="fm-code-head"><span>POWERSHELL · C-61</span><button aria-label="Copy code block 61" class="copy" type="button">COPY</button></div><pre><code><span class="n">tar</span><span class="p">.</span><span class="n">exe</span> <span class="n">-a</span> <span class="n">-c</span> <span class="o">-f</span> <span class="n">study-kit</span><span class="p">.</span><span class="n">zip</span> <span class="n">study-kit</span></code></pre></div>
-<p>In chat, the lecture-notes skill works and the citation-checker agent is skipped, per the component table above.</p>
+<div class="fm-code" id="c-60"><div class="fm-code-head"><span>POWERSHELL · C-60</span><button aria-label="Copy code block 60" class="copy" type="button">COPY</button></div><pre><code><span class="n">claude</span> <span class="n">plugin</span> <span class="n">validate</span> <span class="p">.\</span><span class="n">work-kit</span>
+<span class="n">claude</span> <span class="p">-</span><span class="n">-plugin-dir</span> <span class="p">.\</span><span class="n">work-kit</span></code></pre></div>
+<p class="fm-expected"><strong>Expected:</strong> <code>Validation passed</code>, then inside the session the skill appears as <code>/work-kit:meeting-notes</code> and the subagent as <code>work-kit:citation-checker</code>. Only <code>plugin.json</code> goes inside <code>.claude-plugin/</code>; the docs warn that components placed there do not load.</p>
+<p>To use it in claude.ai, zip the <code>work-kit</code> folder with File Explorer as in <a href="manual-3.html#ex-10">Exercise 10</a>, or with <code>tar.exe</code> as below, and upload it at Customize &gt; Plugins &gt; Add &gt; Upload plugin:</p>
+<div class="fm-code" id="c-61"><div class="fm-code-head"><span>POWERSHELL · C-61</span><button aria-label="Copy code block 61" class="copy" type="button">COPY</button></div><pre><code><span class="n">tar</span><span class="p">.</span><span class="n">exe</span> <span class="n">-a</span> <span class="n">-c</span> <span class="o">-f</span> <span class="n">work-kit</span><span class="p">.</span><span class="n">zip</span> <span class="n">work-kit</span></code></pre></div>
+<p>In chat, the meeting-notes skill works and the citation-checker agent is skipped, per the component table above.</p>
 </div><div class="fm-best"><h3><span class="fm-tag">BEST PRACTICE</span> Best practices for plugins</h3>
 <ul class="list">
 <li>Before installing, read the "Will install" list, and in the plugin's source look at <code>hooks/hooks.json</code>, <code>.mcp.json</code> and any <code>bin/</code> folder; permission rules and the sandbox do not cover a plugin's own hooks or servers.</li>
@@ -1202,7 +1165,7 @@ Never edit files. British spelling.</code></pre></div>
 <h3>One-shot runs</h3>
 <div class="fm-code" id="c-62"><div class="fm-code-head"><span>POWERSHELL · C-62</span><button aria-label="Copy code block 62" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
 <span class="n">claude</span> <span class="n">-p</span> <span class="s2">"List the files in this folder and say what each contains, one line each"</span></code></pre></div>
-<p class="fm-expected">Expected: the answer prints and the command ends. Per Anthropic's headless page, it exits with code 0 on success and non-zero on failure, so <code>$LASTEXITCODE</code> works as in <a href="manual-2.html#sec-4">section 4</a>. A <code>-p</code> run loads the same CLAUDE.md, skills, hooks and MCP servers an interactive session would.</p>
+<p class="fm-expected"><strong>Expected:</strong> the answer prints and the command ends. Per Anthropic's headless page, it exits with code 0 on success and non-zero on failure, so <code>$LASTEXITCODE</code> works as in <a href="manual-2.html#sec-4">section 4</a>. A <code>-p</code> run loads the same CLAUDE.md, skills, hooks and MCP servers an interactive session would.</p>
 <p>The flags that matter for scripts:</p>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
 <thead>
@@ -1247,20 +1210,20 @@ Never edit files. British spelling.</code></pre></div>
 <div class="fm-code" id="c-63"><div class="fm-code-head"><span>POWERSHELL · C-63</span><button aria-label="Copy code block 63" class="copy" type="button">COPY</button></div><pre><code><span class="nv">$r</span> <span class="p">=</span> <span class="nb">Get-Content</span> <span class="p">.\</span><span class="n">analysis</span><span class="p">\</span><span class="n">data</span><span class="p">\</span><span class="n">raw</span><span class="p">\</span><span class="n">scores</span><span class="p">.</span><span class="n">csv</span> <span class="p">|</span> <span class="n">claude</span> <span class="n">-p</span> <span class="s2">"What is the highest score and which id has it?"</span> <span class="p">-</span><span class="n">-output-format</span> <span class="n">json</span> <span class="p">|</span> <span class="nb">Out-String</span> <span class="p">|</span> <span class="nb">ConvertFrom-Json</span>
 <span class="nv">$r</span><span class="p">.</span><span class="n">result</span>
 <span class="nv">$r</span><span class="p">.</span><span class="n">total_cost_usd</span></code></pre></div>
-<p class="fm-expected">Expected: the answer (id 2, score 15) and an estimated cost figure. The docs call that figure a client-side estimate that can differ from your bill. Piped input is capped at 10 MB.</p>
+<p class="fm-expected"><strong>Expected:</strong> the answer (id 2, score 15) and an estimated cost figure. The docs call that figure a client-side estimate that can differ from your bill. Piped input is capped at 10 MB.</p>
 <p>Windows PowerShell 5.1 removes the double quotes inside a string passed to a program, which breaks <code>--json-schema</code> and similar flags. <span class="fm-tested">Tested</span>: passing <code>'{"a": "b"}'</code> to a program in 5.1 arrived as <code>{a: b}</code>. Microsoft's about_Parsing page describes the behaviour, and says PowerShell 7.3 and later preserve the quotes. When a flag needs a JSON string, run the command in PowerShell 7 (<code>winget install --id Microsoft.PowerShell -e</code>, then open "PowerShell 7") or in Git Bash. Also note that in 5.1, <code>&gt;</code> writes UTF-16 files, which tools expecting UTF-8, such as jq, may fail to read; <code>| Out-File -Encoding utf8 &lt;file&gt;</code> writes UTF-8 instead. Text captured from <code>claude</code> can come out garbled, because PowerShell decodes program output with the console's code page (IBM437 on a default US setup). <span class="fm-tested">Tested</span>: a curly apostrophe captured that way became <code>ΓÇÖ</code>; after <code>[Console]::OutputEncoding = [System.Text.Encoding]::UTF8</code> the same text came through intact. Run that line at the start of any script that captures <code>claude</code> output.</p>
-</div><div class="fm-ex" id="ex-25"><h3><span class="fm-tag">EX-25</span> Batch-process lecture transcripts</h3>
-<p>This runs the lecture-notes skill (<a href="manual-3.html#sec-8">section 8</a>) over every transcript in a folder, one fresh session each. The docs confirm that <code>/skill-name</code> inside a <code>-p</code> prompt expands the skill. Text after the skill name reaches it as its arguments; since the skill has no <code>$ARGUMENTS</code> placeholder, Claude Code appends it as an <code>ARGUMENTS:</code> line.</p>
+</div><div class="fm-ex" id="ex-25"><h3><span class="fm-tag">EX-25</span> Batch-process meeting transcripts</h3>
+<p>This runs the meeting-notes skill (<a href="manual-3.html#sec-8">section 8</a>) over every transcript in a folder, one fresh session each. The docs confirm that <code>/skill-name</code> inside a <code>-p</code> prompt expands the skill. Text after the skill name reaches it as its arguments; since the skill has no <code>$ARGUMENTS</code> placeholder, Claude Code appends it as an <code>ARGUMENTS:</code> line.</p>
 <div class="fm-code" id="c-64"><div class="fm-code-head"><span>POWERSHELL · C-64</span><button aria-label="Copy code block 64" class="copy" type="button">COPY</button></div><pre><code><span class="nb">cd </span><span class="p">~\</span><span class="n">claude-practice</span>
 <span class="n">mkdir</span> <span class="n">transcripts</span><span class="p">,</span> <span class="n">notes</span> <span class="n">-Force</span>
-<span class="c"># Copy one or two lecture transcripts (.txt) into transcripts first</span>
+<span class="c"># Copy one or two meeting transcripts (.txt) into transcripts first</span>
 <span class="no">[Console]</span><span class="p">::</span><span class="n">OutputEncoding</span> <span class="p">=</span> <span class="no">[System.Text.Encoding]</span><span class="p">::</span><span class="n">UTF8</span>
 <span class="nb">Get-ChildItem</span> <span class="p">.\</span><span class="n">transcripts</span><span class="p">\*.</span><span class="n">txt</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span>
   <span class="nv">$out</span> <span class="p">=</span> <span class="s2">".\notes\</span><span class="p">$(</span><span class="nv">$_</span><span class="p">.</span><span class="n">BaseName</span><span class="p">)</span><span class="s2">-notes.md"</span>
-  <span class="n">claude</span> <span class="n">-p</span> <span class="s2">"/lecture-notes </span><span class="p">$(</span><span class="nv">$_</span><span class="p">.</span><span class="n">FullName</span><span class="p">)</span><span class="s2">"</span> <span class="p">-</span><span class="n">-allowedTools</span> <span class="s2">"Read"</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="nv">$out</span>
+  <span class="n">claude</span> <span class="n">-p</span> <span class="s2">"/meeting-notes </span><span class="p">$(</span><span class="nv">$_</span><span class="p">.</span><span class="n">FullName</span><span class="p">)</span><span class="s2">"</span> <span class="p">-</span><span class="n">-allowedTools</span> <span class="s2">"Read"</span> <span class="p">|</span> <span class="nb">Out-File</span> <span class="n">-Encoding</span> <span class="n">utf8</span> <span class="nv">$out</span>
   <span class="nb">Write-Host</span> <span class="s2">"Done: $out"</span>
 <span class="p">}</span></code></pre></div>
-<p class="fm-expected">Expected: one <code>-notes.md</code> file per transcript. Each run counts towards your usage, so test on one file first. Check a few outputs against the transcripts before trusting the batch.</p>
+<p class="fm-expected"><strong>Expected:</strong> one <code>-notes.md</code> file per transcript. Each run counts towards your usage, so test on one file first. Check a few outputs against the transcripts before trusting the batch.</p>
 </div><h3>Running things on a schedule</h3>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
 <thead>
@@ -1288,16 +1251,16 @@ Never edit files. British spelling.</code></pre></div>
 </tr>
 <tr>
 <td>This Claude app</td>
-<td>Ask: "every Sunday at 6 pm, summarise what is due next week from my course Projects"</td>
+<td>Ask: "every Sunday at 6 pm, summarise what is due next week from my Projects"</td>
 <td>Runs in the cloud on the schedule; results arrive as a new chat</td>
 </tr>
 </tbody>
 </table></div>
-<p>A cloud routine cannot see files on your laptop, and, per the skills page, it does not read skills stored only in <code>~/.claude/skills/</code>. Put anything a scheduled cloud run needs into your claude.ai account or the repository.</p>
+<p>A cloud routine cannot see files on your computer, and, per the skills page, it does not read skills stored only in <code>~/.claude/skills/</code>. Put anything a scheduled cloud run needs into your claude.ai account or the repository.</p>
 <h3>The Agent SDK, briefly</h3>
-<p>The same engine is available as Python and TypeScript packages (the Agent SDK) for building your own agent apps: a research assistant with your own tools, a bot for a lab Slack. Worth knowing it exists; not needed for anything in this guide.</p>
+<p>The same engine is available as Python and TypeScript packages (the Agent SDK) for building your own agent apps: a research assistant with your own tools, a bot for a team Slack. Worth knowing it exists; not needed for anything in this guide.</p>
 <h3>Agent-ready apps: three ways to drive one</h3>
-<p>This answers the question that started this guide. An app described as agent-ready, drivable "from a CLI, a JSON control channel or an MCP server", offers up to three doors into the same program. A web search for the blurb's exact wording on 7 October 2026 found no matching product, so the routine below is general and works for any app that offers these doors.</p>
+<p>An app described as agent-ready, drivable "from a CLI, a JSON control channel or an MCP server", offers up to three doors into the same program. A web search for the blurb's exact wording on 7 October 2026 found no matching product, so the routine below is general and works for any app that offers these doors.</p>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
 <thead>
 <tr>
@@ -1331,19 +1294,19 @@ Never edit files. British spelling.</code></pre></div>
 <p>A routine for getting to know any such app, safest steps first:</p>
 <ol class="list">
 <li>Read its docs for the three doors. Search them for "CLI", "JSON", "API" or "RPC", and "MCP".</li>
-<li>CLI: run <code>&lt;app&gt; --help</code>, then <code>&lt;app&gt; &lt;subcommand&gt; --help</code>. Look for a flag such as <code>--json</code> that makes it print JSON; scripts and agents read JSON more reliably than tables.</li>
-<li>JSON channel: send one read-only command by hand and read the reply. For a web address, PowerShell's <code>Invoke-RestMethod -Method Post -Uri &lt;address&gt; -ContentType 'application/json' -Body '&lt;json&gt;'</code> does this; the address and command names come from the app's docs.</li>
-<li>MCP: open the server in the MCP Inspector (<a href="#ex-16">Exercise 16</a>) before giving it to Claude, so you see every tool it offers and what each one takes.</li>
+<li><strong>CLI:</strong> run <code>&lt;app&gt; --help</code>, then <code>&lt;app&gt; &lt;subcommand&gt; --help</code>. Look for a flag such as <code>--json</code> that makes it print JSON; scripts and agents read JSON more reliably than tables.</li>
+<li><strong>JSON channel:</strong> send one read-only command by hand and read the reply. For a web address, PowerShell's <code>Invoke-RestMethod -Method Post -Uri &lt;address&gt; -ContentType 'application/json' -Body '&lt;json&gt;'</code> does this; the address and command names come from the app's docs.</li>
+<li><strong>MCP:</strong> open the server in the MCP Inspector (<a href="#ex-16">Exercise 16</a>) before giving it to Claude, so you see every tool it offers and what each one takes.</li>
 <li>Before Claude drives it, add deny rules (<a href="#sec-10">section 10</a>) or Needs approval settings (<a href="manual-3.html#ex-9">Exercise 9</a>) for anything that deletes, sends or publishes.</li>
 <li>Start with a read-only task in Manual mode and watch the tool calls.</li>
 </ol>
 <p>Claude Code is itself an agent-ready app, so you can practise on it:</p>
 <ul class="list">
-<li>CLI: <code>claude -p "&lt;task&gt;"</code> (this section).</li>
-<li>JSON: <code>--output-format json</code> returns one JSON object (<a href="#ex-24">Exercise 24</a>); <code>--output-format stream-json --verbose</code> prints one JSON event per line as the run progresses, per the headless page.</li>
-<li>MCP server: <code>claude mcp serve</code> runs Claude Code as a stdio MCP server that offers its own tools, such as reading and editing files, to another MCP client like the Claude desktop app. Per Anthropic's MCP page it prints nothing when it starts, and the client is responsible for asking you to confirm each tool call.</li>
+<li><strong>CLI:</strong> <code>claude -p "&lt;task&gt;"</code> (this section).</li>
+<li><strong>JSON:</strong> <code>--output-format json</code> returns one JSON object (<a href="#ex-24">Exercise 24</a>); <code>--output-format stream-json --verbose</code> prints one JSON event per line as the run progresses, per the headless page.</li>
+<li><strong>MCP server:</strong> <code>claude mcp serve</code> runs Claude Code as a stdio MCP server that offers its own tools, such as reading and editing files, to another MCP client like the Claude desktop app. Per Anthropic's MCP page it prints nothing when it starts, and the client is responsible for asking you to confirm each tool call.</li>
 </ul>
-<p>Desktop Commander, one of your plugins, is another example of the MCP door: an MCP server that gives Claude a terminal and file tools on your computer.</p>
+<p>Desktop Commander, a popular plugin, is another example of the MCP door: an MCP server that gives Claude a terminal and file tools on your computer.</p>
 <p>An app with none of the three doors can still be driven through its screen. Claude in Chrome operates websites, and computer use operates desktop apps, by clicking and typing the way you would. Both are slower and less predictable than a CLI or MCP server, so they suit apps with no other way in.</p>
 
   </section>

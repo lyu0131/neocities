@@ -45,10 +45,10 @@
     <p class="sub">SECTION 02</p>
     <h2>Mental model and core vocabulary</h2>
 <p>An agent is a model that takes actions in a loop. Everything else in this guide controls one of three things: where that loop runs, what it can reach, and what instructions it carries.</p>
-<p>The loop, as Claude Code's docs describe it and as this chat runs it:</p>
+<p>The loop, as Claude Code's docs describe it:</p>
 <ol class="list">
 <li>You give a task.</li>
-<li>The model picks an action: read a file, search the web, run a command, call a connector.</li>
+<li><strong>The model picks an action:</strong> read a file, search the web, run a command, call a connector.</li>
 <li>The app (not the model) runs that tool and hands back the result.</li>
 <li>The model reads the result and either picks the next action or answers you.</li>
 <li>Steps 2 to 4 repeat until the task is done or Claude needs your input.</li>
@@ -59,34 +59,34 @@
 <tr>
 <th>Term</th>
 <th>What it is</th>
-<th>Example you have already seen</th>
+<th>Example</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Model</td>
 <td>The language model itself: Claude Opus, Sonnet, Haiku. Text in, text out</td>
-<td>The model answering in this chat</td>
+<td>The model answering a chat</td>
 </tr>
 <tr>
 <td>Tool</td>
 <td>One named action the model can request; the app executes it</td>
-<td>Web search, reading a file, Canva "create design"</td>
+<td>Web search, reading a file, creating a document</td>
 </tr>
 <tr>
 <td>Agent</td>
 <td>Model plus tools plus the loop above</td>
-<td>This chat searching the docs before writing this guide</td>
+<td>A chat that searches the web before answering</td>
 </tr>
 <tr>
 <td>Environment (surface)</td>
 <td>Where the loop runs and what it can touch</td>
-<td>claude.ai's cloud sandbox; Claude Code inside a folder on your laptop</td>
+<td>claude.ai's cloud sandbox; Claude Code inside a folder on your computer</td>
 </tr>
 <tr>
 <td>Prompt</td>
 <td>Your message</td>
-<td>"Fill in this thought journal"</td>
+<td>"Summarise this report in five bullets"</td>
 </tr>
 <tr>
 <td>System prompt</td>
@@ -112,12 +112,12 @@
 </table></div>
 <p>Where the add-ons attach, per Anthropic's "Extend Claude Code" page:</p>
 <ul class="list">
-<li>Standing instructions, loaded every session: CLAUDE.md files in Claude Code; project instructions and saved preferences in claude.ai.</li>
-<li>Knowledge and procedures, loaded on demand: skills.</li>
-<li>New tools: MCP servers, which claude.ai calls connectors.</li>
-<li>Extra workers with their own clean context: subagents.</li>
+<li><strong>Standing instructions, loaded every session:</strong> CLAUDE.md files in Claude Code; project instructions and saved preferences in claude.ai.</li>
+<li><strong>Knowledge and procedures, loaded on demand:</strong> skills.</li>
+<li><strong>New tools:</strong> MCP servers, which claude.ai calls connectors.</li>
+<li><strong>Extra workers with their own clean context:</strong> subagents.</li>
 <li>Automatic actions that fire at fixed moments in the loop: hooks.</li>
-<li>Packaging: a plugin bundles skills, subagents, hooks and MCP servers into one install.</li>
+<li><strong>Packaging:</strong> a plugin bundles skills, subagents, hooks and MCP servers into one install.</li>
 </ul>
 
 <figure class="fm-loop">
@@ -164,7 +164,7 @@
     <p class="sub">SECTION 03</p>
     <h2>The surfaces: where Claude runs</h2>
 <p>Use claude.ai for work whose inputs you can upload and whose output is text, a doc or a deck. Use Claude Code when the work lives in a folder of files on your computer or needs code run on them.</p>
-<p>The chat you are reading this from is claude.ai. Its tools run in a private cloud workspace, so it sees your files only when you upload them, connect an app, or link the Claude desktop app on your computer.</p>
+<p>claude.ai's tools run in a private cloud workspace, so it sees your files only when you upload them, connect an app, or link the Claude desktop app on your computer.</p>
 <div aria-label="Table" class="fm-table" role="region" tabindex="0"><table>
 <thead>
 <tr>
@@ -180,7 +180,7 @@
 <td>claude.ai (web, desktop chat, mobile)</td>
 <td>Anthropic's cloud</td>
 <td>Uploads, connectors, the web</td>
-<td>Coursework, writing, research questions, docs, decks</td>
+<td>Writing, research questions, docs, decks</td>
 <td>Any plan; features vary by plan</td>
 </tr>
 <tr>
@@ -234,7 +234,7 @@
 <li>Settings, project memory and MCP servers are shared across the local Claude Code surfaces, so a setup made in the terminal also shows up in the desktop app and VS Code on the same computer.</li>
 <li>Claude Code on the web runs in the cloud, so a task keeps going after you disconnect.</li>
 </ul>
-<p>For your work: coursework, readings and writing stay in claude.ai. Python analysis of research data and your website's code are Claude Code jobs. You can skip the API and SDK unless you decide to build an app.</p>
+<p><strong>A rule of thumb:</strong> reading and writing stay in claude.ai; data analysis and code that lives in a folder are Claude Code jobs. You can skip the API and SDK unless you decide to build an app.</p>
 
   </section>
 

@@ -1008,9 +1008,17 @@ html.linked body.page .screen { animation: none; }
   :root { --screen-w: min(1080px, 100vw - 360px); }
   .screen { max-width: var(--screen-w); }
   .phud-ladder, .phud-scope { display: block; position: fixed; top: 132px; z-index: var(--z-nav); width: 140px; }
-  .phud-ladder { left: max(20px, calc(50vw - var(--screen-w) / 2 - 164px)); }
-  .phud-scope { right: max(20px, calc(50vw - var(--screen-w) / 2 - 164px)); }
+  /* zoomed, every length (vw too) is multiplied by --z, so the bearing off the centre is divided back out */
+  .phud-ladder { left: max(20px, calc((50vw - var(--screen-w) * var(--z) / 2) / var(--z) - 164px)); }
+  .phud-scope { right: max(20px, calc((50vw - var(--screen-w) * var(--z) / 2) / var(--z) - 164px)); }
 }
+/* Big screens: the sub-pages' type and panels are sized for a laptop, so on a large monitor the whole
+   reading layer scales up together (zoom reflows, so text stays crisp) rather than leaving 14px text
+   in a narrow column. Height counts too: an ultrawide 1440p screen scales, a wide short window doesn't. */
+:root { --z: 1; }
+@media (min-width: 1800px) and (min-height: 950px) { :root { --z: 1.2; } }
+@media (min-width: 2300px) and (min-height: 1250px) { :root { --z: 1.4; } }
+.strip, .screen, .phud-ladder, .phud-scope, .phud-status { zoom: var(--z); }
 .phud-cap {
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
   font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);

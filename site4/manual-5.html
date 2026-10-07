@@ -44,64 +44,64 @@
   <section class="panel" id="sec-16" data-ref="FM-1600 &#183; REV B" data-sector="Playbook">
     <p class="sub">SECTION 16</p>
     <h2>Workflow playbook</h2>
-<p>Pick the tool by where the inputs live and what has to happen to them. Most of your work belongs in claude.ai Projects with skills; Claude Code takes over once code or data files on your laptop are involved.</p>
+<p>Pick the tool by where the inputs live and what has to happen to them. Reading and writing work belongs in claude.ai Projects with skills; Claude Code takes over once code or data files on your computer are involved.</p>
 <h3>The decision rules</h3>
 <ol class="list">
 <li>Inputs you can upload, output is text, a doc or a deck: claude.ai, inside the right Project.</li>
-<li>Inputs are files on your laptop and something has to run on them: Claude Code in that folder.</li>
-<li>You keep copying information out of another app: connect it (connector in claude.ai, MCP server in Claude Code).</li>
-<li>You have explained the same procedure three times: write a skill.</li>
-<li>A side job would flood the conversation: a subagent.</li>
-<li>A rule must hold every single time: a hook or a deny rule, plus read-only files where a script could get round them; never only an instruction.</li>
-<li>The same job recurs on a timetable: a scheduled task.</li>
+<li>Inputs are files on your computer and something has to run on them: Claude Code in that folder.</li>
+<li><strong>You keep copying information out of another app:</strong> connect it (connector in claude.ai, MCP server in Claude Code).</li>
+<li><strong>You have explained the same procedure three times:</strong> write a skill.</li>
+<li><strong>A side job would flood the conversation:</strong> a subagent.</li>
+<li><strong>A rule must hold every single time:</strong> a hook or a deny rule, plus read-only files where a script could get round them; never only an instruction.</li>
+<li><strong>The same job recurs on a timetable:</strong> a scheduled task.</li>
 </ol>
-<div class="fm-ex fm-recipe" id="recipe-1"><h3><span class="fm-tag">RECIPE 1</span> Quizzes and thought journals</h3>
+<div class="fm-ex fm-recipe" id="recipe-1"><h3><span class="fm-tag">RECIPE 1</span> A Project per subject</h3>
 <ul class="list">
-<li>One Project per course, holding the syllabus, assigned chapters and lecture transcripts, with the instructions from <a href="manual-3.html#ex-7">Exercise 7</a>.</li>
-<li>Your existing quiz and journal skills run inside those Projects. Give each skill a distinct trigger phrase in its description, as text-quiz and homework-quiz already do.</li>
-<li>For a study guide you will reread, ask for it as a doc; for a one-off check, keep it in chat.</li>
+<li>One Project per ongoing subject, holding its reference documents, with the instructions from <a href="manual-3.html#ex-7">Exercise 7</a>.</li>
+<li>Skills you use there each get a distinct trigger phrase in their description, so the right one fires.</li>
+<li>For a summary you will reread, ask for it as a doc; for a one-off check, keep it in chat.</li>
 <li>Use incognito chat for anything you do not want feeding into memory.</li>
 </ul>
-</div><div class="fm-ex fm-recipe" id="recipe-2"><h3><span class="fm-tag">RECIPE 2</span> Lectures to notes</h3>
+</div><div class="fm-ex fm-recipe" id="recipe-2"><h3><span class="fm-tag">RECIPE 2</span> Meetings to notes</h3>
 <ul class="list">
-<li>Single lecture: upload the transcript to the course Project and say "make notes from this lecture"; the lecture-notes skill (<a href="manual-3.html#sec-8">section 8</a>) shapes the output.</li>
-<li>A term's worth at once: <a href="manual-4.html#ex-25">Exercise 25</a>'s batch script in Claude Code.</li>
+<li><strong>Single meeting:</strong> upload the transcript to the Project and say "make notes from this meeting"; the meeting-notes skill (<a href="manual-3.html#sec-8">section 8</a>) shapes the output.</li>
+<li><strong>A month's worth at once:</strong> <a href="manual-4.html#ex-25">Exercise 25</a>'s batch script in Claude Code.</li>
 </ul>
 </div><div class="fm-ex fm-recipe" id="recipe-3"><h3><span class="fm-tag">RECIPE 3</span> Reading and writing a paper</h3>
 <ul class="list">
-<li>A Project for the paper: upload the sources, and put your citation style and spelling rules in its instructions.</li>
+<li><strong>A Project for the paper:</strong> upload the sources, and put your citation style and spelling rules in its instructions.</li>
 <li>Ask for claims with page references, then spot-check a few against the PDFs. Retrieval can miss passages and Claude can misattribute.</li>
 <li>Draft in a doc so you can edit in place and comment.</li>
-<li>Before submitting, run the citation-checker subagent (<a href="manual-4.html#sec-12">section 12</a>) in Claude Code over the draft and a <code>sources/</code> folder.</li>
+<li>Before sharing it, run the citation-checker subagent (<a href="manual-4.html#sec-12">section 12</a>) in Claude Code over the draft and a <code>sources/</code> folder.</li>
 </ul>
-</div><div class="fm-ex fm-recipe" id="recipe-4"><h3><span class="fm-tag">RECIPE 4</span> Research data analysis</h3>
+</div><div class="fm-ex fm-recipe" id="recipe-4"><h3><span class="fm-tag">RECIPE 4</span> Data analysis</h3>
 <ul class="list">
 <li>Work in Claude Code in the analysis folder, never by pasting data into chat.</li>
-<li>Set up once: a CLAUDE.md like the <a href="manual-4.html#sec-10">section 10</a> example; a deny rule on <code>Edit(./data/raw/**)</code> and read-only raw files (<a href="manual-4.html#sec-10">section 10</a>); Python through uv.</li>
-<li>For each analysis: start in plan mode, approve the plan, let Claude write the script, run it on a sample first, then the full data.</li>
+<li><strong>Set up once:</strong> a CLAUDE.md like the <a href="manual-4.html#sec-10">section 10</a> example; a deny rule on <code>Edit(./data/raw/**)</code> and read-only raw files (<a href="manual-4.html#sec-10">section 10</a>); Python through uv.</li>
+<li><strong>For each analysis:</strong> start in plan mode, approve the plan, let Claude write the script, run it on a sample first, then the full data.</li>
 <li>Read the code it wrote as well as the numbers. Ask it to print row counts and input file names so silent filtering shows up.</li>
-<li>Before any data leaves your laptop: if the dataset came with a data use agreement, IRB conditions or lab rules, check what they allow. Claude Code sends the contents of files it reads to Anthropic's servers to process them.</li>
+<li><strong>Before any data leaves your computer:</strong> if the dataset came with a data use agreement or privacy rules, check what they allow. Claude Code sends the contents of files it reads to Anthropic's servers to process them.</li>
 </ul>
 </div><div class="fm-ex fm-recipe" id="recipe-5"><h3><span class="fm-tag">RECIPE 5</span> UX design work</h3>
 <ul class="list">
-<li>Mockups and flows: ask for a design in claude.ai, which opens as an editable artifact; or work through the Figma and Canva connectors when the file lives there.</li>
-<li>Critique: your Design plugin includes a design-critique skill; give it a screenshot or a Figma link.</li>
-<li>Research synthesis: the same plugin's research-synthesis skill takes interview notes or survey results.</li>
+<li><strong>Mockups and flows:</strong> ask for a design in claude.ai, which opens as an editable artifact; or work through the Figma and Canva connectors when the file lives there.</li>
+<li><strong>Critique:</strong> give Claude a screenshot or a Figma link and ask what to fix first and why.</li>
+<li><strong>Research synthesis:</strong> upload interview notes or survey results and ask for themes, each with the quotes behind it.</li>
 </ul>
-</div><div class="fm-ex fm-recipe" id="recipe-6"><h3><span class="fm-tag">RECIPE 6</span> Your website</h3>
+</div><div class="fm-ex fm-recipe" id="recipe-6"><h3><span class="fm-tag">RECIPE 6</span> A website</h3>
 <ul class="list">
 <li>Claude Code in the site's folder, with Git initialised so every change can be undone (<code>git init</code> once, then ask Claude to commit after each working change; Git basics are in <a href="manual-2.html#sec-4">section 4</a>).</li>
 <li>Plan mode for anything touching more than one page.</li>
 <li>Ask Claude to open or preview the page after changes, then look at it yourself.</li>
 </ul>
 </div><div class="fm-ex fm-recipe" id="recipe-7"><h3><span class="fm-tag">RECIPE 7</span> Long tasks that finish</h3>
-<p>This recipe adapts a setup posted by @beamnxw on X on 6 October 2026 ("Make Opus 5.5 Finish Long Tasks"), checked against Anthropic's docs on 7 October; corrections to the post are listed at the end. The example is a sourced write-up, such as a literature summary for the HiTOP paper, in a folder holding <code>task.md</code> (the brief), <code>sources/</code>, <code>drafts/</code> and <code>final/</code>. The aim is a run that leaves files you can open, evidence you can check, and a note the next session can resume from.</p>
+<p>This recipe adapts a setup posted by @beamnxw on X on 6 October 2026 ("Make Opus 5.5 Finish Long Tasks"), checked against Anthropic's docs on 7 October; corrections to the post are listed at the end. The example is a sourced write-up, such as a literature summary, in a folder holding <code>task.md</code> (the brief), <code>sources/</code>, <code>drafts/</code> and <code>final/</code>. The aim is a run that leaves files you can open, evidence you can check, and a note the next session can resume from.</p>
 <ol class="list">
 <li>Durable facts in CLAUDE.md, the task itself elsewhere:</li>
 </ol>
 <div class="fm-code" id="c-65"><div class="fm-code-head"><span>MARKDOWN · C-65</span><button aria-label="Copy code block 65" class="copy" type="button">COPY</button></div><pre><code><span class="gh"># Write-up project</span>
 <span class="k">-</span><span class="w"> </span>Reference material is in sources/; working files in drafts/; approved files in final/.
-<span class="k">-</span><span class="w"> </span>British spelling. Plain prose, short paragraphs.
+<span class="k">-</span><span class="w"> </span>Plain prose, short paragraphs.
 <span class="k">-</span><span class="w"> </span>Cite primary sources only, with the URL or page and the date checked.
 <span class="k">-</span><span class="w"> </span>After each stage, update progress.md with decisions, open issues and the next action.
 <span class="k">-</span><span class="w"> </span>When finishing, report the output paths and what was verified.</code></pre></div>
@@ -223,8 +223,8 @@ Next: &lt;one concrete next step&gt;</code></pre></div>
 <td>Never paste passwords or API keys into chat; deny reads of <code>.env</code> files (<a href="manual-4.html#sec-10">section 10</a>); use narrowly scoped tokens for MCP servers</td>
 </tr>
 <tr>
-<td>Research data leaves where it is allowed to be</td>
-<td>Check data use agreements, IRB conditions and lab rules before any file reaches an AI service</td>
+<td>Data leaves where it is allowed to be</td>
+<td>Check data use agreements and privacy rules before any file reaches an AI service</td>
 </tr>
 <tr>
 <td>A chat feeds memory you did not want</td>
@@ -284,10 +284,10 @@ Next: &lt;one concrete next step&gt;</code></pre></div>
 <h3>Checking the output</h3>
 <p>Check these before you submit or rely on the output:</p>
 <ul class="list">
-<li>Citations: open the source and find the passage.</li>
-<li>Numbers: rerun the script or recompute by hand on a small sample.</li>
-<li>Code: read the diff (<code>/diff</code> or <code>git diff</code>), and run it.</li>
-<li>Claims about current facts: ask for the source link and open it.</li>
+<li><strong>Citations:</strong> open the source and find the passage.</li>
+<li><strong>Numbers:</strong> rerun the script or recompute by hand on a small sample.</li>
+<li><strong>Code:</strong> read the diff (<code>/diff</code> or <code>git diff</code>), and run it.</li>
+<li><strong>Claims about current facts:</strong> ask for the source link and open it.</li>
 </ul>
 
   </section>
@@ -475,14 +475,14 @@ Next: &lt;one concrete next step&gt;</code></pre></div>
   <section class="panel" id="sec-19" data-ref="FM-1900 &#183; REV B" data-sector="Four weeks">
     <p class="sub">SECTION 19</p>
     <h2>Four-week learning plan</h2>
-<p>This plan takes you from the claude.ai features you already use to a guarded Claude Code project with your own skill, subagent, hook and MCP server. Each week ends with a check you can verify.</p>
-<h3>Week 1: tighten what you already use (claude.ai, no terminal)</h3>
+<p>This plan takes you from the everyday claude.ai features to a guarded Claude Code project with your own skill, subagent, hook and MCP server. Each week ends with a check you can verify.</p>
+<h3>Week 1: claude.ai, no terminal</h3>
 <ul class="fm-tasks">
-<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-7">Exercise 7</a>: instructions and well-named files in each course Project</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-7">Exercise 7</a>: instructions and well-named files in a Project</li>
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-8">Exercises 8</a> and 9: use the Drive connector on purpose; set write tools to Needs approval</li>
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#sec-14">Section 14</a>: disable the plugins you do not use</li>
-<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-10">Exercise 10</a>: upload the lecture-notes skill and test it on a real transcript</li>
-<li><span aria-hidden="true" class="fm-box"></span>Check: a new chat in each course Project names the file and page it answers from</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-10">Exercise 10</a>: upload the meeting-notes skill and test it on a real transcript</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: a new chat in the Project names the file and page it answers from</li>
 </ul>
 <h3>Week 2: terminal and install</h3>
 <ul class="fm-tasks">
@@ -496,7 +496,7 @@ Next: &lt;one concrete next step&gt;</code></pre></div>
 <h3>Week 3: Claude Code core</h3>
 <ul class="fm-tasks">
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-14">Exercise 14</a>: the guarded analysis project (CLAUDE.md plus a deny rule)</li>
-<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-11">Exercise 11</a>: the lecture-notes skill locally, visible in <code>/skills</code></li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-3.html#ex-11">Exercise 11</a>: the meeting-notes skill locally, visible in <code>/skills</code></li>
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-18">Exercise 18</a>: the citation-checker subagent on a test draft</li>
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-19">Exercises 19</a> and 20: notification hook and the recursive-delete block</li>
 <li><span aria-hidden="true" class="fm-box"></span>Use plan mode for one real change, and <code>/rewind</code> once to see how undo works</li>
@@ -505,13 +505,13 @@ Next: &lt;one concrete next step&gt;</code></pre></div>
 <h3>Week 4: connect and automate</h3>
 <ul class="fm-tasks">
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-15">Exercises 15</a> and 16: add a ready-made MCP server and inspect it</li>
-<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-17">Exercise 17</a>: build and register the study-tools server</li>
-<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-22">Exercises 22</a> and 23: install skill-creator; package the study kit</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-17">Exercise 17</a>: build and register the text-tools server</li>
+<li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-22">Exercises 22</a> and 23: install skill-creator; package the work kit</li>
 <li><span aria-hidden="true" class="fm-box"></span><a href="manual-4.html#ex-24">Exercises 24</a> and 25: one-shot JSON run, then the batch notes script on two files</li>
 <li><span aria-hidden="true" class="fm-box"></span>Apply <a href="#recipe-4">Recipe 4</a> or <a href="#recipe-6">Recipe 6</a> from <a href="#sec-16">section 16</a> to a real project</li>
 <li><span aria-hidden="true" class="fm-box"></span>Run the agent-ready routine at the end of <a href="manual-4.html#sec-15">section 15</a> on one app you use</li>
 <li><span aria-hidden="true" class="fm-box"></span>Set up <a href="#recipe-7">Recipe 7</a> for one real write-up and resume it once from progress.md</li>
-<li><span aria-hidden="true" class="fm-box"></span>Check: <code>/mcp</code> shows study-tools connected and the batch script produced readable notes</li>
+<li><span aria-hidden="true" class="fm-box"></span>Check: <code>/mcp</code> shows text-tools connected and the batch script produced readable notes</li>
 </ul>
 <h3>Further learning from Anthropic</h3>
 <ul class="list">

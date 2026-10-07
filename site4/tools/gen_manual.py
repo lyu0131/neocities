@@ -29,7 +29,7 @@ PAGES = [
     dict(file="manual-2.html", nav="P2", code="P2", title="Foundations", kicker="PART 2", h1="FOUNDATIONS",
          sections=[4, 5], blurb="Terminal and JSON basics, which everything technical depends on."),
     dict(file="manual-3.html", nav="P3", code="P3", title="claude.ai", kicker="PART 3", h1="CLAUDE.AI",
-         sections=[6, 7, 8], blurb="Projects, connectors and skills in the app you already use."),
+         sections=[6, 7, 8], blurb="Projects, connectors and skills in the chat app."),
     dict(file="manual-4.html", nav="P4", code="P4", title="Claude Code", kicker="PART 4", h1="CLAUDE CODE",
          sections=[9, 10, 11, 12, 13, 14, 15], blurb="Installing it, then MCP, subagents, hooks, plugins and automation."),
     dict(file="manual-5.html", nav="P5", code="P5", title="Applying it", kicker="PART 5", h1="APPLYING IT",
@@ -119,6 +119,7 @@ for n, (title, body) in sections.items():
         REC_PAGE[int(m.group(1))] = SEC_PAGE[n]
 
 REF_RE = re.compile(r"\b(Sections?|sections?) (\d{1,2})\b|\b(Exercises?) (\d{1,2})\b|\b(Recipe) (\d)\b")
+LEAD_RE = re.compile(r"([A-Z][^:.\n]{0,48}):\s+")   # a lead-in: up to the first colon, no full stop before it
 
 
 def render_section(n, page_file):
@@ -201,6 +202,25 @@ def render_section(n, page_file):
             ns = soup.new_tag("span", attrs={"class": "fm-note"})
             ns.string = note
             h3.append(ns)
+    # a lead-in before a colon ("Expected:", "Client: the AI app") is bold, so a list skims: in a list
+    # where most items have one, all of them; elsewhere only a short one (a long one is a sentence)
+    def lead(el):
+        first = el.contents[0] if el.contents else None
+        return isinstance(first, NavigableString) and LEAD_RE.match(str(first))
+    listed = set()
+    for ul in soup.find_all(["ul", "ol"]):
+        items = ul.find_all("li", recursive=False)
+        if items and sum(1 for li in items if lead(li)) * 2 > len(items):
+            listed.update(id(li) for li in items)
+    for el in soup.find_all(["li", "p"]):
+        m = lead(el)
+        if m and (id(el) in listed or len(m.group(1).split()) <= 5):
+            first = el.contents[0]
+            b = soup.new_tag("strong")
+            b.string = m.group(1) + ":"
+            first.replace_with(str(first)[m.end():])
+            el.insert(0, " ")
+            el.insert(0, b)
     # Expected paragraphs and Unverified/Tested flags; cross-reference links
     for p in soup.find_all("p"):
         if p.get_text().lstrip().startswith("Expected"):

@@ -396,7 +396,14 @@ Edit the Markdown and regenerate; never hand-edit the pages.
 - `css/manual.css`: code blocks (`.fm-code`, recessed glass, never wrapped so a copy pastes exactly, token colours from
   the palette), tables that scroll in their own box, exercises (`.fm-ex`), cautions (amber outline, no stripes), best
   practice (`.fm-best`), Expected (`.fm-expected`), Unverified and Tested tags. The content pages' hover magnify is off here.
+- gen_manual.py bolds a lead-in before a colon ("Expected:", "Client:"): every one in a list where most items have
+  one, otherwise only lead-ins of five words or fewer. The guide is general: no personal courses, skills or research.
 - `js/manual.js`: the COPY buttons (clipboard API, textarea fallback, `#fm-live` announcement). No globals.
 - Code blocks carry ids `c-1`..`c-N` in guide order; the PDF edition links to them as `manual-N.html#c-K`.
 - `tests/manual.test.js` (in `run.js`): overflow at 375/768/1366/1920, one h1, a rung per panel, COPY copies the exact
   text, every in-manual link and fragment resolves, the strip links the manual, no JS errors.
+
+## Big screens (added 2026-10-07)
+The sub-pages' reading layer (`.strip`, `.screen`, `.phud-ladder`, `.phud-scope`, `.phud-status`) takes `zoom: var(--z)`:
+1.2 from 1800x950, 1.4 from 2300x1250, else 1. Zoom multiplies vw too, so the rails' offsets divide `--z` back out.
+The cockpit (index.html) has its own `--ui` scale and isn't touched.
