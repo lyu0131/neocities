@@ -247,6 +247,9 @@
 
   // ---- the shot ----
   function draw(t) {
+    // a window with no size yet (a hidden pane, a background tab) has nothing to draw, and the hatch's
+    // perspective divides by its height: drawing then threw and stopped the boot on the static
+    if (!W || !H) return;
     moveLayers(t);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#060A12';

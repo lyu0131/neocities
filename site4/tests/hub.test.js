@@ -360,6 +360,12 @@ function BUNNYS_delta(a, b) { return ((b - a + 540) % 360) - 180; }
   check('no h-overflow', await p.eval('document.documentElement.scrollWidth <= innerWidth'));
   check('no JS errors', p.errors.length === 0, p.errors.join(' | '));
   await p.shot(path.join(__dirname, 'out/hub-1440.png'), false);
+  // a cockpit loaded with no size (a hidden or collapsed pane, a background tab) must not throw: an error in
+  // boot.js's opening frame stopped the rest of it, and the canopy stayed on static
+  const before0 = p.errors.length;
+  await p.eval("(() => { const f = document.createElement('iframe'); f.src = 'index.html'; f.style.cssText = 'width:0;height:0;border:0'; document.body.appendChild(f); return true; })()");
+  await p.sleep(2500);
+  check('a zero-size cockpit boots without errors', p.errors.length === before0, p.errors.slice(before0).join(' | '));
   p.close();
   // reduced motion: no boot animation, still interactive
   const r = await launch({ width: 1440, height: 900, reduce: true });

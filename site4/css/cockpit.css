@@ -1018,7 +1018,8 @@ html.linked body.page .screen { animation: none; }
 :root { --z: 1; }
 @media (min-width: 1800px) and (min-height: 950px) { :root { --z: 1.2; } }
 @media (min-width: 2300px) and (min-height: 1250px) { :root { --z: 1.4; } }
-.strip, .screen, .phud-ladder, .phud-scope, .phud-status { zoom: var(--z); }
+/* main.screen, not .screen: the cockpit's canopy screens are SVG groups of class "screen" too */
+.strip, main.screen, .phud-ladder, .phud-scope, .phud-status { zoom: var(--z); }
 .phud-cap {
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
   font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);

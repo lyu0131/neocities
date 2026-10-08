@@ -72,6 +72,8 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
   // a normal run on a big screen (the --z 1.4 zoom): scroll the whole page, every heading ends as its source text
   const m = await launch({ width: 2560, height: 1440 });
   await m.goto('manual.html', 1500);
+  // a volume's ::after is its data-ref stamp, not an effect: a hover scanline there dragged the stamp down the panel
+  check('volume stamp stays a stamp', await m.eval("[...document.querySelectorAll('.fm-vol')].every(v => { const a = getComputedStyle(v, '::after'); return a.content !== '\"\"' && a.top !== '0px'; })"));
   check('library panels carry a frame', await m.eval("[...document.querySelectorAll('.fm-vol')].every(v => v.querySelector('svg.fm-frame'))"));
   check('motion is armed', await m.eval("document.documentElement.classList.contains('fx')"));
   // the decode's static is glyphs only: no HTML entity cut in half ("t;", "&amp;") ever shows mid-animation

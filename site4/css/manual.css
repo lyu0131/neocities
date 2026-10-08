@@ -28,19 +28,11 @@
 .fm-code .copy.is-done { background: var(--hud); color: var(--night); border-color: var(--hud); animation: fm-sent .6s ease-out; }
 @keyframes fm-sent { from { box-shadow: 0 0 0 0 rgba(140, 255, 193, .7); } to { box-shadow: 0 0 0 10px rgba(140, 255, 193, 0); } }
 
-/* library volumes: a frame that js/manual-fx.js draws in, and one scanline across the panel on hover */
-.fm-vol { position: relative; overflow: hidden; }
+/* library volumes: a frame that js/manual-fx.js draws in (the panel's ::after is its data-ref stamp, keep off it) */
+.fm-vol { position: relative; }
 .fm-frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .fm-frame rect { fill: none; stroke: rgba(140, 255, 193, .45); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .fm-open { font: 700 13px/1 'B612 Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--hud); }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .fm-vol::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none; opacity: 0;
-    background: linear-gradient(90deg, transparent, rgba(140, 255, 193, .8), transparent);
-  }
-  .fm-vol:hover::after { animation: fm-scan .6s ease-in-out 1; }
-}
-@keyframes fm-scan { from { top: 0; opacity: 1; } to { top: 100%; opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fm-code .copy.is-done { animation: none; } }
 .fm-code pre {
   margin: 0; padding: 12px 14px; overflow-x: auto; white-space: pre; tab-size: 2;

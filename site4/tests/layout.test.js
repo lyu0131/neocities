@@ -154,6 +154,9 @@ const edges = (all, names) => [...new Set(all.filter(b => names.includes(b.name)
       if (dos) check(`${tag} dossier sits on the console`, (deck - dos.b) / k >= 16 && (deck - dos.b) / k <= 24, ((deck - dos.b) / k).toFixed(1) + ' units');
       await p.shot(path.join(__dirname, `out/layout-${w}-${state}.png`), false);
     }
+    // the sub-pages' big-screen zoom is for their reading layer; the cockpit's canopy screens are also
+    // class "screen" (SVG groups) and, zoomed, grew from the corner and ran off the window
+    check(`layout ${w}x${h}: canopy screens are not zoomed`, await p.eval("[...document.querySelectorAll('#screens .screen')].every(g => getComputedStyle(g).zoom === '1')"));
     check(`layout ${w}x${h}: no JS errors`, p.errors.length === 0, p.errors.join(' | '));
     p.close();
   }
