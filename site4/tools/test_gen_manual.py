@@ -68,4 +68,8 @@ files, summary = build_manual("x", pm, split_sections(pb, "x.md"), 2)
 assert sorted(files) == ["manual-x-1.html", "manual-x-2.html", "manual-x.html"], sorted(files)
 assert "Exercises" not in files["manual-x.html"] and summary["exercises"] == 0 and summary["parts"] == 2
 assert 'href="manual.html"' in files["manual-x-1.html"]   # ALL MANUALS
+# every local stylesheet and script carries a content fingerprint, so a changed file is never served stale
+import re as _re
+local = _re.findall(r'(?:href|src)="((?:css|js)/[^"]+)"', files["manual-x.html"])
+assert local and all(_re.search(r"\?v=[0-9a-f]{8}$", u) for u in local), local
 print("ok")

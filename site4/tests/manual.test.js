@@ -34,7 +34,7 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
       await p.eval("window.__copied = null; navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; true");
       await p.eval("document.querySelector('.fm-code button.copy').click(); true"); await p.sleep(100);
       check(`${pg} COPY copies the block's exact text`, await p.eval("window.__copied === document.querySelector('.fm-code pre code').textContent"));
-      check(`${pg} COPY confirms`, await p.eval("document.querySelector('.fm-code button.copy').textContent") === 'COPIED');
+      check(`${pg} COPY confirms`, await p.eval("document.querySelector('.fm-code button.copy').textContent") === 'TRANSMITTED');
     }
   }
   // every link inside the manual lands on a page that exists and, with a #fragment, on a real id
@@ -59,4 +59,35 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
   check('cockpit strip links the library', await p.eval("!!document.querySelector('.strip a[href=\"manual.html\"]')"));
   check('no JS errors on manual pages', p.errors.length === 0, p.errors.join(' | '));
   p.close();
+
+  // ---- motion (js/manual-fx.js, GSAP): one-shot, never leaves text scrambled or hidden ----
+  const visible = "(el => { const c = getComputedStyle(el); return c.visibility === 'visible' && +c.opacity === 1; })";
+  const settled = `[...document.querySelectorAll('h1, .panel > h2')].every(h => ${visible}(h) && (!h.dataset.text || h.textContent === h.dataset.text))`;
+  // a normal run on a big screen (the --z 1.4 zoom): scroll the whole page, every heading ends as its source text
+  const m = await launch({ width: 2560, height: 1440 });
+  await m.goto('manual.html', 1500);
+  check('library panels carry a frame', await m.eval("[...document.querySelectorAll('.fm-vol')].every(v => v.querySelector('svg.fm-frame'))"));
+  check('motion is armed', await m.eval("document.documentElement.classList.contains('fx')"));
+  await m.goto('manual-claude-4.html', 1500);
+  await m.eval("(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) { scrollTo(0, y); await new Promise(r => setTimeout(r, 250)); } })()");
+  await m.sleep(1500);
+  check('headings end as their source text @2560', await m.eval(settled));
+  check('no JS errors with motion', m.errors.length === 0, m.errors.join(' | '));
+  m.close();
+  // reduced motion: nothing armed, everything readable at once
+  const r = await launch({ reduce: true });
+  for (const pg of ['manual.html', 'manual-claude-4.html']) {
+    await r.goto(pg, 1000);
+    check(`${pg} reduced motion: nothing armed`, !(await r.eval("document.documentElement.classList.contains('fx')")));
+    check(`${pg} reduced motion: headings readable`, await r.eval(settled));
+  }
+  r.close();
+  // GSAP never arrives (blocked, offline): nothing may stay hidden
+  const n = await launch();
+  await n.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(window, 'gsap', { get() {}, set() {} })" });
+  await n.goto('manual.html', 1200);
+  check('no GSAP: nothing armed', !(await n.eval("document.documentElement.classList.contains('fx')")));
+  check('no GSAP: library readable', await n.eval(`[...document.querySelectorAll('.fm-vol, .fm-vol h2')].every(${visible})`));
+  check('no GSAP: manual-fx.js throws nothing', !n.errors.some(e => /manual-fx/.test(e)), n.errors.join(' | '));
+  n.close();
 })();

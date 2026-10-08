@@ -4,6 +4,7 @@ Usage, from site4/: python tools/gen_manual.py
 Each manual <slug>.md becomes manual-<slug>.html (its index) and manual-<slug>-<n>.html (its parts); manual.html
 lists them all. A header error in any file stops the build before anything is written. See DESIGN.md.
 """
+import hashlib
 import html
 import re
 import sys
@@ -297,10 +298,17 @@ def fname(slug, n):
     return f"manual-{slug}.html" if n == 0 else f"manual-{slug}-{n}.html"
 
 
+def fingerprint(page):
+    """css/ and js/ links get ?v=<first 8 of the file's sha1>: a changed file is a new URL, never a stale cache hit."""
+    def tag(x):
+        return f'{x.group(1)}="{x.group(2)}?v={hashlib.sha1((HERE.parent / x.group(2)).read_bytes()).hexdigest()[:8]}"'
+    return re.sub(r'(href|src)="((?:css|js)/[^"?]+)"', tag, page)
+
+
 def shell(title, strip, main, bar_unit, kicker, h1, blurb, rail):
     """One sub-page: the cockpit's strip, the screen, the HUD scripts."""
     rail_html = "\n".join(f"    <li><b>{k}</b><span>{html.escape(v)}</span></li>" for k, v in rail)
-    return f"""<!doctype html>
+    return fingerprint(f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -337,9 +345,15 @@ def shell(title, strip, main, bar_unit, kicker, h1, blurb, rail):
 <script src="js/bunnys.js" defer></script>
 <script src="js/pagehud.js" defer></script>
 <script src="js/manual.js" defer></script>
+<script src="js/vendor/gsap.min.js" defer></script>
+<script src="js/vendor/ScrollTrigger.min.js" defer></script>
+<script src="js/vendor/ScrambleTextPlugin.min.js" defer></script>
+<script src="js/vendor/DrawSVGPlugin.min.js" defer></script>
+<script src="js/vendor/SplitText.min.js" defer></script>
+<script src="js/manual-fx.js" defer></script>
 </body>
 </html>
-"""
+""")
 
 
 def build_manual(slug, meta, sections, vol):
@@ -383,7 +397,7 @@ def build_manual(slug, meta, sections, vol):
             title, html_ = rendered[n]
             body += (f'  <section class="panel" id="sec-{n}" data-ref="FM-{vol:02d}{n:02d} &#183; {rev}" data-sector="{html.escape(short(title))}">\n'
                      f'    <p class="sub">SECTION {n:02d}</p>\n'
-                     f'    <h2>{html.escape(title)}</h2>\n{html_}\n  </section>\n')
+                     f'    <h2 data-text="{html.escape(title)}">{html.escape(title)}</h2>\n{html_}\n  </section>\n')
         foot = []
         if i > 0:
             q = pages[i - 1]
@@ -417,8 +431,9 @@ def library(summaries):
                [("REVISION", f"{s['revision']} · {stamp(s['date'])}")]
         rail_html = "".join(f"<li><b>{k}</b><span>{html.escape(v)}</span></li>" for k, v in rail)
         body += (f'  <section class="panel fm-vol" id="fm-{s["vol"]:02d}" data-ref="FM-{s["vol"]:02d}00 &#183; REV {s["revision"]}" data-sector="{html.escape(short(s["title"]))}">\n'
+                 '    <svg class="fm-frame" aria-hidden="true"><rect width="100%" height="100%"/></svg>\n'
                  f'    <p class="sub">FM-{s["vol"]:02d}</p>\n'
-                 f'    <h2>{html.escape(s["title"])}</h2>\n'
+                 f'    <h2 data-text="{html.escape(s["title"])}">{html.escape(s["title"])}</h2>\n'
                  f'    <p class="fm-blurb">{html.escape(s["blurb"])}</p>\n'
                  f'    <ul class="rail">{rail_html}</ul>\n'
                  f'    <p><a class="fm-open" href="{fname(s["slug"], 0)}">Open {html.escape(s["title"])}</a></p>\n  </section>\n')
