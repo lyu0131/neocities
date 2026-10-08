@@ -113,6 +113,7 @@
     BUNNYS.state.yaw = ARRIVE_YAW;
     BUNNYS.state.booted = true;
     try { sessionStorage.setItem('bunnys-booted', '1'); } catch (e) {}
+    BUNNYS.log('boot');   // the pilot log's first badge
     BUNNYS.emit('boot-done', {});
     moveLayers(null);
     if (!overlay.parentNode) return;

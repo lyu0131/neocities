@@ -112,6 +112,7 @@
   var turned = false, trace = 0, decrypt = null, deadR = false, noisy = { L: 0, R: 0 };
   var seen = 0;
   try { seen = +localStorage.getItem('bunnys-unknown') || 0; localStorage.setItem('bunnys-unknown', seen + 1); } catch (e) {}
+  if (BUNNYS.log) BUNNYS.log('unknown');   // the pilot log: the unknown contact answered
 
   // ---- the film of red grain behind everything ----
   var grain = $('grain'), gx = grain.getContext('2d');

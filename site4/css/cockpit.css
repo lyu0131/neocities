@@ -1066,6 +1066,12 @@ main.screen { zoom: calc(var(--z) * var(--ts)); }
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
   font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);
 }
+/* the pilot log under the scope: seven badges, lit once earned (pagehud.js) */
+.phud-log { margin-top: 18px; }
+.phud-badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.phud-badges li { font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .08em; text-align: center; padding: 5px 0;
+  border: 1px solid rgba(140, 255, 193, .22); color: rgba(221, 231, 238, .38); }
+.phud-badges li.is-on { border-color: var(--hud); color: var(--hud); background: rgba(140, 255, 193, .12); }
 /* sector ladder: a lit track down the left, one rung per panel */
 .phud-track { position: absolute; left: 0; top: 30px; bottom: 4px; width: 1px; background: rgba(140, 255, 193, .18); }
 .phud-fill { position: absolute; inset: 0; background: var(--hud); transform-origin: top; transform: scaleY(0); box-shadow: 0 0 6px rgba(140, 255, 193, .6); }

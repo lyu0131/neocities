@@ -26,6 +26,16 @@
       var t = e.target;
       return !(t && t.closest && t.closest('input, textarea, select, [contenteditable]'));
     },
+    // The pilot log: badges a visitor earns by exploring, kept in their browser (pagehud.js shows them).
+    // log(id) records one and says whether it was new; logged() lists them.
+    logged: function () { try { return JSON.parse(localStorage.getItem('bunnys-log') || '[]'); } catch (e) { return []; } },
+    log: function (id) {
+      var got = window.BUNNYS.logged();
+      if (got.indexOf(id) >= 0) return false;
+      got.push(id);
+      try { localStorage.setItem('bunnys-log', JSON.stringify(got)); } catch (e) { return false; }
+      return true;
+    },
     on: function (type, fn) { document.addEventListener('bunnys:' + type, function (e) { fn(e.detail || {}); }); },
     emit: function (type, detail) { document.dispatchEvent(new CustomEvent('bunnys:' + type, { detail: detail || {} })); }
   };

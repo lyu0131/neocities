@@ -102,6 +102,26 @@
   var pctOut = row('READ', '');
   side.appendChild(dl);
 
+  // ---- the pilot log: badges earned by exploring (BUNNYS.log); this page's contact is logged on arrival ----
+  var BADGES = [['boot', 'BOOT', 'First boot'], ['pilot', 'PIL', 'Pilot ID read'], ['missions', 'MIS', 'Mission log read'],
+    ['hangar', 'HGR', 'Hangar visited'], ['manual', 'MAN', 'Field manual opened'], ['unknown', 'UNK', 'Unknown contact answered'],
+    ['all', 'ALL', 'Full sweep: every contact logged']];
+  if (['pilot', 'missions', 'hangar', 'manual'].indexOf(here) >= 0) BUNNYS.log(here);
+  var got = BUNNYS.logged();
+  if (BADGES.slice(0, 6).every(function (b) { return got.indexOf(b[0]) >= 0; })) { BUNNYS.log('all'); got = BUNNYS.logged(); }
+  var logBox = el('div', 'phud-log'), badges = el('ul', 'phud-badges');
+  var earned = BADGES.filter(function (b) { return got.indexOf(b[0]) >= 0; }).length;
+  logBox.appendChild(el('p', 'phud-cap', 'PILOT LOG ' + earned + '/' + BADGES.length));
+  BADGES.forEach(function (b) {
+    var on = got.indexOf(b[0]) >= 0, li = el('li', on ? 'is-on' : null, b[1]);
+    li.dataset.badge = b[0];
+    li.setAttribute('aria-label', b[2] + (on ? ', logged' : ', not yet'));
+    li.title = b[2] + (on ? '' : ' (not yet)');
+    badges.appendChild(li);
+  });
+  logBox.appendChild(badges);
+  side.appendChild(logBox);
+
   // ---- foot: status line and progress ----
   var status = el('p', 'phud-status'); status.setAttribute('aria-hidden', 'true');
   var prog = el('i', 'phud-prog'); prog.setAttribute('aria-hidden', 'true');
