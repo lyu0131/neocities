@@ -93,7 +93,11 @@ humanizer. A short "Adding a field manual" section in the repo's CLAUDE.md state
 - COPY copies exact text (one block per manual).
 The full suite (`node tests/run.js`) passes, and pages are checked by screenshot at 375, 1920 and 2560.
 
-## Motion (GSAP)
+## Motion (GSAP) -- withdrawn
+Built, then removed the same day at the owner's request (the title decode read poorly). GSAP stays in `js/vendor/`;
+any new motion is shown to the owner as a standalone demo first and only goes into the site once approved.
+What follows is the original plan, kept for the record.
+
 The owner wants the manuals to feel more alive without the page layout changing. One library, vendored:
 `js/vendor/` holds GSAP 3.13.0 core, ScrollTrigger, ScrambleTextPlugin, DrawSVGPlugin and SplitText (140 KB,
 56 KB gzipped; checked byte-identical on jsDelivr and unpkg; GSAP standard licence, free since 2025). Only the

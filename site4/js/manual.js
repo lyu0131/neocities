@@ -27,7 +27,7 @@
     if (!b) return;
     var code = b.closest('.fm-code').querySelector('pre code');
     copy(code.textContent).then(function (ok) {
-      b.textContent = ok ? 'TRANSMITTED' : 'SELECT TEXT';
+      b.textContent = ok ? 'COPIED' : 'SELECT TEXT';
       b.classList.toggle('is-done', ok);
       if (live) live.textContent = ok ? 'Code copied to the clipboard' : 'Copy failed; select the text instead';
       clearTimeout(b.fmTimer);
