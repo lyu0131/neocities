@@ -415,3 +415,19 @@ self-check). Edit the Markdown and regenerate; never hand-edit the pages. Design
 The sub-pages' reading layer (`.strip`, `.screen`, `.phud-ladder`, `.phud-scope`, `.phud-status`) takes `zoom: var(--z)`:
 1.2 from 1800x950, 1.4 from 2300x1250, else 1. Zoom multiplies vw too, so the rails' offsets divide `--z` back out.
 The cockpit (index.html) has its own `--ui` scale and isn't touched.
+
+## Site features (added 2026-10-07)
+- **Plain résumé** (`resume.html`, `css/resume.css`): the PILOT/MISSIONS facts in résumé order, reached from the boot
+  screen's "Plain résumé" button (no strip tab, by the owner's choice). Prints black on white; `node tools/gen_resume_pdf.js`
+  makes `resume.pdf` from that print. Change the facts there and on PILOT/MISSIONS together.
+- **Text size** (the strip's **Aa** menu): S/M/L/XL sets `html[data-text]` (link.js applies the saved value before first
+  paint; pagehud.js saves it) and `--ts` zooms `main.screen`, whose max-width divides by it so the rails never collide.
+- **Link previews**: gen_manual.py writes Open Graph/Twitter tags into every page (between `<!-- og -->` markers on the
+  hand-written ones; their descriptions are `HAND_OG`). `node tools/gen_og.js` takes each 1200x630 `img/og/<page>.png`.
+- **Pilot log**: `BUNNYS.log(id)` (bunnys.js) keeps badges in localStorage `bunnys-log`: boot (boot.js), pilot, missions,
+  hangar, manual (pagehud.js on arrival), unknown (unknown.js), all (once the six are in). pagehud.js shows them under the
+  scope as PILOT LOG n/7. Static; desktop only (the rails hide below 1200px).
+- **Ctrl+K** (`js/palette.js`): a SLEW TO `<dialog>` over `js/site-index.js` (generated: the pages in `HAND_GO`, each
+  manual, each section). Its keys stop at the box, so Esc closes it rather than leaving the page.
+- gen_manual.py fingerprints css/js links as each page is written (`?v=` + sha1), on the hand-written pages too where it
+  writes the strip, og and go blocks.

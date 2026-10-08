@@ -1066,6 +1066,22 @@ main.screen { zoom: calc(var(--z) * var(--ts)); }
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
   font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);
 }
+/* Ctrl+K: the SLEW TO box (js/palette.js) */
+dialog.go { width: min(560px, calc(100vw - 32px)); max-height: min(70vh, 560px); padding: 16px; margin: 12vh auto auto;
+  background: var(--panel); color: var(--ice); border: 1px solid var(--hud); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+dialog.go::backdrop { background: rgba(3, 6, 11, .72); }
+.go-head, .go-foot { margin: 0; font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .2em; color: var(--hud); }
+.go-foot { margin-top: 12px; color: rgba(221, 231, 238, .5); }
+dialog.go input { width: 100%; margin: 10px 0; padding: 10px 12px; font: 400 16px/1.3 'B612', sans-serif; color: var(--ice);
+  background: rgba(3, 6, 11, .8); border: 1px solid rgba(140, 255, 193, .45); outline: none; }
+dialog.go input:focus-visible { border-color: var(--hud); box-shadow: 0 0 0 2px rgba(140, 255, 193, .25); }
+dialog.go ul { list-style: none; margin: 0; padding: 0; max-height: 46vh; overflow-y: auto; }
+dialog.go [role=option] { display: flex; justify-content: space-between; gap: 16px; padding: 9px 12px; cursor: pointer; }
+dialog.go [role=option] b { font-weight: 700; }
+dialog.go [role=option] span { font: 700 10px/1.8 'B612 Mono', monospace; letter-spacing: .1em; color: rgba(221, 231, 238, .55); white-space: nowrap; }
+dialog.go [role=option][aria-selected=true], dialog.go [role=option]:hover { background: var(--hud); color: var(--night); }
+dialog.go [role=option][aria-selected=true] span, dialog.go [role=option]:hover span { color: var(--night); }
+.go-none { padding: 9px 12px; font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .14em; color: rgba(221, 231, 238, .5); }
 /* the pilot log under the scope: seven badges, lit once earned (pagehud.js) */
 .phud-log { margin-top: 18px; }
 .phud-badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }

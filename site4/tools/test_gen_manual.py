@@ -81,6 +81,7 @@ with _tf.TemporaryDirectory() as _d:
     assert not list(Path(_d).glob("*.html")), "and write nothing"
 # every local stylesheet and script carries a content fingerprint, so a changed file is never served stale
 import re as _re
-local = _re.findall(r'(?:href|src)="((?:css|js)/[^"]+)"', files["manual-x.html"])
+from gen_manual import fingerprint  # noqa: E402  (applied as each page is written)
+local = _re.findall(r'(?:href|src)="((?:css|js)/[^"]+)"', fingerprint(files["manual-x.html"]))
 assert local and all(_re.search(r"\?v=[0-9a-f]{8}$", u) for u in local), local
 print("ok")
