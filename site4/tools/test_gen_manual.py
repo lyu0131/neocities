@@ -41,6 +41,7 @@ assert sorted(secs) == [1, 2, 3, 4] and secs[2][0] == "Two"
 msg = raises(parse_header, HEAD.replace("date: 2026-10-07\n", ""), "x.md")
 assert msg and msg.startswith("x.md:"), msg
 assert raises(split_sections, "no sections here", "x.md")
+assert raises(parse_header, HEAD.replace("2026-10-07", "2026-13-45"), "x.md")   # not a real date
 
 pages = layout(meta, secs, "x.md")
 assert [p["nav"] for p in pages] == ["INDEX", "P1"], pages

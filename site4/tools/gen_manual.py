@@ -8,6 +8,7 @@ import hashlib
 import html
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 from bs4 import BeautifulSoup, NavigableString, Tag
@@ -103,8 +104,10 @@ def parse_header(text, name):
     for k in ("title", "blurb", "date"):
         if not meta.get(k):
             raise ValueError(f"{name}: the header has no {k}")
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta["date"]):
-        raise ValueError(f"{name}: date must read YYYY-MM-DD, not '{meta['date']}'")
+    try:
+        date.fromisoformat(meta["date"])
+    except ValueError:
+        raise ValueError(f"{name}: date must be a real date as YYYY-MM-DD, not '{meta['date']}'") from None
     return meta, text[m.end():]
 
 
@@ -284,14 +287,13 @@ def render_section(st, n, page_file):
     return title, str(soup)
 
 
-MONTHS = "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC".split()
 FONTS = "https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap"
 
 
-def stamp(date):
+def stamp(iso):
     """2026-10-07 -> 7 OCT 2026"""
-    y, mo, d = date.split("-")
-    return f"{int(d)} {MONTHS[int(mo) - 1]} {y}"
+    d = date.fromisoformat(iso)
+    return f"{d.day} {d:%b %Y}".upper()
 
 
 def fname(slug, n):
@@ -417,9 +419,8 @@ def build_manual(slug, meta, sections, vol):
                              for q in pages) + "\n  </ul>")
         title = meta["title"] if p["slug_n"] == 0 else f'{p["title"]}, {meta["title"]}'
         files[p["file"]] = shell(f"{title}, Sylas Lyu", strip, body, unit, p["kicker"], p["h1"], p["blurb"], rail)
-    summary = dict(slug=slug, title=meta["title"], blurb=meta["blurb"], date=meta["date"], revision=meta["revision"],
-                   vol=vol, parts=len(pages) - 1, sections=len(sections), exercises=len(exercises), code=st["code"],
-                   pages=pages)
+    summary = dict(meta, slug=slug, vol=vol, parts=len(pages) - 1, sections=len(sections), exercises=len(exercises),
+                   code=st["code"], pages=pages)
     return files, summary
 
 
