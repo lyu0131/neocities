@@ -394,6 +394,11 @@ self-check). Edit the Markdown and regenerate; never hand-edit the pages. Design
   `code_blocks` (pins the count: old links use the numbers), `legacy`, and `parts:` lines `  - Title | Blurb | 2-3`.
   No parts: every section after 1 is its own page. Any header error stops the build before a file is written.
 - Section ladder labels: the heading up to its first "and", comma or colon, at most three words.
+- The library is a bookshelf (design: `docs/2026-10-08-library-shelf-design.md`): ON DISPLAY, the newest manual
+  face-out (cover, subject, blurb, parts, revision, Open), then a shelf per `subject:` (A to Z, default General) with a
+  spine per manual (`spine:` label, default the title; height by sections, width by parts). `js/library.js` pulls a
+  book out onto the display on click or Enter (the approved animation; an instant swap under reduced motion) from
+  its `<template id="tpl-fm-NN">`, and keeps `#fm-NN` in the address. Without it the spines are plain links.
 - FIELD MANUAL is the cockpit's fifth contact (`t-manual`, `MAN`, yaw 104, key 4; UNKNOWN moved to key 5), so the
   pages carry `body.page.manual`, `--brg: 104`. Its SLEW button reads MANUAL (FIELD MANUAL wraps and breaks the pod's
   level with SENSOR ARRAY); the slew buttons are 3px/8px padded at the 24px floor for the same reason. pagehud.js

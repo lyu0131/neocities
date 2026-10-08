@@ -85,7 +85,7 @@ def parse_header(text, name):
     m = re.match(r"---\n(.*?)\n---\n", text, re.S)
     if not m:
         raise ValueError(f"{name}: no header (a block between --- lines at the very top)")
-    meta = dict(revision="A", platform=None, code_blocks=None, legacy=None, parts=[])
+    meta = dict(revision="A", platform=None, code_blocks=None, legacy=None, parts=[], subject="General", spine=None)
     key = None
     for line in m.group(1).split("\n"):
         if not line.strip():
@@ -501,24 +501,46 @@ def build_manual(slug, meta, sections, vol, menu=None):
 
 
 def library(summaries):
-    """manual.html: one panel per manual, newest first."""
-    body = ""
-    for s in sorted(summaries, key=lambda s: (s["date"], s["slug"]), reverse=True):
-        rail = [("PARTS", str(s["parts"]))] + ([("EXERCISES", str(s["exercises"]))] if s["exercises"] else []) + \
-               [("REVISION", f"{s['revision']} · {stamp(s['date'])}")]
-        rail_html = "".join(f"<li><b>{k}</b><span>{html.escape(v)}</span></li>" for k, v in rail)
-        body += (f'  <section class="panel fm-vol" id="fm-{s["vol"]:02d}" data-ref="FM-{s["vol"]:02d}00 &#183; REV {s["revision"]}" data-sector="{html.escape(short(s["title"]))}">\n'
-                 f'    <p class="sub">FM-{s["vol"]:02d}</p>\n'
-                 f'    <h2>{html.escape(s["title"])}</h2>\n'
-                 f'    <p class="fm-blurb">{html.escape(s["blurb"])}</p>\n'
-                 f'    <ul class="rail">{rail_html}</ul>\n'
-                 f'    <p><a class="fm-open" href="{fname(s["slug"], 0)}">Open {html.escape(s["title"])}</a></p>\n  </section>\n')
+    """manual.html: the bookshelf. On display, the newest book face-out; under it a shelf per subject (A to Z) with a
+    spine per manual. js/library.js pulls a book out onto the display when its spine is clicked; without it each spine
+    is a plain link into its manual. Each book's display is a <template> library.js clones in."""
+    books = sorted(summaries, key=lambda s: s["vol"])
+    newest = max(summaries, key=lambda s: (s["date"], s["slug"]))
+
+    def code(s):
+        return f'FM-{s["vol"]:02d}'
+
+    def face(s):
+        line = f'{s["parts"]} PARTS' + (f' &#183; {s["exercises"]} EXERCISES' if s["exercises"] else "")
+        parts = "".join(f'<li><a href="{p["file"]}">{html.escape(p["title"])}</a></li>' for p in s["pages"][1:])
+        return (f'<div class="fm-cover"><b>{code(s)}</b><h2>{html.escape(s["title"])}</h2><p>{line}</p></div>'
+                f'<div class="fm-info"><p class="fm-k">{html.escape(s["subject"].upper())}</p><p>{html.escape(s["blurb"])}</p>'
+                f'<p class="fm-k">PARTS</p><ul class="list">{parts}</ul>'
+                f'<p class="fm-k">REVISION</p><p>{s["revision"]} &#183; {stamp(s["date"])}</p>'
+                f'<p><a class="fm-open" href="{fname(s["slug"], 0)}">Open {code(s)} &#9656;</a></p></div>')
+
+    body = ('  <section class="panel fm-display" data-ref="FM-0000 &#183; LIBRARY" data-sector="On display">\n'
+            '    <p class="sub">ON DISPLAY</p>\n'
+            f'    <div class="fm-stage" aria-live="polite">{face(newest)}</div>\n  </section>\n')
+    for subject in sorted({s["subject"] for s in books}, key=str.lower):
+        spines = ""
+        for s in (b for b in books if b["subject"] == subject):
+            out = s is newest
+            mark = ' is-out" aria-current="true' if out else ""
+            size = f'height:{min(200, 120 + 6 * s["sections"])}px;width:{min(52, 30 + 3 * s["parts"])}px'
+            spines += (f'      <a class="fm-spine{mark}" href="{fname(s["slug"], 0)}" data-fm="{code(s)}" style="{size}" '
+                       f'title="{code(s)}: {html.escape(s["title"])}"><span>{html.escape(s.get("spine") or s["title"])}</span></a>\n')
+        body += (f'  <section class="panel fm-shelf" data-ref="SHELF &#183; {html.escape(subject.upper())}" data-sector="{html.escape(subject)}">\n'
+                 f'    <p class="sub">{html.escape(subject.upper())}</p>\n'
+                 f'    <div class="fm-books">\n{spines}    </div>\n    <div class="fm-ledge"></div>\n  </section>\n')
+    body += "".join(f'  <template id="tpl-{code(s).lower()}">{face(s)}</template>\n' for s in books)
     strip = nav_strip(sorted((s["vol"], s["slug"], s["title"]) for s in summaries), "manual.html")
     rail = [("VOLUMES", str(len(summaries))), ("EXERCISES", str(sum(s["exercises"] for s in summaries)))]
-    return shell("Field manuals, Sylas Lyu", strip, body, "SYLAS LYU &#183; FIELD MANUALS", "LIBRARY",
+    page = shell("Field manuals, Sylas Lyu", strip, body, "SYLAS LYU &#183; FIELD MANUALS", "LIBRARY",
                  "FIELD MANUALS", "General guides, each one complete on its own.", rail,
                  og("manual.html", "Field manuals, Sylas Lyu", "A library of general guides to working with AI, each one "
                     "complete on its own, with exercises and copyable code."))
+    return page.replace("</body>", '<script src="js/library.js" defer></script>\n</body>', 1)
 
 
 def stub(target):

@@ -50,7 +50,7 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
   }
   check('manual links all resolve', bad.length === 0, bad.slice(0, 8).join(' | '));
   await p.goto('manual.html', 900);
-  const vols = await p.eval("[...document.querySelectorAll('.fm-vol a.fm-open')].map(a => a.getAttribute('href'))");
+  const vols = await p.eval("[...document.querySelectorAll('.fm-shelf .fm-spine')].map(a => a.getAttribute('href'))");
   check('library lists every source', vols.length === SOURCES.length && SOURCES.every(s => vols.includes(`manual-${s}.html`)), vols.join(','));
   // the guide's PDF links manual-N.html#c-K: the stub forwards and keeps the fragment
   await p.goto('manual-4.html#c-12', 1200);

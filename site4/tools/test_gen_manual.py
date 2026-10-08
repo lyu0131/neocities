@@ -34,6 +34,9 @@ d
 meta, body = parse_header(HEAD, "x.md")
 assert meta["title"] == "T" and meta["blurb"] == "B." and meta["date"] == "2026-10-07"
 assert meta["revision"] == "A" and meta["platform"] is None
+assert meta["subject"] == "General" and meta["spine"] is None   # the library shelf and spine label default
+sm, _ = parse_header(HEAD.replace("date:", "subject: AI tools\nspine: Short\ndate:"), "x.md")
+assert sm["subject"] == "AI tools" and sm["spine"] == "Short"
 assert meta["parts"] == [("Concepts", "What.", [2, 3])], meta["parts"]
 secs = split_sections(body, "x.md")
 assert sorted(secs) == [1, 2, 3, 4] and secs[2][0] == "Two"

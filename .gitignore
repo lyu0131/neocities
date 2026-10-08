@@ -23,3 +23,9 @@ site4/tests/out/
 /ref/
 /site5/demos/
 /.superpowers/
+
+# NASA source imagery for site5 (packed into site5/js/earth-*.js by tools/make_earth.py)
+site5/tools/earth-src/
+# site5: the Cesium ion token (see site5/js/keys.js)
+site5/js/keys.js
+site4/tests/fixtures/

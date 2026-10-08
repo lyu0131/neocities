@@ -4,6 +4,8 @@ blurb: A Windows-first guide to Claude's agents, MCP, skills, hooks and plugins.
 revision: B
 date: 2026-10-07
 platform: Windows 11
+subject: AI tools
+spine: Claude agents
 code_blocks: 73
 legacy: manual
 parts:

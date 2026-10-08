@@ -19,8 +19,8 @@ Read `site4/docs/2026-09-24-bunnys-cockpit-design.md` (the approved spec), then 
 ## Adding a field manual (site4)
 1. Put the guide in `site4/docs/manuals/<slug>.md` (lowercase, digits, hyphens; starts with a letter). Sections are
    `## 1. Title`, `## 2. Title` ...; section 1 is the manual's front page.
-2. Start it with a header between `---` lines: `title`, `blurb`, `date: YYYY-MM-DD`, optional `revision`, `platform`
-   and `parts:` lines `  - Title | Blurb | 2-3` (see `site4/DESIGN.md`, Field manuals).
+2. Start it with a header between `---` lines: `title`, `blurb`, `date: YYYY-MM-DD`, optional `revision`, `platform`,
+   `subject` (its library shelf), `spine` (a short spine label) and `parts:` lines `  - Title | Blurb | 2-3` (see `site4/DESIGN.md`, Field manuals).
 3. From `site4/`: `python tools/gen_manual.py`, then `node tools/gen_og.js` (its link-preview picture), then
    `node tests/run.js`, then check it at 375px and desktop.
 4. Manuals are general guides: no personal details, none of the owner's courses, research, own skills, plugins or
