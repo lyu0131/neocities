@@ -172,6 +172,11 @@
     if (locked) locked.node.classList.add('is-lock');
     update();
   }
+  // the dropdown closes when you click anywhere else
+  document.addEventListener('click', function (e) {
+    var menu = document.querySelector('.strip-menu details[open]');
+    if (menu && !menu.contains(e.target)) menu.open = false;
+  });
   document.addEventListener('keydown', function (e) {
     if (!BUNNYS.keyable(e) || e.repeat) return;
     var n = '12345'.indexOf(e.key);
@@ -179,6 +184,9 @@
     if (e.key === 'Enter' && locked && !(e.target.closest && e.target.closest('a, button, summary, input, select, textarea'))) {
       e.preventDefault(); go(locked.page ? locked.page + '.html' : 'index.html?face=t-unknown'); return;
     }
+    // an open FIELD MANUAL dropdown takes Esc first
+    var menu = document.querySelector('.strip-menu details[open]');
+    if (e.key === 'Escape' && menu) { e.preventDefault(); menu.open = false; menu.querySelector('summary').focus(); return; }
     if (e.key === 'Escape') { e.preventDefault(); if (locked) lock(null); else go('index.html'); return; }
     var k = e.key.toLowerCase();
     // Q / E: the page to the left / right, in the cockpit's order, wrapping

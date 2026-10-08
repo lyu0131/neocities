@@ -9,7 +9,9 @@
   var KEY = 'bunnys-link';      // {to, t}: written as a page leaves, read once by the next
   var GEO = 'bunnys-canopy';
   var EMBLEM = 'img/emblem-hud.webp';   // the owner's emblem in HUD phosphor, shown on the closed glass    // the cockpit's last measured screens, as 5 polys of viewport percentages
-  var OWN = /^(index|pilot|missions|hangar|manual|unknown)\.html$/;   // unknown: the UNKNOWN contact's open channel
+  // every page of the site (unknown: the UNKNOWN contact's open channel; manual*: the library and its manuals),
+  // with or without a #section
+  var OWN = /^(index|pilot|missions|hangar|manual(-[a-z][a-z0-9-]*(-\d+)?)?|unknown)\.html(#.*)?$/;
   // A rough canopy, as percentages of the viewport (originally measured at 1440x900), for a page
   // that has never measured the cockpit's own (a visitor who landed straight on a sub-page).
   var FALLBACK = [
@@ -81,7 +83,8 @@
     var ys = polys[1].trim().split(/\s+/).map(function (q) { return +q.split(',')[1]; });
     label = document.createElement('p'); label.className = 'link-label';
     label.style.top = ((Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2).toFixed(2) + '%';
-    var c = to === 'index' ? { label: 'COCKPIT' } : (window.BUNNYS.contacts.filter(function (k) { return k.page === to; })[0] || {});
+    var key = /^manual/.test(to) ? 'manual' : to;   // the library and every manual page are the FIELD MANUAL contact
+    var c = key === 'index' ? { label: 'COCKPIT' } : (window.BUNNYS.contacts.filter(function (k) { return k.page === key; })[0] || {});
     label.textContent = 'LINK ▸ ' + (c.label || to.toUpperCase());
     var small = document.createElement('small'); small.textContent = 'CHANNEL OPEN'; label.appendChild(small);
     // the emblem on the closed glass (preloaded at DOMContentLoaded, so it never pops in late)
@@ -155,7 +158,7 @@
       var a = e.target.closest && e.target.closest('a[href]');
       if (!a || a.target || a.hasAttribute('download')) return;
       var href = a.getAttribute('href');
-      if (!OWN.test(href) || pageOf(href) === here) return;
+      if (!OWN.test(href) || pageOf(href.split('#')[0]) === here) return;
       e.preventDefault();
       go(href);
     });

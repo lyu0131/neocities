@@ -791,6 +791,27 @@ body.page::before {
 .strip a:hover { background: var(--hud); color: var(--night); }
 .strip a[aria-current="page"] { color: var(--ice); border-bottom: 2px solid var(--amber); }
 .strip .ret { color: var(--amber); }
+/* FIELD MANUAL: a dropdown of the library and every manual (gen_manual.py writes it into every sub-page) */
+.strip-menu { position: relative; }
+.strip-menu summary {
+  list-style: none; cursor: pointer; color: var(--ice); padding: 6px 8px; min-height: 32px;
+  display: inline-flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent;
+}
+.strip-menu summary::-webkit-details-marker { display: none; }
+.strip-menu summary::after { content: '\25BE'; color: var(--hud); }
+.strip-menu details[open] summary::after { content: '\25B4'; }
+.strip-menu summary:hover, .strip-menu summary:focus-visible { background: var(--hud); color: var(--night); }
+.strip-menu summary:hover::after, .strip-menu summary:focus-visible::after { color: var(--night); }
+.strip-menu summary.is-here { border-bottom-color: var(--amber); }
+.strip .strip-menu ul {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 1; display: grid; gap: 2px;
+  width: max-content; max-width: min(360px, 92vw); padding: 8px;
+  background: var(--panel); border: 1px solid rgba(140, 255, 193, .5); box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+.strip-menu ul a { width: 100%; letter-spacing: .06em; }
+.strip-menu ul b { color: var(--hud); margin-right: .6em; }
+/* inside a manual, a second row: that manual's own parts */
+.strip .strip-sub { flex-basis: 100%; gap: 6px; font-size: 11px; padding-top: 4px; border-top: 1px solid var(--edge); }
 /* FIELD MANUAL fits the strip from tablet up; on a phone it would wrap, so it reads MANUAL there */
 @media (max-width: 480px) { .strip .wide { display: none; } }
 

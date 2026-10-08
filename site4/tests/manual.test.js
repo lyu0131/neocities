@@ -21,7 +21,7 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
     check(`${pg} has one h1`, await p.eval("document.querySelectorAll('h1').length === 1"));
     check(`${pg} body.page`, await p.eval("document.body.classList.contains('page')"));
     check(`${pg} lang="en"`, await p.eval("document.documentElement.lang === 'en'"));
-    if (pg !== 'manual.html') check(`${pg} nav marks current page`, await p.eval(`!!document.querySelector('.strip a[aria-current="page"][href="${pg}"]')`));
+    check(`${pg} nav marks current page`, await p.eval(`!!document.querySelector('.strip a[aria-current="page"][href="${pg}"]')`));
     check(`${pg} HUD has a rung per panel`, await p.eval("document.querySelectorAll('.phud-ladder li').length === document.querySelectorAll('.screen .panel').length"));
     check(`${pg} scope reads FIELD MANUAL`, /FIELD MANUAL/.test(await p.eval("document.querySelector('.phud-status').textContent")));
     const dups = await p.eval("(()=>{const s=new Set(),d=new Set();document.querySelectorAll('[id]').forEach(e=>s.has(e.id)?d.add(e.id):s.add(e.id));return [...d].join(',')})()");
@@ -55,8 +55,34 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
   // the guide's PDF links manual-N.html#c-K: the stub forwards and keeps the fragment
   await p.goto('manual-4.html#c-12', 1200);
   check('stub keeps the fragment', /manual-claude-4\.html$/.test(await p.eval('location.pathname')) && await p.eval('location.hash') === '#c-12');
-  await p.goto('pilot.html', 900);
-  check('cockpit strip links the library', await p.eval("!!document.querySelector('.strip a[href=\"manual.html\"]')"));
+  // ---- one strip on every sub-page: cockpit, PILOT, MISSIONS, HANGAR and a FIELD MANUAL dropdown ----
+  // (its skeleton, ignoring which item is current and a manual's own parts row, is the same everywhere)
+  const skeleton = "(() => { const n = document.querySelector('nav.strip').cloneNode(true); n.querySelectorAll('.strip-sub').forEach(e => e.remove());" +
+    " n.querySelectorAll('[aria-current]').forEach(e => e.removeAttribute('aria-current')); n.querySelectorAll('.is-here').forEach(e => { e.classList.remove('is-here'); if (!e.className) e.removeAttribute('class'); });" +
+    " n.querySelectorAll('details').forEach(d => d.removeAttribute('open')); return n.outerHTML.replace(/\\s+/g, ' '); })()";
+  const shapes = {};
+  for (const pg of ['pilot.html', 'missions.html', 'hangar.html', 'manual.html', 'manual-claude.html', 'manual-claude-3.html']) {
+    await p.goto(pg, 700);
+    shapes[pg] = await p.eval(skeleton);
+    check(`${pg} strip reaches every page`, await p.eval("['index.html', 'pilot.html', 'missions.html', 'hangar.html', 'manual.html'].every(h => document.querySelector(`nav.strip a[href=\"${h}\"]`))"
+      + ` && ${JSON.stringify(SOURCES)}.every(s => document.querySelector('nav.strip details a[href=\"manual-' + s + '.html\"]'))`));
+  }
+  check('the strip is the same on every sub-page', new Set(Object.values(shapes)).size === 1, Object.keys(shapes).join(','));
+  // the dropdown: opens on its summary, Esc closes it (and stays on the page), a click outside closes it
+  await p.goto('manual-claude-3.html', 900);
+  await p.eval("document.querySelector('.strip-menu summary').click(); true");
+  check('FIELD MANUAL dropdown opens', await p.eval("document.querySelector('.strip-menu details').open"));
+  await p.key('Escape', 'Escape', 27); await p.sleep(600);
+  check('Esc closes the dropdown first', !(await p.eval("document.querySelector('.strip-menu details').open")) && /manual-claude-3\.html$/.test(await p.eval('location.pathname')));
+  await p.eval("document.querySelector('.strip-menu summary').click(); document.querySelector('main').click(); true");
+  check('a click outside closes it', !(await p.eval("document.querySelector('.strip-menu details').open")));
+  // every move between the manual pages takes the shutters (the insignia on the closed glass), #section links too
+  for (const [from, sel] of [['manual-claude-1.html', '.strip-sub a[href="manual-claude-2.html"]'], ['manual-claude.html', 'a[href^="manual-claude-4.html#sec-"]'], ['manual.html', '.fm-open']]) {
+    await p.goto(from, 900);
+    await p.eval(`document.querySelector('${sel}').click(); true`); await p.sleep(250);
+    check(`${from}: ${sel} takes the shutters`, await p.eval("!!document.getElementById('link') && /FIELD MANUAL/.test(document.querySelector('#link .link-label').textContent)"));
+    await p.sleep(1200);
+  }
   check('no JS errors on manual pages', p.errors.length === 0, p.errors.join(' | '));
   p.close();
 
