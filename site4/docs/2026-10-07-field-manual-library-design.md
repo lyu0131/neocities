@@ -94,8 +94,9 @@ humanizer. A short "Adding a field manual" section in the repo's CLAUDE.md state
 The full suite (`node tests/run.js`) passes, and pages are checked by screenshot at 375, 1920 and 2560.
 
 ## Motion (GSAP) -- withdrawn
-Built, then removed the same day at the owner's request (the title decode read poorly). GSAP stays in `js/vendor/`;
-any new motion is shown to the owner as a standalone demo first and only goes into the site once approved.
+Built, then removed the same day at the owner's request (the title decode read poorly). After a demo of three
+alternatives (stepped wipe, type-on, scan rule) the owner chose no motion, so GSAP was deleted from `js/vendor/` too.
+Any future motion is shown as a standalone demo first.
 What follows is the original plan, kept for the record.
 
 The owner wants the manuals to feel more alive without the page layout changing. One library, vendored:
