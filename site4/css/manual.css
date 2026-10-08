@@ -31,29 +31,48 @@
 
 /* the library as a bookshelf (manual.html, js/library.js): the display, then a shelf per subject */
 .fm-stage { display: flex; gap: 22px; align-items: flex-start; perspective: 900px; }
+/* a book's cover: its subject colour (--c), a blueprint grid, its emblem, the title */
 .fm-cover {
-  flex: none; width: 170px; height: 232px; position: relative; padding: 16px; transform-origin: left center;
-  display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--hud); background: var(--panel);
+  flex: none; width: 200px; height: 276px; position: relative; padding: 14px 16px 14px; transform-origin: left center;
+  display: flex; flex-direction: column; border: 1px solid var(--c, var(--hud));
+  background:
+    linear-gradient(rgba(140, 255, 193, .05) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(90deg, rgba(140, 255, 193, .05) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(160deg, #0F1C33, #070D18);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .45);
 }
-.fm-cover::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(140, 255, 193, .25); pointer-events: none; }
-.fm-cover b { font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .2em; color: var(--hud); }
-.screen .fm-cover h2 { margin: 0; padding: 0; border: 0; font: 700 16px/1.25 'B612 Mono', monospace; letter-spacing: .04em; }
-.fm-cover p { margin: 0; font-size: 11px; color: rgba(221, 231, 238, .65); }
+.fm-cover::before { content: ''; position: absolute; inset: 6px; border: 1px solid var(--c, var(--hud)); opacity: .3; pointer-events: none; }
+.fm-cover-top { display: flex; justify-content: space-between; align-items: baseline; margin: 0; }
+.fm-cover-top b { font: 700 12px/1 'B612 Mono', monospace; letter-spacing: .2em; color: var(--c, var(--hud)); }
+.fm-cover-top span { font: 700 9px/1 'B612 Mono', monospace; letter-spacing: .16em; color: rgba(221, 231, 238, .55); }
+.fm-cover .fm-emblem { width: 112px; height: 112px; margin: 16px auto 14px; display: block; }
+.screen .fm-cover h2 { margin: 0; padding: 0; border: 0; font: 700 18px/1.22 'B612', sans-serif; letter-spacing: .01em;
+  color: var(--ice); text-wrap: balance; }
+.fm-cover-foot { margin: auto 0 0; padding-top: 8px; border-top: 1px solid rgba(221, 231, 238, .16);
+  font: 700 9px/1.4 'B612 Mono', monospace; letter-spacing: .14em; color: rgba(221, 231, 238, .6); }
 .fm-info { flex: 1; min-width: 0; align-self: stretch; border-left: 1px solid var(--edge); padding-left: 18px; }
 .fm-k { margin: 0 0 4px; font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .16em; color: var(--hud); }
 .fm-info p:not(.fm-k) { margin: 0 0 12px; }
 .fm-info ul { margin: 0 0 12px; }
-.fm-books { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; min-height: 130px; }
-.fm-ledge { height: 3px; background: rgba(221, 231, 238, .5); }
-.screen .fm-spine, .fm-ghost {
-  display: flex; justify-content: center; padding-top: 10px; flex: none; box-sizing: border-box;
-  border: 1px solid rgba(221, 231, 238, .3); background: #0E1830; color: var(--ice); text-decoration: none;
+.fm-books { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; min-height: 150px; }
+.fm-ledge { height: 4px; background: linear-gradient(#56657A, #1B2638); box-shadow: 0 6px 12px rgba(0, 0, 0, .35); }
+/* a spine: its emblem at the head, two raised bands in the subject colour, the title sized to fill, the number at the foot */
+.manual .screen .fm-spine, .fm-ghost {   /* .manual: outranks .manual .screen a { display: inline } */
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 7px 0 6px; flex: none; box-sizing: border-box;
+  border: 1px solid rgba(221, 231, 238, .22); color: var(--ice); text-decoration: none;
+  background:
+    linear-gradient(var(--c), var(--c)) 0 30px / 100% 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) 0 calc(100% - 20px) / 100% 2px no-repeat,
+    linear-gradient(90deg, #0A1220, #1A2B45 40%, #13213A 70%, #0A1220);
 }
-.fm-spine span { writing-mode: vertical-rl; transform: rotate(180deg); font: 700 11px/1 'B612 Mono', monospace; letter-spacing: .1em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: calc(100% - 14px); }
-.screen .fm-spine:hover, .screen .fm-spine:focus-visible { border-color: var(--hud); background: #13223A; }
+.fm-spine .fm-emblem { width: 20px; height: 20px; flex: none; }
+.fm-spine-t { flex: 1; min-height: 0; margin: 3px 0; overflow: hidden; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;
+  font: 700 var(--fs, 11px)/1.3 'B612 Mono', monospace; letter-spacing: .08em; text-align: center; }
+.fm-spine-code { font: 700 9px/1 'B612 Mono', monospace; color: var(--c); flex: none; }
+.manual .screen .fm-spine:hover, .manual .screen .fm-spine:focus-visible { border-color: var(--c); filter: brightness(1.25); }
 /* the book on display leaves an empty slot on its shelf */
-.screen .fm-spine.is-out { border-style: dashed; border-color: rgba(140, 255, 193, .45); background: transparent; color: transparent; }
+.manual .screen .fm-spine.is-out { border-style: dashed; border-color: rgba(140, 255, 193, .45); background: transparent; filter: none; }
+.manual .screen .fm-spine.is-out > * { visibility: hidden; }
 .fm-ghost { position: fixed; margin: 0; z-index: 20; pointer-events: none; border-color: var(--amber); }
 @media (max-width: 600px) {
   .fm-stage { flex-direction: column; align-items: stretch; }

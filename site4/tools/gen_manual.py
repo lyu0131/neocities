@@ -7,6 +7,7 @@ lists them all. A header error in any file stops the build before anything is wr
 import hashlib
 import html
 import json
+import math
 import re
 import sys
 from datetime import date
@@ -500,6 +501,51 @@ def build_manual(slug, meta, sections, vol, menu=None):
     return files, summary
 
 
+# the library's book art: a colour per subject, an emblem per book. Original, generated from the names, so a book
+# keeps its look across rebuilds and a new one gets its own. No stripes (the owner's rule against hazard stripes).
+SUBJECT_COLOURS = ["#8CFFC1", "#7FD4FF", "#FFB02E", "#FF8FA3", "#B79CFF", "#E6F27A"]
+
+
+def subject_colour(subject):
+    return SUBJECT_COLOURS[int(hashlib.md5(subject.lower().encode()).hexdigest(), 16) % len(SUBJECT_COLOURS)]
+
+
+def emblem(slug, colour):
+    """A mission-patch mark for one book: a tick ring, nested polygons and orbit dots, all seeded by its slug."""
+    h = hashlib.md5(slug.encode()).digest()
+    sides, rings, turn, ticks, dots = 3 + h[0] % 5, 2 + h[1] % 2, h[2] % 60, 24 + (h[3] % 3) * 12, 2 + h[4] % 3
+
+    def pt(r, deg):
+        a = math.radians(deg - 90)
+        return 50 + r * math.cos(a), 50 + r * math.sin(a)
+    out = [f'<circle cx="50" cy="50" r="46" fill="none" stroke="{colour}" stroke-opacity=".5"/>']
+    for i in range(ticks):
+        (x1, y1), (x2, y2) = pt(46, 360 * i / ticks), pt(41 if i % 3 else 37, 360 * i / ticks)
+        out.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{colour}" '
+                   f'stroke-opacity="{.8 if i % 3 == 0 else .35}"/>')
+    for k in range(rings):
+        r, rot = 31 - k * 10, turn + k * 180 / sides
+        poly = " ".join("%.1f,%.1f" % pt(r, rot + 360 * j / sides) for j in range(sides))
+        out.append(f'<polygon points="{poly}" fill="{colour}" fill-opacity="{.06 + .06 * k:.2f}" stroke="{colour}" '
+                   f'stroke-opacity="{.9 - .25 * k:.2f}" stroke-width="{1.6 - .4 * k:.1f}"/>')
+    for d in range(dots):
+        x, y = pt(41, h[5 + d] * 360 / 256)
+        out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="{colour}"/>')
+    core = " ".join("%.1f,%.1f" % pt(5, turn + 90 * j) for j in range(4))
+    out.append(f'<polygon points="{core}" fill="{colour}"/>')
+    return f'<svg class="fm-emblem" viewBox="0 0 100 100" aria-hidden="true" focusable="false">{"".join(out)}</svg>'
+
+
+def spine_size(s):
+    """A spine's px height, width and title size: length shows in height, parts in width, and the title is sized to
+    fill the room between the emblem and the FM code (B612 Mono advances .6em, plus .08em letter-spacing)."""
+    height = min(220, 150 + 5 * s["sections"])
+    label = s.get("spine") or s["title"]
+    size = max(8.0, min(14.0, (height - 70) / (len(label) * 0.68)))
+    width = min(58, max(36, round(size * 1.6 + 16), 34 + 3 * s["parts"]))
+    return height, width, round(size, 1), label
+
+
 def library(summaries):
     """manual.html: the bookshelf. On display, the newest book face-out; under it a shelf per subject (A to Z) with a
     spine per manual. js/library.js pulls a book out onto the display when its spine is clicked; without it each spine
@@ -513,7 +559,10 @@ def library(summaries):
     def face(s):
         line = f'{s["parts"]} PARTS' + (f' &#183; {s["exercises"]} EXERCISES' if s["exercises"] else "")
         parts = "".join(f'<li><a href="{p["file"]}">{html.escape(p["title"])}</a></li>' for p in s["pages"][1:])
-        return (f'<div class="fm-cover"><b>{code(s)}</b><h2>{html.escape(s["title"])}</h2><p>{line}</p></div>'
+        colour = subject_colour(s["subject"])
+        return (f'<div class="fm-cover" style="--c:{colour}"><p class="fm-cover-top"><b>{code(s)}</b>'
+                f'<span>{html.escape(s["subject"].upper())}</span></p>{emblem(s["slug"], colour)}'
+                f'<h2>{html.escape(s["title"])}</h2><p class="fm-cover-foot">{line}</p></div>'
                 f'<div class="fm-info"><p class="fm-k">{html.escape(s["subject"].upper())}</p><p>{html.escape(s["blurb"])}</p>'
                 f'<p class="fm-k">PARTS</p><ul class="list">{parts}</ul>'
                 f'<p class="fm-k">REVISION</p><p>{s["revision"]} &#183; {stamp(s["date"])}</p>'
@@ -527,9 +576,12 @@ def library(summaries):
         for s in (b for b in books if b["subject"] == subject):
             out = s is newest
             mark = ' is-out" aria-current="true' if out else ""
-            size = f'height:{min(200, 120 + 6 * s["sections"])}px;width:{min(52, 30 + 3 * s["parts"])}px'
-            spines += (f'      <a class="fm-spine{mark}" href="{fname(s["slug"], 0)}" data-fm="{code(s)}" style="{size}" '
-                       f'title="{code(s)}: {html.escape(s["title"])}"><span>{html.escape(s.get("spine") or s["title"])}</span></a>\n')
+            height, width, font, label = spine_size(s)
+            colour = subject_colour(subject)
+            spines += (f'      <a class="fm-spine{mark}" href="{fname(s["slug"], 0)}" data-fm="{code(s)}" '
+                       f'style="height:{height}px;width:{width}px;--c:{colour};--fs:{font}px" title="{code(s)}: {html.escape(s["title"])}">'
+                       f'{emblem(s["slug"], colour)}<span class="fm-spine-t">{html.escape(label)}</span>'
+                       f'<b class="fm-spine-code" aria-hidden="true">{s["vol"]:02d}</b></a>\n')
         body += (f'  <section class="panel fm-shelf" data-ref="SHELF &#183; {html.escape(subject.upper())}" data-sector="{html.escape(subject)}">\n'
                  f'    <p class="sub">{html.escape(subject.upper())}</p>\n'
                  f'    <div class="fm-books">\n{spines}    </div>\n    <div class="fm-ledge"></div>\n  </section>\n')

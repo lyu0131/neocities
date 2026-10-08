@@ -31,13 +31,19 @@ const out = "[...document.querySelectorAll('.fm-spine.is-out')].map(s => s.datas
   const hrefs = await p.eval("[...document.querySelectorAll('.fm-shelf .fm-spine')].map(a => a.getAttribute('href'))");
   check('one spine per manual, each linking it', hrefs.length === SOURCES.length && SOURCES.every(s => hrefs.includes(`manual-${s}.html`)), hrefs.join(','));
   check('the real library has a book on display', /^FM-\d\d$/.test(await p.eval(onDisplay)));
+  // the books are drawn: an emblem on every cover and spine, each book its own, every spine title fully in
+  check('every spine title fits its spine', await p.eval("[...document.querySelectorAll('.fm-spine-t')].every(t => t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth <= t.clientWidth + 1)"),
+    await p.eval("[...document.querySelectorAll('.fm-spine-t')].filter(t => t.scrollHeight > t.clientHeight + 1).map(t => t.textContent).join(', ')"));
+  check('every spine carries an emblem', await p.eval("[...document.querySelectorAll('.fm-shelf .fm-spine')].every(a => a.querySelector('svg.fm-emblem'))"));
+  check('the cover on display carries an emblem', await p.eval("!!document.querySelector('.fm-display .fm-cover svg.fm-emblem')"));
+  check('each book has its own emblem', await p.eval("(() => { const m = [...document.querySelectorAll('.fm-shelf .fm-spine svg.fm-emblem')].map(s => s.innerHTML); return new Set(m).size === m.length; })()"));
 
   // the two-manual fixture
   await p.goto(FIX, 1200);
   check('a shelf per subject, A to Z', (await p.eval("[...document.querySelectorAll('.fm-shelf')].map(s => s.dataset.sector).join('|')")) === 'AI tools|Design');
   check('the newest is on display', await p.eval(onDisplay) === 'FM-02');
   check("its spine is an empty slot, marked current", await p.eval(out) === 'FM-02' && await p.eval("document.querySelector('.fm-spine.is-out').getAttribute('aria-current') === 'true'"));
-  check('a spine reads its spine: line, else the title', await p.eval("document.querySelector('[data-fm=FM-02]').textContent.trim() === 'Beta' && document.querySelector('[data-fm=FM-01]').textContent.trim() === 'Alpha guide'"));
+  check('a spine reads its spine: line, else the title', await p.eval("document.querySelector('[data-fm=FM-02] .fm-spine-t').textContent.trim() === 'Beta' && document.querySelector('[data-fm=FM-01] .fm-spine-t').textContent.trim() === 'Alpha guide'"));
   check('a longer manual is a taller spine', await p.eval("document.querySelector('[data-fm=FM-02]').offsetHeight > document.querySelector('[data-fm=FM-01]').offsetHeight"));
   await p.eval("document.querySelector('[data-fm=FM-01]').click(); true"); await p.sleep(1600);
   check('clicking a spine pulls that book out', await p.eval(onDisplay) === 'FM-01' && await p.eval(out) === 'FM-01');
