@@ -369,6 +369,11 @@ def nav_strip(menu, cur, sub=""):
             + f'    <li class="strip-menu"><details><summary{here}><span class="wide">FIELD&nbsp;</span>MANUAL</summary>\n'
               f'      <ul>\n        <li>{a("manual.html", "ALL MANUALS")}</li>\n{items}\n      </ul></details></li>\n'
               f'    <li>{a("resume.html", "R&Eacute;SUM&Eacute;")}</li>\n'
+              f'    <li class="strip-menu strip-aa"><details><summary aria-label="Text size">Aa</summary>\n'
+              f'      <ul role="radiogroup" aria-label="Text size">\n'
+            + "".join(f'        <li><label><input type="radio" name="textsize" value="{v}"{" checked" if v == "m" else ""}> {v.upper()}</label></li>\n'
+                      for v in ("s", "m", "l", "xl"))
+            + f'      </ul></details></li>\n'
               f'    <li><kbd aria-hidden="true">E</kbd></li>\n  </ul>\n{sub}</nav>')
 
 

@@ -819,6 +819,11 @@ body.page::before {
   .strip ul li:has(> kbd) { display: none; }   /* beats the later .strip li:has(> kbd) { display: flex } */
   .strip .strip-menu ul { position: fixed; left: 12px; right: 12px; top: auto; width: auto; max-width: none; margin-top: 8px; }
 }
+/* the Aa menu: four sizes as a radio list */
+.strip-aa summary { font-family: 'B612', sans-serif; letter-spacing: 0; }
+.strip-aa label { display: flex; align-items: center; gap: 10px; padding: 6px 10px; min-height: 32px; cursor: pointer; color: var(--ice); }
+.strip-aa label:hover, .strip-aa label:focus-within { background: var(--hud); color: var(--night); }
+.strip-aa input { accent-color: var(--hud); margin: 0; }
 /* inside a manual, a second row: that manual's own parts */
 .strip .strip-sub { flex-basis: 100%; gap: 6px; font-size: 11px; padding-top: 4px; border-top: 1px solid var(--edge); }
 /* FIELD MANUAL fits the strip from tablet up; on a phone it would wrap, so it reads MANUAL there */
@@ -1036,7 +1041,8 @@ html.linked body.page .screen { animation: none; }
    24px off its edge, or 20px off the window's on a narrow one. */
 @media (min-width: 1200px) {
   :root { --screen-w: min(1080px, 100vw - 360px); }
-  .screen { max-width: var(--screen-w); }
+  /* divided by the text size, whose zoom multiplies it back: the column keeps its width, the type grows */
+  main.screen { max-width: calc(var(--screen-w) / var(--ts)); }
   .phud-ladder, .phud-scope { display: block; position: fixed; top: 132px; z-index: var(--z-nav); width: 140px; }
   /* zoomed, every length (vw too) is multiplied by --z, so the bearing off the centre is divided back out */
   .phud-ladder { left: max(20px, calc((50vw - var(--screen-w) * var(--z) / 2) / var(--z) - 164px)); }
@@ -1049,7 +1055,13 @@ html.linked body.page .screen { animation: none; }
 @media (min-width: 1800px) and (min-height: 950px) { :root { --z: 1.2; } }
 @media (min-width: 2300px) and (min-height: 1250px) { :root { --z: 1.4; } }
 /* main.screen, not .screen: the cockpit's canopy screens are SVG groups of class "screen" too */
-.strip, main.screen, .phud-ladder, .phud-scope, .phud-status { zoom: var(--z); }
+.strip, .phud-ladder, .phud-scope, .phud-status { zoom: var(--z); }
+/* the visitor's text size (the strip's Aa menu) scales the reading column on top of the big-screen zoom */
+:root { --ts: 1; }
+:root[data-text="s"] { --ts: .9; }
+:root[data-text="l"] { --ts: 1.15; }
+:root[data-text="xl"] { --ts: 1.3; }
+main.screen { zoom: calc(var(--z) * var(--ts)); }
 .phud-cap {
   margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid rgba(140, 255, 193, .4);
   font: 700 10px/1 'B612 Mono', monospace; letter-spacing: .22em; color: var(--hud);

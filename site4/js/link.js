@@ -32,6 +32,8 @@
 
   // the page we're on, once, for every script after this one (pagehud reads it)
   var here = root.dataset.page = pageOf(location.pathname);
+  // the visitor's text size (the strip's Aa menu, pagehud.js), on <html> before the first paint so nothing jumps
+  try { var ts = localStorage.getItem('bunnys-text'); if (/^(s|l|xl)$/.test(ts)) root.dataset.text = ts; } catch (e) {}
   var arriving = read(KEY);
   try { sessionStorage.removeItem(KEY); } catch (e) {}
   if (reduce || !arriving || Date.now() - arriving.t > 6000 || arriving.to !== here) arriving = null;

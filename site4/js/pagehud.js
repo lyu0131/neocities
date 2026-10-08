@@ -173,6 +173,14 @@
     if (locked) locked.node.classList.add('is-lock');
     update();
   }
+  // text size: the Aa menu's radios show the remembered size and set a new one (link.js applies it at load)
+  [].forEach.call(document.querySelectorAll('.strip-aa input[name=textsize]'), function (r) {
+    r.checked = r.value === (document.documentElement.dataset.text || 'm');
+    r.addEventListener('change', function () {
+      if (r.value === 'm') delete document.documentElement.dataset.text; else document.documentElement.dataset.text = r.value;
+      try { if (r.value === 'm') localStorage.removeItem('bunnys-text'); else localStorage.setItem('bunnys-text', r.value); } catch (e) {}
+    });
+  });
   // the dropdown closes when you click anywhere else
   document.addEventListener('click', function (e) {
     var menu = document.querySelector('.strip-menu details[open]');
