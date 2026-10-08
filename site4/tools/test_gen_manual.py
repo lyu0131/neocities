@@ -69,6 +69,16 @@ files, summary = build_manual("x", pm, split_sections(pb, "x.md"), 2)
 assert sorted(files) == ["manual-x-1.html", "manual-x-2.html", "manual-x.html"], sorted(files)
 assert "Exercises" not in files["manual-x.html"] and summary["exercises"] == 0 and summary["parts"] == 2
 assert 'href="manual.html"' in files["manual-x-1.html"]   # ALL MANUALS
+# two manuals that would write the same file (a's part 1 and a-1's index are both manual-a-1.html) stop the build
+import tempfile as _tf
+from gen_manual import main as _main
+with _tf.TemporaryDirectory() as _d:
+    _m = Path(_d) / "docs" / "manuals"
+    _m.mkdir(parents=True)
+    (_m / "a.md").write_text("---\ntitle: A\nblurb: a.\ndate: 2026-10-08\n---\n## 1. One\nx\n## 2. Two\ny\n", encoding="utf-8")
+    (_m / "a-1.md").write_text("---\ntitle: B\nblurb: b.\ndate: 2026-10-09\n---\n## 1. One\nx\n", encoding="utf-8")
+    assert _main(Path(_d)) == 1, "a collision must fail the build"
+    assert not list(Path(_d).glob("*.html")), "and write nothing"
 # every local stylesheet and script carries a content fingerprint, so a changed file is never served stale
 import re as _re
 local = _re.findall(r'(?:href|src)="((?:css|js)/[^"]+)"', files["manual-x.html"])

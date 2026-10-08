@@ -475,6 +475,14 @@ def main(site):
             if meta["code_blocks"] is not None and meta["code_blocks"] != s["code"]:
                 raise ValueError(f"{slug}.md: {s['code']} code blocks, the header pins {meta['code_blocks']} "
                                  f"(old links point at their numbers)")
+        # every file the build writes, by who writes it: two writers for one name would overwrite each other
+        owner = {"manual.html": "the library"}
+        for (slug, meta, _), (files, s) in zip(found, built):
+            names = list(files) + [f'{meta["legacy"]}-{p["slug_n"]}.html' for p in s["pages"][1:] if meta["legacy"]]
+            for name in names:
+                if name in owner:
+                    raise ValueError(f"{slug}.md: would write {name}, which {owner[name]} writes too; rename one of them")
+                owner[name] = f"{slug}.md"
     except ValueError as e:
         print("gen_manual:", e, file=sys.stderr)
         return 1

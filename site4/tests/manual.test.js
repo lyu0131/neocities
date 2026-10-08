@@ -63,11 +63,23 @@ const SIZES = [[375, 740], [768, 1024], [1366, 600], [1920, 1080]];
   // ---- motion (js/manual-fx.js, GSAP): one-shot, never leaves text scrambled or hidden ----
   const visible = "(el => { const c = getComputedStyle(el); return c.visibility === 'visible' && +c.opacity === 1; })";
   const settled = `[...document.querySelectorAll('h1, .panel > h2')].every(h => ${visible}(h) && (!h.dataset.text || h.textContent === h.dataset.text))`;
+  // a volume below the fold is still reachable: its Open link is in the tab order and the accessibility tree
+  const low = await launch({ width: 1440, height: 320 });
+  await low.goto('manual.html', 1500);
+  check('volume below the fold keeps its link reachable', await low.eval(
+    "[...document.querySelectorAll('.fm-vol .fm-open')].every(a => getComputedStyle(a).visibility === 'visible' && a.getBoundingClientRect().top > innerHeight)"));
+  low.close();
   // a normal run on a big screen (the --z 1.4 zoom): scroll the whole page, every heading ends as its source text
   const m = await launch({ width: 2560, height: 1440 });
   await m.goto('manual.html', 1500);
   check('library panels carry a frame', await m.eval("[...document.querySelectorAll('.fm-vol')].every(v => v.querySelector('svg.fm-frame'))"));
   check('motion is armed', await m.eval("document.documentElement.classList.contains('fx')"));
+  // the decode's static is glyphs only: no HTML entity cut in half ("t;", "&amp;") ever shows mid-animation
+  await m.goto('manual.html', 150);
+  const frames = [];
+  for (let i = 0; i < 30; i++) { frames.push(await m.eval("document.querySelector('.fm-vol h2').textContent")); await m.sleep(50); }
+  const torn = frames.filter(f => /[&;]/.test(f));
+  check('decode shows no torn entities', torn.length === 0 && frames.some(f => /[█▓▒░]/.test(f)), torn.slice(0, 3).join(' | ') || `${frames.length} frames`);
   await m.goto('manual-claude-4.html', 1500);
   await m.eval("(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) { scrollTo(0, y); await new Promise(r => setTimeout(r, 250)); } })()");
   await m.sleep(1500);

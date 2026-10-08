@@ -6,7 +6,8 @@
   var g = window.gsap, ST = window.ScrollTrigger;
   if (!g || !ST || !window.ScrambleTextPlugin || !window.DrawSVGPlugin || !window.SplitText) return;
   g.registerPlugin(ST, window.ScrambleTextPlugin, window.DrawSVGPlugin, window.SplitText);
-  var CHARS = '█▓▒░<>/\\|01';   // the HUD's decode glyphs
+  // the HUD's decode glyphs. ScrambleText writes HTML, so never < > or &: they'd be escaped to entities and cut in half
+  var CHARS = '█▓▒░/\\|01';
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   // a paused timeline that plays the first time its element comes into view
   function once(el, start, tl) { ST.create({ trigger: el, start: start, once: true, onEnter: function () { tl.play(); } }); return tl; }
@@ -24,7 +25,8 @@
       once(v, 'top bottom', g.timeline({ paused: true })
         .fromTo($$('.fm-frame rect', v), { drawSVG: '0%' }, { drawSVG: '100%', duration: 0.5 })
         .to(h, decode(h, 0.6))
-        .from($$('.fm-blurb, .rail, .fm-open', v), { autoAlpha: 0, y: 8, duration: 0.3, stagger: 0.05 }));
+        // opacity, not autoAlpha: visibility:hidden would drop the Open link from the tab order and screen readers
+        .from($$('.fm-blurb, .rail, .fm-open', v), { opacity: 0, y: 8, duration: 0.3, stagger: 0.05 }));
     });
     // inside a manual: each section's heading decodes as it arrives (the text is there all along)
     if (!vols.length) $$('.panel > h2').forEach(function (h) { once(h, 'top 80%', g.timeline({ paused: true }).to(h, decode(h, 0.5))); });
