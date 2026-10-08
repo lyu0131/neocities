@@ -29,6 +29,7 @@
   // the library and every manual's pages (manual-<slug>[-n].html) read as the FIELD MANUAL contact
   var here = document.documentElement.dataset.page;
   if (/^manual/.test(here)) here = 'manual';
+  if (here === 'resume') here = 'pilot';   // the plain résumé is the PILOT contact, read another way
   var me = CONTACTS.filter(function (c) { return c.page === here; })[0] || CONTACTS[0];
 
   function el(tag, cls, text) {

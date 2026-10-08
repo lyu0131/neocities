@@ -11,7 +11,7 @@
   var EMBLEM = 'img/emblem-hud.webp';   // the owner's emblem in HUD phosphor, shown on the closed glass    // the cockpit's last measured screens, as 5 polys of viewport percentages
   // every page of the site (unknown: the UNKNOWN contact's open channel; manual*: the library and its manuals),
   // with or without a #section
-  var OWN = /^(index|pilot|missions|hangar|manual(-[a-z][a-z0-9-]*(-\d+)?)?|unknown)\.html(#.*)?$/;
+  var OWN = /^(index|pilot|missions|hangar|manual(-[a-z][a-z0-9-]*(-\d+)?)?|unknown|resume)\.html(#.*)?$/;
   // A rough canopy, as percentages of the viewport (originally measured at 1440x900), for a page
   // that has never measured the cockpit's own (a visitor who landed straight on a sub-page).
   var FALLBACK = [

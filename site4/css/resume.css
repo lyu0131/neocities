@@ -1,0 +1,34 @@
+/* resume.html: the recruiter's fast lane. On screen it is a sub-page like the others; on paper (and so the PDF,
+   tools/gen_resume_pdf.js) it drops the cockpit entirely: black on white, no HUD, no background. */
+.cv-lede { max-width: 70ch; margin: 0 0 10px; color: var(--ice); }
+.cv-contact { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 14px; }
+.cv-role + .cv-role { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--edge); }
+.cv-role h3 { margin: 0; font: 700 16px/1.35 'B612', sans-serif; color: var(--ice); }
+.cv-role h3 span { display: block; font-weight: 400; color: var(--hud); }
+.cv-when { margin: 2px 0 8px; font: 700 11px/1.4 'B612 Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: rgba(221, 231, 238, .7); }
+/* the résumé is read, not explored: no hover magnify here */
+.resume .screen .panel:hover, .resume .screen .panel:focus-within, .resume .screen a:hover, .resume .screen a:focus-visible { font-size: inherit; }
+
+@media print {
+  @page { margin: 14mm 14mm 16mm; }
+  html, body { background: #fff !important; color: #111 !important; }
+  body.page::before, .bg-emblem, .strip, .phud-ladder, .phud-scope, .phud-status, .phud-prog, #link { display: none !important; }
+  .screen { zoom: 1 !important; max-width: none; margin: 0; padding: 0; color: #111; font-size: 10.5pt; line-height: 1.45; animation: none !important; }
+  .screen .bar, .panel[data-ref]::after, .panel::before { display: none !important; }
+  .screen h1 { color: #000; font-size: 22pt; margin: 0 0 4px; }
+  .screen .panel { background: none; border: 0; box-shadow: none; padding: 0; margin: 0 0 12pt; break-inside: auto; }
+  .screen h2 { color: #000; font-size: 12pt; margin: 0 0 6pt; padding-bottom: 3pt; border-bottom: 1px solid #000; }
+  .cv-role { break-inside: avoid; }
+  .cv-role + .cv-role { margin-top: 8pt; padding-top: 0; border: 0; }
+  .cv-role h3, .cv-lede, .screen p, .screen li, .screen dd { color: #111; }
+  .cv-role h3 span { color: #333; display: inline; }
+  .cv-role h3 span::before { content: ' \2014  '; }
+  .cv-when { color: #444; margin: 0 0 3pt; }
+  .screen dt { color: #000; }
+  .screen a { color: #000; text-decoration: none; }
+  .cv-contact { font-size: 10pt; margin-bottom: 12pt; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+  .rows { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .rows dd { color: #111; margin-bottom: 4pt; }
+  .list li::marker { color: #000; }
+}

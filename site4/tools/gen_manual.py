@@ -351,7 +351,7 @@ def shell(title, strip, main, bar_unit, kicker, h1, blurb, rail):
 
 
 CONTACTS = [("pilot.html", "PILOT"), ("missions.html", "MISSIONS"), ("hangar.html", "HANGAR")]
-PORTFOLIO = [f for f, _ in CONTACTS]   # hand-written pages whose strip this build keeps in step
+PORTFOLIO = [f for f, _ in CONTACTS] + ["resume.html"]   # hand-written pages whose strip this build keeps in step
 
 
 def nav_strip(menu, cur, sub=""):
@@ -368,6 +368,7 @@ def nav_strip(menu, cur, sub=""):
             + "".join(f"    <li>{a(f, t)}</li>\n" for f, t in CONTACTS)
             + f'    <li class="strip-menu"><details><summary{here}><span class="wide">FIELD&nbsp;</span>MANUAL</summary>\n'
               f'      <ul>\n        <li>{a("manual.html", "ALL MANUALS")}</li>\n{items}\n      </ul></details></li>\n'
+              f'    <li>{a("resume.html", "R&Eacute;SUM&Eacute;")}</li>\n'
               f'    <li><kbd aria-hidden="true">E</kbd></li>\n  </ul>\n{sub}</nav>')
 
 
